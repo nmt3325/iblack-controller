@@ -1,0 +1,37 @@
+#!/bin/bash
+set -euo pipefail
+ipt() { /usr/sbin/iptables -w 5 "$@"; }
+del() { while ipt "$@" 2>/dev/null; do :; done; }
+if [ "${1:-up}" = down ]; then
+ del -t nat -D PREROUTING -i ens18 -d 192.168.1.201 -j IERMU_HOME_NAT
+ del -t nat -D PREROUTING -i iermu-sta0 -d 192.168.10.22 -j IERMU_HOME_NAT
+ del -D INPUT -i ens18 -d 192.168.1.201 -j IERMU_HOME_IN
+ del -D INPUT -i iermu-sta0 -d 192.168.10.22 -j IERMU_HOME_IN
+ ipt -t nat -F IERMU_HOME_NAT || true
+ ipt -F IERMU_HOME_IN || true
+ exit 0
+fi
+ipt -t nat -N IERMU_HOME_NAT 2>/dev/null || true
+ipt -t nat -F IERMU_HOME_NAT
+for source in 192.168.1.3 192.168.10.35; do
+ ipt -t nat -A IERMU_HOME_NAT -s "$source" -p tcp --dport 443 -j REDIRECT --to-ports 8443
+ ipt -t nat -A IERMU_HOME_NAT -s "$source" -d 192.168.10.22 -p tcp --dport 1935 -j DNAT --to-destination 192.168.1.201:1935
+done
+ipt -t nat -A IERMU_HOME_NAT -j RETURN
+for spec in 'ens18 192.168.1.201' 'iermu-sta0 192.168.10.22'; do
+ read -r iface addr <<< "$spec"
+ ipt -t nat -C PREROUTING -i "$iface" -d "$addr" -j IERMU_HOME_NAT 2>/dev/null || ipt -t nat -I PREROUTING 1 -i "$iface" -d "$addr" -j IERMU_HOME_NAT
+done
+ipt -N IERMU_HOME_IN 2>/dev/null || true
+ipt -F IERMU_HOME_IN
+for source in 192.168.1.3 192.168.10.35 192.168.1.201 192.168.10.22; do
+ ipt -A IERMU_HOME_IN -s "$source" -p tcp -m multiport --dports 53,1935,3399,8443 -j ACCEPT
+ ipt -A IERMU_HOME_IN -s "$source" -p udp -m multiport --dports 53,3368 -j ACCEPT
+done
+ipt -A IERMU_HOME_IN -p tcp -m multiport --dports 53,1935 -j REJECT --reject-with tcp-reset
+ipt -A IERMU_HOME_IN -p udp --dport 53 -j DROP
+ipt -A IERMU_HOME_IN -j RETURN
+for spec in 'ens18 192.168.1.201' 'iermu-sta0 192.168.10.22'; do
+ read -r iface addr <<< "$spec"
+ ipt -C INPUT -i "$iface" -d "$addr" -j IERMU_HOME_IN 2>/dev/null || ipt -I INPUT 1 -i "$iface" -d "$addr" -j IERMU_HOME_IN
+done

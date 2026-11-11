@@ -9,6 +9,8 @@ authInternalUsers:
     permissions:
       - action: publish
         path: live/camera
+      - action: read
+        path: live/camera
   - user: any
     ips: [100.64.0.0/10]
     permissions:
@@ -29,3 +31,5 @@ paths:
   live/camera:
     source: publisher
     overridePublisher: false
+
+moq: false

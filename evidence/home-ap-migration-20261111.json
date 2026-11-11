@@ -1,0 +1,168 @@
+{
+  "recorded_at": "2026-11-11T23:46:51.717237+09:00",
+  "camera": {
+    "dhcp": false,
+    "ip": "192.168.10.35",
+    "netmask": "255.255.255.0",
+    "gateway": "192.168.10.1",
+    "primary_dns": "192.168.1.201",
+    "secondary_dns": "192.168.10.22",
+    "ssid": "YOUR_HOME_WIFI_SSID"
+  },
+  "linux": {
+    "wired_ip": "192.168.1.201",
+    "home_wifi_client_ip": "192.168.10.22",
+    "tailscale_ip": "100.87.20.49",
+    "aterm_wan_nat_source": "192.168.1.3"
+  },
+  "camera_wifi_already_on_aterm_at_discovery": true,
+  "camera_wifi_credentials_rewritten": false,
+  "dedicated_ap_disabled": true,
+  "home_dhcp_server_added": false,
+  "household_router_dns_changed": false,
+  "camera_netset": {
+    "set_acknowledged": true,
+    "save_acknowledged": true,
+    "full_44_byte_readback_exact_after_reconnect": true,
+    "backup_retained_privately": true,
+    "host_reboot_tested": false,
+    "camera_power_cycle_tested": false
+  },
+  "dns": {
+    "primary": "192.168.1.201",
+    "secondary": "192.168.10.22",
+    "override_domains": [
+      "iermu.com",
+      "dvrnat.com",
+      "yunwt.com",
+      "c.pcs.baidu.com"
+    ],
+    "override_ipv4": "192.168.1.201",
+    "ntp_domains_not_overridden": true,
+    "actual_camera_path_observation_seconds": 75.1,
+    "camera_path_queries": {
+      "www.dvrnat.com": 1,
+      "cn.ntp.org.cn": 1,
+      "time.nist.gov": 1,
+      "api.iermu.com": 45,
+      "www.iermu.com": 1
+    },
+    "observed_a_answers": {
+      "www.dvrnat.com = 192.168.1.201": 1,
+      "cn.ntp.org.cn = 120.197.116.202": 1,
+      "time.nist.gov = 132.163.97.3": 1,
+      "api.iermu.com = 192.168.1.201": 45,
+      "www.iermu.com = 192.168.1.201": 1
+    },
+    "effective_dns_verified_on_wired_interface": true,
+    "raw_payloads_or_macs_saved": false
+  },
+  "cloud_ingress": {
+    "observed_packets": {
+      "ens18 192.168.1.3 -> 192.168.1.201 UDP server_port=53": 49,
+      "ens18 192.168.1.201 -> 192.168.1.3 UDP server_port=53": 49,
+      "ens18 192.168.1.3 -> 192.168.1.201 UDP server_port=3368": 3,
+      "ens18 192.168.1.3 -> 192.168.1.201 TCP server_port=443": 501,
+      "ens18 192.168.1.201 -> 192.168.1.3 TCP server_port=443": 328,
+      "ens18 192.168.1.3 -> 192.168.1.201 TCP server_port=3399": 47,
+      "ens18 192.168.1.201 -> 192.168.1.3 TCP server_port=3399": 46
+    },
+    "https_request_path_without_query": "/v2/pcs/device",
+    "https_requests_decrypted": true,
+    "cloud_api_emulation_complete": false,
+    "actual_camera_outbound_rtmp_push_observed": false,
+    "actual_camera_push_video_verified": false
+  },
+  "wired_synthetic_rtmp": {
+    "exit_code": 0,
+    "frame_count": 26,
+    "video": [
+      "h264 (Constrained Baseline), yuv420p(progressive), 320x180 [SAR 1:1 DAR 16:9], 10 fps, 10 tbr, 1k tbn, start 3.093000"
+    ],
+    "audio": [
+      "aac (LC), 11025 Hz, mono, fltp, start 2.693000"
+    ],
+    "errors": [],
+    "source": "local synthetic test; NOT camera cloud push"
+  },
+  "camera_direct_pull": {
+    "decoded_frames": 97,
+    "video": [
+      "h264 (Baseline), yuv420p(progressive), 1280x720, 409 kb/s, 10 fps, 8.75 tbr, 1k tbn"
+    ],
+    "audio": [
+      "aac (LC), 11025 Hz, mono, fltp, 44 kb/s, start 0.097000"
+    ],
+    "pipeline_exit": 1,
+    "early_consumer_stop_caused_broken_pipe": true
+  },
+  "tailscale_current_camera": {
+    "exit_code": 0,
+    "frame_count": 86,
+    "video": [
+      "h264 (Baseline), yuv420p(progressive), 1280x720, 8.75 fps, 8.75 tbr, 1k tbn, start 181.780000"
+    ],
+    "audio": [
+      "aac (LC), 11025 Hz, mono, fltp, start 179.521000"
+    ],
+    "errors": [],
+    "url": "rtmp://100.87.20.49:1935/live/camera",
+    "verification_source": "same Linux host reading Tailscale-bound endpoint; remote node not retested this migration"
+  },
+  "services": {
+    "iermu-wifi-vif": {
+      "active": "active",
+      "enabled": "enabled"
+    },
+    "iermu-home-network": {
+      "active": "active",
+      "enabled": "enabled"
+    },
+    "iermu-home-dns": {
+      "active": "active",
+      "enabled": "enabled"
+    },
+    "iermu-cloud-rtmp": {
+      "active": "active",
+      "enabled": "enabled"
+    },
+    "iermu-fakecloud": {
+      "active": "active",
+      "enabled": "enabled"
+    },
+    "iermu-sslcloud": {
+      "active": "active",
+      "enabled": "enabled"
+    },
+    "iermu-rtmp": {
+      "active": "active",
+      "enabled": "enabled"
+    },
+    "iermu-rtmp-publish": {
+      "active": "active",
+      "enabled": "enabled"
+    },
+    "iermu-ap": {
+      "active": "inactive",
+      "enabled": "disabled"
+    },
+    "iermu-dhcp": {
+      "active": "inactive",
+      "enabled": "static"
+    }
+  },
+  "dns_cli": {
+    "app_sequence_flag": "--app-save-sequence",
+    "static_flag": "--static",
+    "offline_tests": 54,
+    "post_deploy_read_only_preview_exit": 0,
+    "post_deploy_preview_unchanged": true,
+    "extra_cli_live_write_performed": false
+  },
+  "limitations": [
+    "Camera-native outbound cloud RTMP push is not established; DNS redirect is not a complete vendor cloud API implementation.",
+    "Camera is static at its former DHCP lease; reserve/exclude 192.168.10.35 in the Aterm DHCP pool.",
+    "The source-scoped rules depend on current Aterm WAN/NAT IP 192.168.1.3.",
+    "Host reboot, physical camera power-cycle persistence and long-term stability are not yet tested."
+  ]
+}

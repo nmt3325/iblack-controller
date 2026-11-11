@@ -1,5 +1,5 @@
 {
-  "recorded_at": "2026-11-11T23:11:48+09:00",
+  "recorded_at": "2026-11-11T23:49:42+09:00",
   "scope": "Sanitized repository files; initial reference manifest unchanged; this manifest and audit report excluded",
   "files": [
     {
@@ -12,7 +12,7 @@
     },
     {
       "path": "README.md",
-      "sha256": "9b502b0583ecbac66f169ec94756fbfc878b78cc4b4ef335eeb0b64a55411aa1"
+      "sha256": "18cce71dd8e07c54af5c6e9da37710988a3cc48fe98207432b3a467c63af16e7"
     },
     {
       "path": "SECURITY.md",
@@ -20,7 +20,7 @@
     },
     {
       "path": "client/camctl.py",
-      "sha256": "d97aa34e39d9517fa3ae7672fdc160a48f83e6c945bdc272c205ead27d9599ce"
+      "sha256": "c9ee8105f4b41d98f51cb9630c351a56866edb211650c7a32bed84bacec4ac7c"
     },
     {
       "path": "client/camera-stream",
@@ -39,8 +39,16 @@
       "sha256": "72e75fe3a2d2b8e188df021e679f92d95e86f3fca3ad098877b4a765d21c06b8"
     },
     {
+      "path": "deployment/cloud-mediamtx.yml",
+      "sha256": "52f562d16c235605816d52e92e6bfa2b27826ede60876a76321e1128a6e737a1"
+    },
+    {
       "path": "deployment/dnsmasq/dnsmasq.conf.example",
       "sha256": "e647471b25d0078d0aea5fcc7824045435d6586346b1380b7bc89f0211013088"
+    },
+    {
+      "path": "deployment/dnsmasq/home-dnsmasq.conf.example",
+      "sha256": "77f7eb677804e698abdb4fd1b0261586e3771149b44893c2e0e23b126c7096e9"
     },
     {
       "path": "deployment/hostapd/iermu-ap.conf.example",
@@ -52,7 +60,7 @@
     },
     {
       "path": "deployment/mediamtx.yml",
-      "sha256": "a6fc655b3ddbec59a753ec57fe541b583e1d41bf03523ccfa52054b01e76ca16"
+      "sha256": "cd86d468151ef41cdfcef46b9f946318e393ca24717bde129a43688f17de6779"
     },
     {
       "path": "deployment/radio-private.json.example",
@@ -65,6 +73,10 @@
     {
       "path": "deployment/sbin/iermu-ap-up",
       "sha256": "1d4aad4aa4c63d5bb1937756eb6a892e5443278d6fffd9fd2917dea293f788ce"
+    },
+    {
+      "path": "deployment/sbin/iermu-home-network",
+      "sha256": "e058a4389f9d4468c5ec2d7e5f1a0aba11104d7787255a9e824bfd1faff9f00f"
     },
     {
       "path": "deployment/sbin/iermu-rtmp-publish",
@@ -83,6 +95,14 @@
       "sha256": "517b6f8a1a67194958eded621fb297f0dd1f47182adaf9fea9e9090988aa1e65"
     },
     {
+      "path": "deployment/systemd/iermu-cloud-rtmp.service",
+      "sha256": "fa417e728b6a932740f17eb5c99785b21199324f3cb52ef8bc28233204b2b158"
+    },
+    {
+      "path": "deployment/systemd/iermu-cloud-rtmp.service.d/stop-timeout.conf",
+      "sha256": "9230fd3a81a89cb23dbea6ff07ab4ccf353e8fbf656a63b8b0d880a797c737e0"
+    },
+    {
       "path": "deployment/systemd/iermu-dhcp.service",
       "sha256": "cda453b64cdda01e06e5812f80fc5b12f6888a34c088211c913427105164b268"
     },
@@ -91,12 +111,24 @@
       "sha256": "271da77c15c3c8bd9f4f7e669a16bf760cef9cf8499bf6e938548f15a0c68299"
     },
     {
+      "path": "deployment/systemd/iermu-home-dns.service",
+      "sha256": "c05ed1ef7fface25b00527b8c673bed9169235e3594d71bd78f69bdb928da8d4"
+    },
+    {
+      "path": "deployment/systemd/iermu-home-network.service",
+      "sha256": "12b894c73d9b151fbae30d3b7810a99d8d93d4911717eb43d5dc3422930270be"
+    },
+    {
       "path": "deployment/systemd/iermu-rtmp-publish.service",
-      "sha256": "4318859aebb2b2dbcb8beae9ae0f7532a038a97f70bff5b6d213264c0c3df547"
+      "sha256": "1a346e61c8e8c08bcaa5f55539f976a91a9991e0864d33d423a9dfa0e8ddaf20"
     },
     {
       "path": "deployment/systemd/iermu-rtmp.service",
       "sha256": "e7b243d7133214b5c0917a8b01126475c3e1311ec6fee46a95452995336ddc08"
+    },
+    {
+      "path": "deployment/systemd/iermu-rtmp.service.d/stop-timeout.conf",
+      "sha256": "9230fd3a81a89cb23dbea6ff07ab4ccf353e8fbf656a63b8b0d880a797c737e0"
     },
     {
       "path": "deployment/systemd/iermu-sslcloud.service",
@@ -108,7 +140,7 @@
     },
     {
       "path": "docs/ARCHITECTURE.md",
-      "sha256": "ad20a0b261373988bcbbdd9e58239bbe1f4643307852c71955d1668ea85e4df2"
+      "sha256": "7ed8558c14d7c225e89a7307488a8bb224864e87e0e798e03739c365a1bc8cb6"
     },
     {
       "path": "docs/CONTROLS.md",
@@ -116,11 +148,15 @@
     },
     {
       "path": "docs/DNS.md",
-      "sha256": "af84d464eb5c2f6e21cae172d96e97070c1f6d6c910552ac37a389da31a9a818"
+      "sha256": "2386ce13d26fd16377508dc4646189fe2a1499e0964206e8dd974988b2633a50"
     },
     {
       "path": "docs/HANDOFF.md",
-      "sha256": "5e68995ca456de47f603d0e80514d7a306f12aacb44f3818b640d752ef160f5b"
+      "sha256": "cbfb0cda2eb968df22e9263fd3d8cfd8ca8c56bf257e75b47f6a633d53b54414"
+    },
+    {
+      "path": "docs/HOME-AP.md",
+      "sha256": "e9ed009ae43162754227dbec56018ee7c6fa6edc7a3cdfbeb8dc2a8147568456"
     },
     {
       "path": "docs/MEDIA.md",
@@ -132,11 +168,11 @@
     },
     {
       "path": "docs/OPERATIONS.md",
-      "sha256": "dc0ef4a1c22f8e11738ccefb335cd6d749b1e40fc9dd0a46e97fff83ef090e55"
+      "sha256": "61653e72f22ed5b69a44daf99c76455168bae541d98ed3fe2de55bc932253e4e"
     },
     {
       "path": "docs/PROGRESS.md",
-      "sha256": "62a1ca00b821fdade8c4a4b046c062e1b9266e2f13a6383e9a4ea636f7293e83"
+      "sha256": "a0a97fe7f82a57e425c90b75c566857bb50f6261c51735e5d1ce510b194a891c"
     },
     {
       "path": "docs/PROTOCOL.md",
@@ -144,15 +180,15 @@
     },
     {
       "path": "docs/SETUP.md",
-      "sha256": "59c36e718347f16c1d79ade7313d5d470445da0b8b104b6314c377b6ede75455"
+      "sha256": "64d51f74aeba66997419b80cb90f5f5c6a30f0569ce2dbdc15d6b819795fd3ff"
     },
     {
       "path": "docs/TAILSCALE-RTMP.md",
-      "sha256": "9bef403a22d395fa597b884b1bc86f141543d69b737f413c5f63b60305829a38"
+      "sha256": "11b3e9d96daef1901487279ff00af34c261410de0a1ea3b770ac2a8f2318a48d"
     },
     {
       "path": "docs/VERIFICATION.md",
-      "sha256": "91b04f54d4a5a614f3ea581b1e142dbee348cf15ae716774498b4ba52bf90025"
+      "sha256": "99d512c63809f200bc18dace803415bf2eaa053a94b5720eaae94712b7fb5d82"
     },
     {
       "path": "evidence/20261111-power-cycle.txt",
@@ -173,6 +209,10 @@
     {
       "path": "evidence/dns-control-20261111.json",
       "sha256": "46214c9eec414adbd4f0e0ada8e20085c19864386633ff8cbfe7ff4d92675667"
+    },
+    {
+      "path": "evidence/home-ap-migration-20261111.json",
+      "sha256": "63848956f362597619e95414d6b4ef23103b74a8f2893680c01d86f15e5af82e"
     },
     {
       "path": "evidence/local-receiver.txt",
@@ -283,6 +323,10 @@
       "sha256": "f493053e8d752ae3629f91a448d1d471ef21a7982177d5d000d8fd1cb1494f7f"
     },
     {
+      "path": "research/observe_home_network.py",
+      "sha256": "d75ed8d193e2405b7066e80174c2584357175e951ef9da68d30964832ba04bdf"
+    },
+    {
       "path": "server/requirements.txt",
       "sha256": "563164a39e2c6c1ffee9a5bcc039c36df0478ada0ba6ccf6adf348dd21a4f43c"
     },
@@ -299,6 +343,10 @@
       "sha256": "3a66a80802960b80b33078921af0bb05cc97130334dc359474a1f81303394392"
     },
     {
+      "path": "tests/test_dns_app_sequence.py",
+      "sha256": "3a403b100ec01e03927a3cc5d80d62aa4d61c135d778ac9e4544b363920bcbc6"
+    },
+    {
       "path": "tests/test_nal_headers.py",
       "sha256": "7210ae1b0e64eab142f026abe323be2a91a4d3946358805eb19f39dba7a20995"
     },
@@ -312,7 +360,7 @@
     },
     {
       "path": "tools/verify_repo.py",
-      "sha256": "e61eb507a2ea29e21f141eba82c40b175c979bb1d32210a7a1eef5cb9c2a859c"
+      "sha256": "f4234fd9a78de1a637733692d1133ddf4446cd33186694f0f9db2d9431b5c69f"
     }
   ]
 }

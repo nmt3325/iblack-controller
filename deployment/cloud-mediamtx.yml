@@ -1,0 +1,35 @@
+logLevel: warn
+logDestinations: [stdout]
+readTimeout: 15s
+writeTimeout: 15s
+authMethod: internal
+authInternalUsers:
+- user: any
+  ips: [192.168.1.3/32, 192.168.10.35/32]
+  permissions:
+  - action: publish
+    path:
+- user: any
+  ips: [192.168.1.201/32, 192.168.10.22/32]
+  permissions:
+  - action: publish
+    path:
+  - action: read
+    path:
+api: false
+metrics: false
+pprof: false
+playback: false
+rtsp: false
+rtmp: true
+rtmpEncryption: "no"
+rtmpAddress: 192.168.1.201:1935
+hls: false
+webrtc: false
+srt: false
+paths:
+  all_others:
+    source: publisher
+    overridePublisher: false
+
+moq: false

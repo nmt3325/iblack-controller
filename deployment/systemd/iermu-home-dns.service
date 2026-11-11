@@ -1,0 +1,11 @@
+[Unit]
+Description=Local DNS overrides for iermu on the home Aterm network
+Wants=network-online.target iermu-wifi-vif.service
+After=network-online.target iermu-wifi-vif.service
+[Service]
+Type=simple
+ExecStart=/usr/sbin/dnsmasq -k --conf-file=/etc/iermu-ap/home-dnsmasq.conf
+Restart=on-failure
+RestartSec=3
+[Install]
+WantedBy=multi-user.target

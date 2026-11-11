@@ -1,0 +1,12 @@
+[Unit]
+Description=Scoped DNS and cloud ingress rules for the home camera
+Wants=network-online.target iermu-wifi-vif.service
+After=network-online.target iermu-wifi-vif.service
+Before=iermu-home-dns.service iermu-cloud-rtmp.service
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=/usr/local/sbin/iermu-home-network up
+ExecStop=/usr/local/sbin/iermu-home-network down
+[Install]
+WantedBy=multi-user.target

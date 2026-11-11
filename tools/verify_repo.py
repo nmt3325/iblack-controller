@@ -19,7 +19,7 @@ def main():
     ast.parse((ROOT / "deployment/sbin/iermu-wifi-vif-up").read_text(), filename="iermu-wifi-vif-up")
     print(f"PASS Python syntax: {len(py_files)} files plus the virtual-interface helper", flush=True)
     sh_files = sorted(ROOT.rglob("*.sh")) + sorted((ROOT / "reference/sbin").iterdir())
-    sh_files += [ROOT / "client/camera-stream", ROOT / "deployment/sbin/iermu-ap-up", ROOT / "deployment/sbin/iermu-ap-down", ROOT / "deployment/sbin/iermu-rtmp-publish"]
+    sh_files += [ROOT / "client/camera-stream", ROOT / "deployment/sbin/iermu-ap-up", ROOT / "deployment/sbin/iermu-ap-down", ROOT / "deployment/sbin/iermu-rtmp-publish", ROOT / "deployment/sbin/iermu-home-network"]
     for p in sh_files:
         if p.is_file():
             subprocess.run(["bash", "-n", str(p)], check=True)

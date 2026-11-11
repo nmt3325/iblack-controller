@@ -85,23 +85,32 @@ class Camera:
  def set(self,sub,body):return self.request(75,sub,body)
  def dns(self):
   return parse_network_config(self.get(8))
- def set_dns(self,primary,secondary=None,*,apply=False,persist=False,experimental=False):
+ def set_dns(self,primary,secondary=None,*,apply=False,persist=False,experimental=False,app_sequence=False,static=False):
   primary=str(dns_address(primary))
   if secondary is not None:secondary=str(dns_address(secondary,secondary=True))
   if persist and not apply:raise ValueError('--save requires --apply')
-  if apply and not experimental:raise ValueError('Live DNS writes are not verified; add --experimental explicitly')
+  if static and not app_sequence:raise ValueError('--static requires --app-save-sequence')
+  if app_sequence and apply and not persist:raise ValueError('--app-save-sequence requires --save when applying')
+  if apply and not experimental:raise ValueError('Per-device experimental DNS writes require --experimental explicitly')
   original=self.get(8)
   before=parse_network_config(original)
-  updated=patch_network_dns(original,primary,secondary)
+  updated=bytearray(patch_network_dns(original,primary,secondary))
+  if static:updated[3]=0
+  updated=bytes(updated)
   changed=[i for i,(a,b) in enumerate(zip(original,updated)) if a!=b]
   result={'before':before,'requested':parse_network_config(updated),'changed_offsets':changed,
           'dry_run':not apply,'applied':False,'readback_verified':False,'saved':False,
           'save_attempted':False,'save_acknowledged':False,
           'effective_dns_verified':False,'reboot_persistence_verified':False,
-          'layout_status':'DNS offsets inferred from archived NETSET; live write not yet validated',
+          'layout_status':'DNS offsets live-validated on the reference camera; other firmware remains experimental',
+          'commit_order':'save_then_reconnect_readback' if app_sequence else 'readback_then_save',
           'warnings':[]}
-  if before['dhcp']:
+  if before['dhcp'] and not static:
    result['warnings'].append('DHCP remains enabled; DHCP may override these DNS fields. Effective resolver requires packet verification.')
+  if static:
+   result['warnings'].append('Static addressing keeps the current IP, mask and gateway. Reserve or exclude this IP in the router DHCP pool.')
+  if app_sequence:
+   result['warnings'].append('Explicit app sequence commits before readback and may briefly interrupt networking; backup is retained on failure.')
   if not changed:
    result['unchanged']=True
    return result
@@ -113,6 +122,16 @@ class Camera:
    ack=self.set(8,updated)
    if ack!=b'\x00':raise RuntimeError('Unexpected NETSET acknowledgment; no save sent')
    result['write_acknowledged']=True
+   if app_sequence:
+    stage='save'
+    result['save_attempted']=True
+    if self.request(65,3)!=b'':raise RuntimeError('Unexpected save acknowledgment')
+    result['save_acknowledged']=True
+    stage='post_save_readback'
+    observed=self.wait_network_readback(updated)
+    if observed!=updated:raise RuntimeError('Post-save NETSET readback differs; result remains unconfirmed')
+    result.update(readback_verified=True,applied=True,saved=True)
+    return result
    stage='readback'
    observed=self.get(8)
    if observed!=updated:raise RuntimeError('NETSET readback differs from requested bytes; no save sent')
@@ -130,10 +149,25 @@ class Camera:
   except (OSError,RuntimeError,EOFError) as exc:
    result['failed_stage']=stage
    raise DNSUpdateError(str(exc),result) from exc
- def restore_dns(self,backup,*,apply=False,persist=False,experimental=False):
+ def wait_network_readback(self,expected):
+  host,port=self.s.getpeername()
+  self.close()
+  for delay in (2,3,5,8,8,8):
+   time.sleep(delay)
+   peer=None
+   try:
+    peer=Camera(host,port)
+    observed=peer.get(8)
+    parse_network_config(observed)
+    if observed==expected:return observed
+   except (OSError,RuntimeError,EOFError):pass
+   finally:
+    if peer is not None:peer.close()
+  raise RuntimeError('Save acknowledged but exact NETSET readback was not recovered; do not repeat writes blindly')
+ def restore_dns(self,backup,*,apply=False,persist=False,experimental=False,app_sequence=False):
   saved=pathlib.Path(backup).read_bytes()
   config=parse_network_config(saved)
-  return self.set_dns(config['primary_dns'],config['secondary_dns'],apply=apply,persist=persist,experimental=experimental)
+  return self.set_dns(config['primary_dns'],config['secondary_dns'],apply=apply,persist=persist,experimental=experimental,app_sequence=app_sequence)
  def night(self,mode):
   modes={'auto':0,'day':1,'night':2}
   if mode not in modes:raise ValueError('mode must be auto, day, or night')
@@ -164,14 +198,18 @@ def main(argv=None):
  ap.add_argument('--host');ap.add_argument('--port',type=int,default=3357)
  ap.add_argument('--secondary',help='Secondary DNS; omitted means preserve; 0.0.0.0 clears this field')
  ap.add_argument('--apply',action='store_true',help='Write DNS changes; default is read-only preview')
- ap.add_argument('--save',action='store_true',help='Send save 65/3 after exact readback; requires --apply')
- ap.add_argument('--experimental',action='store_true',help='Explicitly allow the not-yet-live-verified DNS write path')
+ ap.add_argument('--save',action='store_true',help='Save explicitly; app sequence saves before delayed readback')
+ ap.add_argument('--experimental',action='store_true',help='Explicitly allow per-device experimental DNS writes')
+ ap.add_argument('--app-save-sequence',action='store_true',help='Use APK set/save order, then reconnect and verify; applying requires --save')
+ ap.add_argument('--static',action='store_true',help='Explicitly disable DHCP, keeping the current IP/mask/gateway; requires app sequence')
  a=ap.parse_args(argv)
  dns_write=a.action in ('dns-set','dns-restore')
- if (a.apply or a.save or a.experimental) and not dns_write:ap.error('DNS write flags require dns-set or dns-restore')
+ if (a.apply or a.save or a.experimental or a.app_save_sequence or a.static) and not dns_write:ap.error('DNS write flags require dns-set or dns-restore')
  if a.secondary is not None and a.action!='dns-set':ap.error('--secondary requires dns-set')
+ if a.static and (a.action!='dns-set' or not a.app_save_sequence):ap.error('--static requires dns-set and --app-save-sequence')
+ if a.app_save_sequence and a.apply and not a.save:ap.error('--app-save-sequence requires --save when applying')
  if a.save and not a.apply:ap.error('--save requires --apply')
- if a.apply and not a.experimental:ap.error('--apply requires --experimental until live verification is complete')
+ if a.apply and not a.experimental:ap.error('--apply requires explicit --experimental for this device-specific workflow')
  if a.action in ('get','night','dns-set','dns-restore') and a.param is None:ap.error('param is required')
  if a.action in ('status','dns') and a.param is not None:ap.error('this action does not take a parameter')
  if a.action=='get':
@@ -192,8 +230,8 @@ def main(argv=None):
   if a.action=='status':result=c.status()
   elif a.action=='night':result=c.night(a.param)
   elif a.action=='dns':result=c.dns()
-  elif a.action=='dns-set':result=c.set_dns(a.param,a.secondary,apply=a.apply,persist=a.save,experimental=a.experimental)
-  elif a.action=='dns-restore':result=c.restore_dns(a.param,apply=a.apply,persist=a.save,experimental=a.experimental)
+  elif a.action=='dns-set':result=c.set_dns(a.param,a.secondary,apply=a.apply,persist=a.save,experimental=a.experimental,app_sequence=a.app_save_sequence,static=a.static)
+  elif a.action=='dns-restore':result=c.restore_dns(a.param,apply=a.apply,persist=a.save,experimental=a.experimental,app_sequence=a.app_save_sequence)
   else:
    print(c.get(int(a.param)).hex())
    return 0

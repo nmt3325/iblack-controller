@@ -1,0 +1,22 @@
+# Dedicated camera DNS; no DHCP and no system resolver change.
+listen-address=192.168.1.201,192.168.10.22
+except-interface=lo
+bind-dynamic
+no-resolv
+no-hosts
+server=192.168.1.1
+server=1.1.1.1
+domain-needed
+bogus-priv
+local-ttl=30
+cache-size=150
+log-queries=extra
+pid-file=/run/iermu-home-dns.pid
+address=/iermu.com/192.168.1.201
+local=/iermu.com/
+address=/dvrnat.com/192.168.1.201
+local=/dvrnat.com/
+address=/yunwt.com/192.168.1.201
+local=/yunwt.com/
+address=/c.pcs.baidu.com/192.168.1.201
+local=/c.pcs.baidu.com/

@@ -47,3 +47,7 @@
 ## 後続の全体整理
 
 [全進捗](PROGRESS.md)、[手法](METHODS.md)、[Tailscale検証JSON](../evidence/tailscale-rtmp-20261111.json)、[静的解析情報](../evidence/app-static-analysis.json)を参照。初回の採取状態と現行状態を混同しない。
+
+## 通常Aterm AP移行の追加検証
+
+[通常AP移行JSON](../evidence/home-ap-migration-20261111.json) に、NETSET一致、実効DNS、有線受信、合成RTMP、Tailscale実映像、現行サービスと未確認範囲を保存。オフライン54件。生NETSET、Wi-Fi秘密、HTTPクエリー、室内映像・音声は含めない。

@@ -1,0 +1,18 @@
+[Unit]
+Description=Camera cloud-directed RTMP ingest on the wired LAN
+Wants=network-online.target
+After=network-online.target
+StartLimitIntervalSec=0
+[Service]
+Type=simple
+User=nmt3325
+Group=nmt3325
+ExecStart=/usr/local/bin/mediamtx /etc/iermu-ap/cloud-mediamtx.yml
+Restart=on-failure
+RestartSec=3
+NoNewPrivileges=true
+ProtectSystem=full
+ProtectHome=read-only
+UMask=0077
+[Install]
+WantedBy=multi-user.target

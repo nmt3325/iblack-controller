@@ -1,0 +1,16 @@
+[Unit]
+Description=Dedicated Wi-Fi AP for the iermu camera on wlp1s0
+After=network.target NetworkManager.service tailscaled.service
+Wants=iermu-dhcp.service
+
+[Service]
+Type=simple
+ExecStartPre=/usr/local/sbin/iermu-ap-up
+ExecStart=/usr/sbin/hostapd /etc/hostapd/iermu-ap.conf
+ExecStartPost=/bin/sh -c 'sleep 3; /usr/local/sbin/iermu-ap-up'
+ExecStopPost=/usr/local/sbin/iermu-ap-down
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,20 @@
+[Unit]
+Description=Local legacy-camera cloud listener
+After=network.target
+StartLimitIntervalSec=0
+
+[Service]
+Type=simple
+User=nmt3325
+Group=nmt3325
+WorkingDirectory=/home/nmt3325/iermu_cam
+Environment=PYTHONUNBUFFERED=1
+Environment=PYTHONPATH=/home/nmt3325/iermu_cam/pylib
+ExecStart=/usr/bin/python3 -u /home/nmt3325/iermu_cam/fakecloud.py
+Restart=on-failure
+RestartSec=2
+NoNewPrivileges=true
+UMask=0077
+
+[Install]
+WantedBy=multi-user.target

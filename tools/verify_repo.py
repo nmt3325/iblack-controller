@@ -16,8 +16,10 @@ def main():
     for p in py_files:
         if ".git" not in p.parts:
             ast.parse(p.read_text(), filename=str(p.relative_to(ROOT)))
-    print(f"PASS Python syntax: {len(py_files)} files", flush=True)
+    ast.parse((ROOT / "deployment/sbin/iermu-wifi-vif-up").read_text(), filename="iermu-wifi-vif-up")
+    print(f"PASS Python syntax: {len(py_files)} files plus the virtual-interface helper", flush=True)
     sh_files = sorted(ROOT.rglob("*.sh")) + sorted((ROOT / "reference/sbin").iterdir())
+    sh_files += [ROOT / "client/camera-stream", ROOT / "deployment/sbin/iermu-ap-up", ROOT / "deployment/sbin/iermu-ap-down", ROOT / "deployment/sbin/iermu-rtmp-publish"]
     for p in sh_files:
         if p.is_file():
             subprocess.run(["bash", "-n", str(p)], check=True)
@@ -37,6 +39,13 @@ def main():
         got = hashlib.sha256((ROOT / row["path"]).read_bytes()).hexdigest()
         assert got == row["sanitized_sha256"], row["path"]
     print(f"PASS reference checksums: {len(manifest['files'])} files", flush=True)
+    current_path = ROOT / "evidence/current-source-manifest.json"
+    if current_path.exists():
+        current = json.loads(current_path.read_text())
+        for row in current["files"]:
+            got = hashlib.sha256((ROOT / row["path"]).read_bytes()).hexdigest()
+            assert got == row["sha256"], row["path"]
+        print(f"PASS current snapshot checksums: {len(current['files'])} files", flush=True)
     link_count = 0
     for p in ROOT.rglob("*.md"):
         for link in re.findall(r'\[[^\]]*\]\(([^)]+)\)', p.read_text()):

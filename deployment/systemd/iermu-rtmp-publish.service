@@ -1,0 +1,22 @@
+[Unit]
+Description=Repair and republish the camera video and microphone over Tailscale
+Requires=iermu-rtmp.service iermu-ap.service
+After=iermu-rtmp.service iermu-ap.service
+PartOf=iermu-ap.service iermu-rtmp.service
+StartLimitIntervalSec=0
+
+[Service]
+Type=simple
+User=nmt3325
+Group=nmt3325
+WorkingDirectory=/home/nmt3325/iermu_cam
+ExecStart=/usr/local/sbin/iermu-rtmp-publish
+Restart=always
+RestartSec=3
+TimeoutStopSec=10
+KillMode=control-group
+NoNewPrivileges=true
+UMask=0077
+
+[Install]
+WantedBy=multi-user.target

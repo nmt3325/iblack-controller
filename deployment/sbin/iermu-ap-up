@@ -1,0 +1,37 @@
+#!/bin/bash
+set -euo pipefail
+IF=wlp1s0; STA=iermu-sta0; CAM=192.168.10.34; GATE=192.168.10.254; WAN=ens18
+ipt() { iptables -w 5 "$@"; }
+add() { local t="$1"; shift; ipt -t "$t" -C "$@" 2>/dev/null || ipt -t "$t" -A "$@"; }
+del() { local t="$1"; shift; while ipt -t "$t" -D "$@" 2>/dev/null; do :; done; }
+ip link set dev "$IF" up
+ip addr del 192.168.10.1/24 dev "$IF" 2>/dev/null || true
+ip addr del 192.168.10.24/24 dev "$IF" 2>/dev/null || true
+ip addr replace "$GATE/24" dev "$IF" noprefixroute
+ip route replace "$CAM/32" dev "$IF" src "$GATE"
+sysctl -qw net.ipv4.ip_forward=1
+for dev in "$IF" "$STA"; do
+ if [ -d "/sys/class/net/$dev" ]; then
+  sysctl -qw "net.ipv4.conf.$dev.arp_ignore=1" "net.ipv4.conf.$dev.arp_announce=2" "net.ipv4.conf.$dev.proxy_arp=1" "net.ipv4.conf.$dev.rp_filter=0"
+ fi
+done
+del filter FORWARD -i "$IF" -o "$WAN" -j ACCEPT
+del filter FORWARD -i "$WAN" -o "$IF" -m conntrack --ctstate RELATED,ESTABLISHED -j ACCEPT
+del nat POSTROUTING -s 192.168.10.0/24 -o "$WAN" -j MASQUERADE
+ipt -N IERMU_AP_FWD 2>/dev/null || true
+ipt -F IERMU_AP_FWD
+ipt -A IERMU_AP_FWD -i "$IF" -o "$WAN" -s "$CAM" -j ACCEPT
+ipt -A IERMU_AP_FWD -i "$WAN" -o "$IF" -d "$CAM" -m conntrack --ctstate RELATED,ESTABLISHED -j ACCEPT
+ipt -A IERMU_AP_FWD -i "$STA" -o "$IF" -d "$CAM" -j ACCEPT
+ipt -A IERMU_AP_FWD -i "$IF" -o "$STA" -s "$CAM" -m conntrack --ctstate RELATED,ESTABLISHED -j ACCEPT
+ipt -A IERMU_AP_FWD -j RETURN
+add filter FORWARD -j IERMU_AP_FWD
+add nat POSTROUTING -s "$CAM/32" -o "$WAN" -j MASQUERADE
+ipt -t nat -N IERMU_PRE 2>/dev/null || true
+ipt -t nat -F IERMU_PRE
+for p in udp tcp; do ipt -t nat -A IERMU_PRE -p "$p" --dport 53 -j DNAT --to-destination "$GATE:53"; done
+ipt -t nat -A IERMU_PRE -p udp --dport 3368 -j DNAT --to-destination "$GATE:3368"
+ipt -t nat -A IERMU_PRE -p tcp --dport 3399 -j DNAT --to-destination "$GATE:3399"
+ipt -t nat -A IERMU_PRE -p tcp --dport 443 -j REDIRECT --to-ports 8443
+ipt -t nat -A IERMU_PRE -d "$GATE" -p tcp -m multiport ! --dports 22,53 -j REDIRECT --to-ports 3399
+add nat PREROUTING -s "$CAM" -i "$IF" -j IERMU_PRE

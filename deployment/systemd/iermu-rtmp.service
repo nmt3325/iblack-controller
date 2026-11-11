@@ -1,0 +1,20 @@
+[Unit]
+Description=Camera RTMP relay bound to the Tailscale address
+Wants=tailscaled.service
+After=network.target tailscaled.service
+StartLimitIntervalSec=0
+
+[Service]
+Type=simple
+User=nmt3325
+Group=nmt3325
+ExecStart=/usr/local/bin/mediamtx /etc/iermu-ap/mediamtx.yml
+Restart=on-failure
+RestartSec=3
+NoNewPrivileges=true
+ProtectSystem=full
+ProtectHome=read-only
+UMask=0077
+
+[Install]
+WantedBy=multi-user.target

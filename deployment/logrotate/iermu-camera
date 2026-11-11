@@ -1,0 +1,11 @@
+/home/nmt3325/iermu_cam/fakecloud.log /home/nmt3325/iermu_cam/stab/sslcloud.log {
+    daily
+    maxsize 10M
+    rotate 7
+    compress
+    delaycompress
+    missingok
+    notifempty
+    copytruncate
+    su nmt3325 nmt3325
+}

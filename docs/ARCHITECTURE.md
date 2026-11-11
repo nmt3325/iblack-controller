@@ -1,79 +1,64 @@
-# 構成
+# 現行構成
 
-## ネットワーク
+初回の `.1` を使う構成から変更している。以下が最終の実装で、初回採取版は `reference/` と[初回の運用記録](OPERATIONS.md)に残す。
 
-```text
-iermu camera 192.168.10.34
-        │ 専用Wi-Fi: iermu-cam / 2.4GHz / channel 11
-        ▼
-debian-02: wlp1s0 / AP側 192.168.10.1
-        ├─ hostapd            無線AP
-        ├─ dnsmasq            DHCP・DNS
-        ├─ TCP 3399           ローカル受信・記録
-        ├─ UDP 3368           ローカル受信・記録
-        └─ ens18 → 上流ルーター 192.168.1.1
-```
-
-| 項目 | 実機で確認した値 |
-| --- | --- |
-| APインターフェース | `wlp1s0` |
-| 上流インターフェース | `ens18` |
-| SSID | `iermu-cam` |
-| 無線帯域・チャンネル | 2.4GHz、11（2462 MHz）、20 MHz幅 |
-| 無線認証 | WPA2-PSK、CCMP |
-| AP側IPv4 | `192.168.10.1/24` |
-| AP補助スクリプトが付与する別アドレス | `192.168.10.24/24` |
-| カメラの予約IPv4 | `192.168.10.34` |
-| 動的DHCP範囲 | `192.168.10.100`〜`192.168.10.150`、12時間 |
-| DHCPで通知するルーター・DNS | `192.168.10.1` |
-| 接続制限 | `macaddr_acl=1`、対象カメラのMACのみ許可 |
-
-実MAC・秘密鍵はローカル実設定に保持します。リポジトリ内の `02:00:00:00:00:01` は例示値です。
-
-## DHCP・DNS
-
-実機設定は `/etc/iermu-ap/dnsmasq.conf`。
-
-- `dhcp-host` で対象カメラへ `192.168.10.34` を予約する。
-- `address=/iermu.com/192.168.10.1` と `address=/dvrnat.com/192.168.10.1` を設定する。
-- それ以外の名前解決には上流DNS `192.168.1.1` / `1.1.1.1` を使用する。
-- 実際に `api.iermu.com`、`www.iermu.com`、`www.dvrnat.com` への問い合わせと、ローカルアドレスへの応答を確認した。
-
-## IPv4通信転送
-
-`nat` テーブルの専用チェーン `IERMU_PRE` を、次の条件で呼び出します。
+## ネットワークとメディア
 
 ```text
-入力インターフェース: wlp1s0
-送信元: 192.168.10.34/32
+カメラ 192.168.10.34
+    │ 専用SSID iermu-cam / 2.4GHz / channel 11
+    ▼
+debian-02
+    ├─ wlp1s0: AP 192.168.10.254/24
+    │    ├─ hostapd: WPA2 + カメラのMAC ACL
+    │    ├─ dnsmasq: DHCP予約・対象ドメインのDNS応答
+    │    ├─ カメラへの /32 経路
+    │    └─ カメラ限定のDNS/TCP/UDP転送
+    ├─ iermu-sta0: 家庭用APへのmanaged接続、DHCP
+    │    └─ APとは別MAC、同一channel、proxy ARP等
+    ├─ ens18: 有線上流、通常のデフォルト経路
+    ├─ TCP 3399 / UDP 3368: fakecloud受信・記録
+    ├─ TCP 8443: SSLv3/TLS互換HTTP受信（カメラ443を転送）
+    ├─ Python RTMP取得 → FLV補正 → FFmpeg copy
+    └─ tailscale0 / 100.87.20.49:1935
+         └─ MediaMTX / live/camera → Tailscale上の視聴端末
 ```
 
-| 対象 | 処理 |
+| 対象 | 値・意味 |
 | --- | --- |
-| UDP/TCP 53 | `192.168.10.1:53` へDNAT |
-| UDP 3368 | `192.168.10.1:3368` へDNAT |
-| TCP 3399 | `192.168.10.1:3399` へDNAT |
-| 宛先が `192.168.10.1` のTCP（22/53以外） | ローカル3399番へREDIRECT |
+| カメラ | `192.168.10.34` |
+| APゲートウェイ | `192.168.10.254` |
+| 家庭用ルーター | `192.168.10.1`、AP側で奪わない |
+| 制御 | TCP 3357 |
+| カメラRTMP | `rtmp://192.168.10.34:1935/live/live` |
+| 通常の視聴 | `rtmp://100.87.20.49:1935/live/camera` |
+| ソースの映像 | H.264 1280×720 |
+| ソースの音声 | AAC-LC 11025Hz・mono |
 
-上流へのIPv4転送には `ip_forward=1`、FORWARD許可ルール、`ens18` 向けMASQUERADEを使用しています。
+`192.168.10.0/24` を両無線インターフェースで扱うため、カメラのホスト経路、proxy ARP、ARP応答、rp_filterの設定を明示している。通常のブリッジや完全分離した別サブネットとは異なる。無線1台のAP/STA同時運用はチャンネル共有が前提。
 
-`reference/iptables/observed-rules.txt` は対象ルールの抜粋であり、完全な `iptables-save` ファイルではありません。
+## サービス
 
-## ローカル受信プログラム
-
-実機の `fakecloud.py` は、TCP 3399とUDP 3368で受信し、`fakecloud.log` へ記録します。
-
-- TCP: 接続を受け付け、受信データを読み取り、接続元・元の宛先・受信長などを記録する。
-- UDP: パケットを読み取り、接続元・受信長などを記録する。
-- アプリケーションデータを返信する処理はない。
-- DNS応答、クラウドAPI応答、TLS終端はそれぞれ別の機能であり、本プログラムの機能には含まれない。
-
-## 確認したソフトウェア
-
-| ソフトウェア | 実機の表示 |
+| ユニット | 役割 |
 | --- | --- |
-| Linux | `6.1.0-44-amd64` |
-| Python | `3.11.2` |
-| systemd | `252 (252.39-1~deb12u1)` |
-| hostapd | `2.10` |
-| dnsmasq | `2.90` |
+| `iermu-wifi-vif` | 家庭用STA仮想インターフェースと別MAC |
+| `iermu-ap` | APとIP・経路・iptables |
+| `iermu-dhcp` | DHCP/DNS。APから要求されるstaticユニット |
+| `iermu-fakecloud` | TCP/UDP受信・記録 |
+| `iermu-sslcloud` | SSLv3/TLS互換HTTP受信 |
+| `iermu-rtmp` | Tailscale IPv4限定のMediaMTX |
+| `iermu-rtmp-publish` | カメラ取得・補正・再多重化・publish |
+
+publisherはAPとMediaMTXを必要とし、その再起動へ追従する。失敗・受信終了時は再起動する。現行ユニットは永続化し自動起動を設定したが、ホスト再起動後の実動作は未検証。
+
+## アクセス境界
+
+- カメラ用WPA2とMAC ACL。実PSK・MACはGitに入れない。
+- クラウド通信誘導はカメラを対象にしたルール。家庭全体のDNSを置き換えない。
+- MediaMTXは `100.87.20.49:1935` だけで待受。RTSP/HLS/WebRTC/API等は無効。
+- `live/camera` のpublishは同ホスト、readはTailscale IPv4範囲。TailscaleのACLで許可された端末が対象。
+- 生ログは資格情報や識別子を含み得る。共有時は要約または識別子を除いた記録を使う。
+
+## 旧構成との相違
+
+初回はAP `.1`、受信処理はtransient、AP自動起動はdisabledだった。途中の同名仮APも現行構成では廃止している。旧スナップショットをそのまま本番へ戻さないこと。

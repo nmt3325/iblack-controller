@@ -1,0 +1,6 @@
+{
+  "station_iface": "iermu-sta0",
+  "station_mac": "02:00:00:00:00:01",
+  "home_bssid": "02:00:00:00:00:02",
+  "channel": 11
+}

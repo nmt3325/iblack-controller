@@ -1,0 +1,31 @@
+logLevel: info
+logDestinations: [stdout]
+readTimeout: 15s
+writeTimeout: 15s
+authMethod: internal
+authInternalUsers:
+  - user: any
+    ips: [100.87.20.49/32]
+    permissions:
+      - action: publish
+        path: live/camera
+  - user: any
+    ips: [100.64.0.0/10]
+    permissions:
+      - action: read
+        path: live/camera
+api: false
+metrics: false
+pprof: false
+playback: false
+rtsp: false
+rtmp: true
+rtmpEncryption: "no"
+rtmpAddress: 100.87.20.49:1935
+hls: false
+webrtc: false
+srt: false
+paths:
+  live/camera:
+    source: publisher
+    overridePublisher: false

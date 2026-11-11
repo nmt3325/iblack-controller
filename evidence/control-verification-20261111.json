@@ -1,0 +1,86 @@
+{
+  "recorded_at": "2026-11-11T12:12:56+0900",
+  "camera_ip": "192.168.10.34",
+  "dedicated_ssid": "iermu-cam",
+  "ap_gateway": "192.168.10.254",
+  "home_connection": "Separate managed interface with DHCP; never-default, ignore-auto-dns; no home SSID or MAC included",
+  "provisioning": {
+    "request": "72/8",
+    "reply_hex": "4808ff00",
+    "save_reply_hex": "4103ff00",
+    "dedicated_ap_control_verified_at": "2026-11-11T11:59:06+0900",
+    "latest_power_cycle_verified": false
+  },
+  "continuous_receive": {
+    "requested_seconds": 180,
+    "ping_transmitted": 180,
+    "ping_received": 180,
+    "ping_loss_percent": 0.0,
+    "video_messages": 1600,
+    "audio_messages": 1936,
+    "decoder": {
+      "frame": "1599",
+      "out_time_us": "180566038",
+      "out_time": "00:03:00.566038",
+      "dup_frames": "0",
+      "drop_frames": "0",
+      "progress": "end"
+    },
+    "initial_warning_lines": 11
+  },
+  "nal_header_fix_followup": {
+    "requested_receive_seconds": 65,
+    "decoder": {
+      "frame": "557",
+      "out_time_us": "63199000",
+      "out_time": "00:01:03.199000",
+      "dup_frames": "0",
+      "drop_frames": "0",
+      "progress": "end"
+    },
+    "warning_lines": 0,
+    "ffmpeg_output_timebase": "1/1000, fps_mode passthrough",
+    "runtime_fixer_sha256": "9c1066666de1576a0576bc20d143c510bdbe3f5da25fd5fdbdfd8237547630e3"
+  },
+  "infrared": {
+    "modes": {
+      "auto": 0,
+      "day": 1,
+      "night": 2
+    },
+    "parameter": 41,
+    "runtime_byte_offset": 4,
+    "visual_switch_and_restore_confirmed": true,
+    "active_mode_get_supported": false,
+    "dark_room_led_illumination_verified": false,
+    "last_requested_mode": "auto"
+  },
+  "speaker": {
+    "native_query_publish_start_confirmed": false,
+    "latest_probe_sent_audio": false,
+    "earlier_one_second_tone_hardware_playback_verified": false,
+    "token_parameter_get_accepted": false
+  },
+  "services": {
+    "iermu-wifi-vif": {
+      "enabled": "enabled",
+      "active": "active"
+    },
+    "iermu-ap": {
+      "enabled": "enabled",
+      "active": "active"
+    },
+    "iermu-fakecloud": {
+      "enabled": "enabled",
+      "active": "active"
+    },
+    "iermu-sslcloud": {
+      "enabled": "enabled",
+      "active": "active"
+    }
+  },
+  "offline_tests_passed": 21,
+  "host_reboot_verified": false,
+  "recorder_192_168_10_36": "No ARP response on actual home Wi-Fi; not claimed restored",
+  "privacy": "No room media, real home SSID, PSK, account credentials, tokens, signatures, or real MACs included"
+}

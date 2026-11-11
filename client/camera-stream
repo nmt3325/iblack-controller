@@ -1,0 +1,5 @@
+#!/bin/bash
+# Clean FLV (H.264 + microphone AAC) on stdout. No room media saved to disk.
+set -euo pipefail
+cd "$(dirname "$(readlink -f "$0")")"
+python3 -u rtmp_probe.py play live live "${1:-86400}" - | python3 -u fix_flv.py - - truncate

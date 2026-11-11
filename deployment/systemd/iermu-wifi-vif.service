@@ -1,0 +1,13 @@
+[Unit]
+Description=Prepare the camera AP and home-Wi-Fi station interfaces
+Requires=NetworkManager.service sys-subsystem-net-devices-wlp1s0.device
+After=NetworkManager.service sys-subsystem-net-devices-wlp1s0.device
+Before=iermu-ap.service
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/sbin/iermu-wifi-vif-up
+RemainAfterExit=yes
+
+[Install]
+WantedBy=multi-user.target

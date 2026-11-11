@@ -1,0 +1,67 @@
+{
+  "package": "com.intl.iermu",
+  "versionName": "1.8.0_1224",
+  "versionCode": 577,
+  "input_files": [
+    {
+      "name": "iermu.apk",
+      "sha256": "e627cfdd4ccefc4a6a7fc5ce617ca4e00fbd861d5634c6ad88f0246a7e51377a"
+    },
+    {
+      "name": "lib/armeabi-v7a/libcmsplayer.so",
+      "sha256": "ff2d42fd4c4672f3d1c7f208bf8d68f5642dc469f2451a3c8b71ad05d10b834a"
+    },
+    {
+      "name": "lib/armeabi-v7a/libcmsffmpeg.so",
+      "sha256": "679c5d48133e8e1d1fc6e7290369f1a50febfb0b02ddfe51865eb156711d4903"
+    }
+  ],
+  "analysis_methods": [
+    "JADX 1.5.1 Java decompilation",
+    "ELF symbols/PT_LOAD/PLT using pyelftools 0.33",
+    "ARM/Thumb disassembly and string XREF using Capstone 5.0.6"
+  ],
+  "observed_symbols": [
+    {
+      "name": "iermuffp_start_audio",
+      "address": "0x1811d",
+      "size": 416,
+      "library": "lib/armeabi-v7a/libcmsplayer.so"
+    },
+    {
+      "name": "iermuffp_stop_audio",
+      "address": "0x18399",
+      "size": 108,
+      "library": "lib/armeabi-v7a/libcmsplayer.so"
+    },
+    {
+      "name": "audio_start",
+      "address": "0x35ab1",
+      "size": 404,
+      "library": "lib/armeabi-v7a/libcmsplayer.so"
+    },
+    {
+      "name": "flv_wrap",
+      "address": "0x358c1",
+      "size": 132,
+      "library": "lib/armeabi-v7a/libcmsplayer.so"
+    }
+  ],
+  "observed_rtmp_strings": [
+    "devtype",
+    "accesstoken",
+    "NetStream.Publish.Start",
+    "publish"
+  ],
+  "source_reports": [
+    "audio_api.txt",
+    "audio_native.txt",
+    "audio_transport.txt",
+    "flv-wrap-native.txt",
+    "rtmp-connect.txt",
+    "rtmp-xrefs.txt"
+  ],
+  "scope": "Static findings are not proof of successful camera speaker playback. No APK/SO binaries, actual tokens, signatures, or media included.",
+  "speaker_publish_start_verified": false,
+  "speaker_hardware_playback_verified": false
+}

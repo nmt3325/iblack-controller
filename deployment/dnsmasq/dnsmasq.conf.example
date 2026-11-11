@@ -1,0 +1,22 @@
+# DHCP/DNS for the dedicated iermu camera AP (iermu-dhcp.service)
+interface=wlp1s0
+except-interface=lo
+bind-dynamic
+no-resolv
+server=192.168.1.1
+server=1.1.1.1
+domain-needed
+bogus-priv
+dhcp-authoritative
+dhcp-range=192.168.10.100,192.168.10.150,255.255.255.0,12h
+dhcp-host=02:00:00:00:00:34,192.168.10.34,iermu-cam,infinite
+dhcp-option=option:router,192.168.10.254
+dhcp-option=option:dns-server,192.168.10.254
+dhcp-leasefile=/var/lib/misc/iermu-ap.leases
+pid-file=/run/iermu-dnsmasq.pid
+log-dhcp
+
+# --- iermu cloud intercept ---
+log-queries
+address=/iermu.com/192.168.10.254
+address=/dvrnat.com/192.168.10.254

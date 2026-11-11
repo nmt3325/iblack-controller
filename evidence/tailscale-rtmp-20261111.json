@@ -1,0 +1,54 @@
+{
+  "configured_at": "2026-11-11T12:31:10+0900",
+  "view_url": "rtmp://100.87.20.49:1935/live/camera",
+  "server": {
+    "tag": "v1.21.3",
+    "asset": "mediamtx_v1.21.3_linux_amd64.tar.gz",
+    "sha256": "0a2ea7eba96023631efa1bea7804823a9145b043b6646a8a05798d4ac24ed635",
+    "source": "https://github.com/bluenviron/mediamtx/releases/download/v1.21.3/mediamtx_v1.21.3_linux_amd64.tar.gz"
+  },
+  "local_probe": {
+    "streams": [
+      {
+        "index": 0,
+        "codec_name": "h264",
+        "codec_type": "video",
+        "width": 1280,
+        "height": 720
+      },
+      {
+        "index": 1,
+        "codec_name": "aac",
+        "codec_type": "audio",
+        "sample_rate": "11025",
+        "channels": 1
+      }
+    ]
+  },
+  "remote_stream_detection": true,
+  "remote_decode_result": {
+    "independent_tailscale_node": true,
+    "requested_seconds": 12,
+    "output_time_us": 11946000,
+    "video_and_audio_decoded": true,
+    "decoder_error_lines": 0,
+    "exit_code": 0,
+    "media_saved": false
+  },
+  "binding": "Tailscale IPv4 only",
+  "read_source_cidr": "100.64.0.0/10",
+  "publisher_source": "100.87.20.49/32",
+  "encoding": "H264/AAC copy after camera trailer correction",
+  "host_reboot_verified": false,
+  "media_recording_used_for_verification": false,
+  "services": {
+    "iermu-rtmp": {
+      "enabled": "enabled",
+      "active": "active"
+    },
+    "iermu-rtmp-publish": {
+      "enabled": "enabled",
+      "active": "active"
+    }
+  }
+}

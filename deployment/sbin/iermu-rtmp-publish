@@ -1,0 +1,5 @@
+#!/bin/bash
+set -euo pipefail
+cd /home/nmt3325/iermu_cam
+export LD_LIBRARY_PATH=/home/nmt3325/diga-playback/ffmpeg/lib
+./camera-stream 86400 | /home/nmt3325/diga-playback/ffmpeg/bin/ffmpeg   -hide_banner -loglevel warning -nostdin -fflags +genpts -i pipe:0   -map 0:v:0 -map 0:a:0 -c:v copy -c:a copy -avoid_negative_ts make_zero   -flvflags no_duration_filesize -f flv rtmp://100.87.20.49:1935/live/camera

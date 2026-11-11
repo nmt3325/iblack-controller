@@ -1,0 +1,18 @@
+{
+  "checked_at": "2026-11-11T12:52:29+09:00",
+  "working_tree_files_checked": 76,
+  "reachable_history_blobs_checked": 36,
+  "private_inventory_sources_count": 3,
+  "known_private_values_loaded_without_disclosure": 5,
+  "violations_count": 0,
+  "checked": [
+    "known private literals from actual local configurations",
+    "non-example MAC literals",
+    "private key headers",
+    "forbidden media/capture/credential/application binary file types",
+    "reachable Git historic blobs"
+  ],
+  "limitations": "Literal and file-policy audit, not a guarantee that every possible secret encoding can be recognized. Operational IP addresses and hostnames are intentionally documented.",
+  "runtime_services_modified": false,
+  "push_performed": false
+}

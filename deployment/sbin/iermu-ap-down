@@ -1,0 +1,15 @@
+#!/bin/bash
+set -u
+IF=wlp1s0; STA=iermu-sta0; CAM=192.168.10.34; GATE=192.168.10.254; WAN=ens18
+del() { local t="$1"; shift; while iptables -w 5 -t "$t" -D "$@" 2>/dev/null; do :; done; }
+del nat PREROUTING -s "$CAM" -i "$IF" -j IERMU_PRE
+del filter FORWARD -j IERMU_AP_FWD
+del nat POSTROUTING -s "$CAM/32" -o "$WAN" -j MASQUERADE
+del nat POSTROUTING -s 192.168.10.0/24 -o "$WAN" -j MASQUERADE
+del filter FORWARD -i "$IF" -o "$WAN" -j ACCEPT
+del filter FORWARD -i "$WAN" -o "$IF" -m conntrack --ctstate RELATED,ESTABLISHED -j ACCEPT
+iptables -w 5 -t nat -F IERMU_PRE 2>/dev/null || true
+iptables -w 5 -F IERMU_AP_FWD 2>/dev/null || true
+ip route del "$CAM/32" dev "$IF" 2>/dev/null || true
+for addr in "$GATE" 192.168.10.1 192.168.10.24; do ip addr del "$addr/24" dev "$IF" 2>/dev/null || true; done
+exit 0

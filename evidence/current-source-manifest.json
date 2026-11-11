@@ -1,5 +1,5 @@
 {
-  "recorded_at": "2026-11-11T12:51:56+09:00",
+  "recorded_at": "2026-11-11T23:11:48+09:00",
   "scope": "Sanitized repository files; initial reference manifest unchanged; this manifest and audit report excluded",
   "files": [
     {
@@ -8,11 +8,11 @@
     },
     {
       "path": ".gitignore",
-      "sha256": "12cb38fe364f6a849d129027dc5a13388dcc808a73dee8db9ceec818829e367a"
+      "sha256": "4fb9693ded7681b87ffe00745d90a860719d71c36958439dfa6977e0f06cd5dd"
     },
     {
       "path": "README.md",
-      "sha256": "115dcd54d9a8e0be74a19675c1adb5f8cd1d81463ac7efc3c483a6d4d82c70bb"
+      "sha256": "9b502b0583ecbac66f169ec94756fbfc878b78cc4b4ef335eeb0b64a55411aa1"
     },
     {
       "path": "SECURITY.md",
@@ -20,7 +20,7 @@
     },
     {
       "path": "client/camctl.py",
-      "sha256": "2c1b249571b15c7b4428b7081f603077e75b86ac5e1cc2561752e823fe9a8ae8"
+      "sha256": "d97aa34e39d9517fa3ae7672fdc160a48f83e6c945bdc272c205ead27d9599ce"
     },
     {
       "path": "client/camera-stream",
@@ -112,7 +112,11 @@
     },
     {
       "path": "docs/CONTROLS.md",
-      "sha256": "3158cb5e4ade7f9219097e6e6b56cb1c2fdaa237b05bee5394dd30c2f1fa4a11"
+      "sha256": "cd3b3a426fffe84ab035d60890c67136bf9f459a269e149c5a998c95ee626e15"
+    },
+    {
+      "path": "docs/DNS.md",
+      "sha256": "af84d464eb5c2f6e21cae172d96e97070c1f6d6c910552ac37a389da31a9a818"
     },
     {
       "path": "docs/HANDOFF.md",
@@ -132,7 +136,7 @@
     },
     {
       "path": "docs/PROGRESS.md",
-      "sha256": "a64535b0db6a0d6c7358f188c56b78c4ffb0246fd2b49c7ba3b686bb3ffb879a"
+      "sha256": "62a1ca00b821fdade8c4a4b046c062e1b9266e2f13a6383e9a4ea636f7293e83"
     },
     {
       "path": "docs/PROTOCOL.md",
@@ -165,6 +169,10 @@
     {
       "path": "evidence/control-verification-20261111.json",
       "sha256": "fa665a8f51ed47671264fedd314bce53d97a10755b0b000aa4df13061f1cec6c"
+    },
+    {
+      "path": "evidence/dns-control-20261111.json",
+      "sha256": "46214c9eec414adbd4f0e0ada8e20085c19864386633ff8cbfe7ff4d92675667"
     },
     {
       "path": "evidence/local-receiver.txt",
@@ -285,6 +293,10 @@
     {
       "path": "tests/test_controls.py",
       "sha256": "ad88aa20270a9fdee6ccef0411f93756f5d4a6b4ff1549cb94f97857dee066fc"
+    },
+    {
+      "path": "tests/test_dns.py",
+      "sha256": "3a66a80802960b80b33078921af0bb05cc97130334dc359474a1f81303394392"
     },
     {
       "path": "tests/test_nal_headers.py",

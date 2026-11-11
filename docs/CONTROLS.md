@@ -20,6 +20,10 @@ python3 camctl.py status
 
 リポジトリの `client/camctl.py` を単独使用する場合は `CAMERA_USER` と `CAMERA_PASSWORD` を環境変数で指定する。既定の認証文字列は同梱しない。`CAMERA_IP` は任意で、既定値は `192.168.10.34`。`.env.example` は自動読込しない。
 
+## カメラ自身のDNS
+
+`python3 camctl.py dns` で表示、`dns-set DNS_IP` でプレビュー。適用には `--apply --experimental`、保存も試す場合は同じ操作に `--save` を指定する。DNS以外のネットワーク設定は保持する。実機書込みは未検証で、DHCPによる上書きにも注意。[操作と検証範囲](DNS.md) を先に読む。
+
 ## 映像とマイクのライブ再生
 
 通常の視聴は [Tailscale経由のRTMP視聴](TAILSCALE-RTMP.md) の中継URLを使う。以下の直接受信コマンドは、常時中継を一時停止して検証するときの手順。直接試験の前に `sudo systemctl stop iermu-rtmp-publish`、終了後に `sudo systemctl start iermu-rtmp-publish` を実行する。

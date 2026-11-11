@@ -1,0 +1,59 @@
+{
+  "recorded_at": "2026-11-11T23:11:48+09:00",
+  "feature": "camera NETSET DNS controls",
+  "archive_source": "private params-20261111-111257.json, GET 74/8",
+  "archive_header": "4a08002c",
+  "payload_length": 44,
+  "historical_dns": {
+    "primary": "8.8.8.8",
+    "secondary": "8.8.4.4",
+    "dhcp": true
+  },
+  "offsets_exclude_four_byte_header": true,
+  "primary_dns_body_offset": 16,
+  "secondary_dns_body_offset": 20,
+  "layout_status": "inferred from archive; live write not validated",
+  "archive_preview_preserves_all_non_dns_bytes": true,
+  "unit_tests": {
+    "total": 43,
+    "new_dns_tests": 22,
+    "passed": true,
+    "network_used": false
+  },
+  "live_read_attempt": "No route to host; no associated station observed",
+  "live_dns_write_performed": false,
+  "live_dns_save_performed": false,
+  "effective_dns_verified": false,
+  "reboot_persistence_verified": false,
+  "sensitive_body_included": false,
+  "commands": {
+    "dns": "read redacted network/DNS configuration",
+    "dns-set": "preview by default; --apply --experimental to write; --save optionally persists",
+    "dns-restore": "restore DNS fields only from a private 44-byte backup"
+  },
+  "runtime_cli_deployed": true,
+  "non_dns_fields_preserved": [
+    "IP",
+    "netmask",
+    "gateway",
+    "DHCP flag",
+    "opaque hardware/port fields"
+  ],
+  "safety": [
+    "input validation",
+    "fresh live GET before editing",
+    "private backup before SET",
+    "exact full-payload readback before optional save",
+    "no automatic reboot",
+    "unknown layouts rejected"
+  ],
+  "last_live_read_succeeded": false,
+  "last_live_read_error": "No route to host",
+  "current_change_audit": {
+    "credential_leaks": 0,
+    "new_content_mac_leaks": false,
+    "private_backups_git_ignored": true
+  },
+  "camera_settings_changed_by_this_task": false,
+  "services_restarted_by_this_task": false
+}

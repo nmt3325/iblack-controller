@@ -43,3 +43,6 @@ pylib/
 retool/
 jdk/
 jadx/
+
+# Private control snapshots (including NETSET hardware identity)
+stab/

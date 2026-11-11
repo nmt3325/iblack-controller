@@ -1,0 +1,7 @@
+#!/bin/bash
+# Quick status of the dedicated camera AP.
+export PATH=/usr/sbin:/usr/bin:/sbin:/bin
+echo "ap=$(systemctl is-active iermu-ap.service) dhcp=$(systemctl is-active iermu-dhcp.service) enabled=$(systemctl is-enabled iermu-ap.service 2>/dev/null) autorevert=$(systemctl is-active iermu-ap-autorevert.timer 2>/dev/null)"
+hostapd_cli -p /run/hostapd -i wlp1s0 status 2>/dev/null | grep -E '^(state|channel|num_sta\[0\])='
+iw dev wlp1s0 station dump 2>/dev/null | grep -E '^Station|signal:|tx bitrate|rx bitrate|connected time|inactive time|tx retries|tx failed'
+cat /var/lib/misc/iermu-ap.leases 2>/dev/null

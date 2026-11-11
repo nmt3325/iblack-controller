@@ -1,0 +1,27 @@
+# Runtime secrets and captures
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+credentials*
+secrets*
+*.log
+*.pcap
+*.pcapng
+*.mp4
+*.flv
+*.aac
+*.h264
+*.jpg
+*.jpeg
+*.png
+__pycache__/
+*.py[cod]
+.pytest_cache/
+run/
+raw/
+local/
+*.bundle
+*.zip
+*.tar.gz

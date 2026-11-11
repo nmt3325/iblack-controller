@@ -1,0 +1,21 @@
+{
+  "observed_at": "2026-11-11T09:27:04+09:00",
+  "host": "debian-02",
+  "camera": {
+    "mac_example": "02:00:00:00:00:01",
+    "mac_is_redacted": true,
+    "flags": ["AUTH", "ASSOC", "AUTHORIZED", "WMM", "HT"],
+    "signal_dbm": -33,
+    "connected_time_seconds": 914,
+    "last_association_jst": "2026-11-11T09:11:50+09:00",
+    "disconnect_events_since_last_association": 0
+  },
+  "services": {
+    "iermu-ap": "active",
+    "iermu-dhcp": "active",
+    "iermu-fakecloud": "active",
+    "iermu-reset-capture": "inactive",
+    "iermu-ap-autorevert.timer": "inactive"
+  },
+  "method": "Read-only hostapd station query, systemd state and journal inspection. No camera setting writes or network changes."
+}

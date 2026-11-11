@@ -1,0 +1,24 @@
+Offline verification of the repository snapshot. No camera access or network changes.
+
+PASS Python syntax: 6 files
+PASS shell syntax: 6 files
+PASS embedded Python syntax: 2 blocks
+PASS reference checksums: 15 files
+PASS relative documentation links: 13
+test_aac_end_condition (test_offline.OfflineTests.test_aac_end_condition) ... ok
+test_amf_round_trip (test_offline.OfflineTests.test_amf_round_trip) ... ok
+test_extend_length (test_offline.OfflineTests.test_extend_length) ... ok
+test_flv_tag_lengths_and_previous_tag_size (test_offline.OfflineTests.test_flv_tag_lengths_and_previous_tag_size) ... ok
+test_no_valid_nal_is_unchanged (test_offline.OfflineTests.test_no_valid_nal_is_unchanged) ... ok
+test_request_header_from_original_function (test_offline.OfflineTests.test_request_header_from_original_function) ... ok
+test_short_reads (test_offline.OfflineTests.test_short_reads) ... ok
+test_truncate_at_valid_nal_boundary (test_offline.OfflineTests.test_truncate_at_valid_nal_boundary) ... ok
+test_valid_nal_is_unchanged (test_offline.OfflineTests.test_valid_nal_is_unchanged) ... ok
+
+----------------------------------------------------------------------
+Ran 9 tests in 0.019s
+
+OK
+PASS offline tests; no network operations performed
+
+PASS known private literal and credential-token scan

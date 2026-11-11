@@ -1,0 +1,97 @@
+{
+  "snapshot_jst": "2026-11-11T09:20:20.429388+09:00",
+  "redaction": "Credential literals and device identifiers replaced with example values. No runtime files were modified.",
+  "files": [
+    {
+      "path": "reference/iermu_cam/iermu_run.sh",
+      "source": "/home/nmt3325/iermu_cam/iermu_run.sh",
+      "source_mtime_jst": "2026-11-10T20:06:21.814950+09:00",
+      "sanitized_sha256": "017aed24559d3a69458c78f1ce5a3fd8369b60eb6181dab8152b7e45bdca3e77"
+    },
+    {
+      "path": "reference/iermu_cam/ap/iermu_reset_capture.sh",
+      "source": "/home/nmt3325/iermu_cam/ap/iermu_reset_capture.sh",
+      "source_mtime_jst": "2026-11-11T09:03:10.390941+09:00",
+      "sanitized_sha256": "93c5c874d202db5c17e750f0f10d7f300edd8a4671cd0e1f333832ea61a115bc"
+    },
+    {
+      "path": "reference/iermu_cam/fakecloud.py",
+      "source": "/home/nmt3325/iermu_cam/fakecloud.py",
+      "source_mtime_jst": "2026-11-11T02:06:09.236760+09:00",
+      "sanitized_sha256": "4dc3149a0652afaf910c917a987a1bc8a27a5b8ab1fdd9f0e8e848786ff4f88a"
+    },
+    {
+      "path": "reference/iermu_cam/fix_flv.py",
+      "source": "/home/nmt3325/iermu_cam/fix_flv.py",
+      "source_mtime_jst": "2026-11-10T21:17:20.449349+09:00",
+      "sanitized_sha256": "41f9886fe01b5e1883d3146a82ab727f6ed169ac698f037a8b7055d23182cca8"
+    },
+    {
+      "path": "reference/iermu_cam/flv_dump.py",
+      "source": "/home/nmt3325/iermu_cam/flv_dump.py",
+      "source_mtime_jst": "2026-11-10T20:23:47.763005+09:00",
+      "sanitized_sha256": "8837da56036581625dc61192ede80bfe6b2d8c94f245178be44f68f194815b51"
+    },
+    {
+      "path": "reference/iermu_cam/iermu_rec.sh",
+      "source": "/home/nmt3325/iermu_cam/iermu_rec.sh",
+      "source_mtime_jst": "2026-11-10T21:18:58.204518+09:00",
+      "sanitized_sha256": "a3e97b2213cb3139806aeabeddd6d7f1faf5b658d5ea6184389612dd80fd3b00"
+    },
+    {
+      "path": "reference/iermu_cam/rtmp_probe.py",
+      "source": "/home/nmt3325/iermu_cam/rtmp_probe.py",
+      "source_mtime_jst": "2026-11-10T20:16:49.006236+09:00",
+      "sanitized_sha256": "fec94155c691cb90c11c7d082e43b53a4c97bdbe41e08f899780248245b3c246"
+    },
+    {
+      "path": "reference/systemd/iermu-ap.service",
+      "source": "/etc/systemd/system/iermu-ap.service",
+      "source_mtime_jst": "2026-11-10T23:32:41.819572+09:00",
+      "sanitized_sha256": "4c2474bd69d07793c0113fde9f500a34df5cfca051020b627753223dcf11fef0"
+    },
+    {
+      "path": "reference/systemd/iermu-dhcp.service",
+      "source": "/etc/systemd/system/iermu-dhcp.service",
+      "source_mtime_jst": "2026-11-10T23:32:41.831573+09:00",
+      "sanitized_sha256": "cda453b64cdda01e06e5812f80fc5b12f6888a34c088211c913427105164b268"
+    },
+    {
+      "path": "reference/hostapd/iermu-ap.conf.example",
+      "source": "/etc/hostapd/iermu-ap.conf",
+      "source_mtime_jst": "2026-11-11T03:00:24.336844+09:00",
+      "sanitized_sha256": "c35787ed4e640350fa2be80dfd96b1158ceca9d3417c04d61a9b7f41990a3f62"
+    },
+    {
+      "path": "reference/hostapd/iermu-ap.accept.example",
+      "source": "/etc/hostapd/iermu-ap.accept",
+      "source_mtime_jst": "2026-11-11T02:06:09.368759+09:00",
+      "sanitized_sha256": "df90ed6893a6b4b0cdf20ccd2b99cca62d74ee5615c684f4159f88dace877405"
+    },
+    {
+      "path": "reference/dnsmasq/dnsmasq.conf.example",
+      "source": "/etc/iermu-ap/dnsmasq.conf",
+      "source_mtime_jst": "2026-11-11T02:06:09.428758+09:00",
+      "sanitized_sha256": "799c4ff6378f564633621138df1ab56fa2eb8048390b7d4038e3d5bd1d5cb520"
+    },
+    {
+      "path": "reference/sbin/iermu-ap-up",
+      "source": "/usr/local/sbin/iermu-ap-up",
+      "source_mtime_jst": "2026-11-10T23:32:41.755573+09:00",
+      "sanitized_sha256": "3dccd4fd510ab84735e8fbe40a9fdcb00b0214579d6d91c21548840e3459e836"
+    },
+    {
+      "path": "reference/sbin/iermu-ap-down",
+      "source": "/usr/local/sbin/iermu-ap-down",
+      "source_mtime_jst": "2026-11-10T23:32:41.783573+09:00",
+      "sanitized_sha256": "6b8d638257067e5f2e75c4a173791abd8693d2b0189c94dbb80be20f2f05179e"
+    },
+    {
+      "path": "reference/sbin/iermu-ap-status",
+      "source": "/usr/local/sbin/iermu-ap-status",
+      "source_mtime_jst": "2026-11-10T23:32:41.807573+09:00",
+      "sanitized_sha256": "c0c1e67d9c9ef10b924c67f40993bff2f7f850a4d102112a7883d00d630cd8d3"
+    }
+  ],
+  "note": "Example identifiers also replace device-specific stream-name candidates. Source comments outside the documented implementation scope are not included."
+}

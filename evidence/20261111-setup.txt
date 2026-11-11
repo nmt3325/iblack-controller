@@ -1,0 +1,13 @@
+Sources: ap/reset_capture_20261111_090311.log and iermu-ap.service journal
+Timezone: Asia/Tokyo; device identifiers use example values.
+Selected successful setup events:
+
+2026-11-11T09:05:43+09:00 Expected camera hotspot detected; associating
+2026-11-11T09:05:45+09:00 PHASE=CONFIGURING_CAMERA
+  MAC=02:00:00:00:00:01 iMacType=0 paramlen=32
+Nov 11 09:06:01 debian-02 hostapd: wlp1s0: AP-ENABLED
+Nov 11 09:06:03 debian-02 hostapd: wlp1s0: AP-STA-CONNECTED 02:00:00:00:00:01
+2026-11-11T09:06:04+09:00 AP, DHCP, fake cloud and camera-only interception restored; no autorevert scheduled
+2026-11-11T09:06:07+09:00 EXIT=0
+
+Formatting note: process numbers are omitted from journal excerpts.

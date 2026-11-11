@@ -1,0 +1,27 @@
+Sources: iermu-ap.service / iermu-dhcp.service journal and direct checks
+Timezone: Asia/Tokyo; camera power cycle was reported by the user.
+Device identifiers use example values; process/transaction numbers are omitted.
+
+Nov 11 09:11:49 debian-02 hostapd: wlp1s0: AP-STA-DISCONNECTED 02:00:00:00:00:01
+Nov 11 09:11:50 debian-02 hostapd: wlp1s0: AP-STA-CONNECTED 02:00:00:00:00:01
+Nov 11 09:11:50 debian-02 dnsmasq-dhcp: DHCPDISCOVER(wlp1s0) 192.168.10.34 02:00:00:00:00:01
+Nov 11 09:11:50 debian-02 dnsmasq-dhcp: DHCPOFFER(wlp1s0) 192.168.10.34 02:00:00:00:00:01
+Nov 11 09:11:50 debian-02 dnsmasq-dhcp: DHCPREQUEST(wlp1s0) 192.168.10.34 02:00:00:00:00:01
+Nov 11 09:11:50 debian-02 dnsmasq-dhcp: DHCPACK(wlp1s0) 192.168.10.34 02:00:00:00:00:01 iermu-cam
+Nov 11 09:11:50 debian-02 dnsmasq: query[A] api.iermu.com from 192.168.10.34
+Nov 11 09:11:50 debian-02 dnsmasq: config api.iermu.com is 192.168.10.1
+Nov 11 09:11:50 debian-02 dnsmasq: config www.dvrnat.com is 192.168.10.1
+Nov 11 09:11:51 debian-02 dnsmasq: config www.iermu.com is 192.168.10.1
+
+Direct check started 2026-11-11T09:12:14+09:00:
+flags=[AUTH][ASSOC][AUTHORIZED][WMM][HT]
+connected_time=23
+5 packets transmitted, 5 received, 0% packet loss
+192.168.10.34 lladdr 02:00:00:00:00:01 REACHABLE
+iermu-ap active
+iermu-dhcp active
+iermu-fakecloud active
+iermu-reset-capture inactive
+
+No additional SSID write was performed for this check.
+The one-second gap between journal events is not a measurement of camera boot duration.

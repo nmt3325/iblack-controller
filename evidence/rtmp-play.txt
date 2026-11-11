@@ -1,0 +1,10 @@
+Source: /tmp/iermu_play.log (saved during the 2026-11-10 work)
+Selected successful play result; no media is included.
+
+app='live' stream='live' connect=_result NetConnection.Connect.Success Connection succeeded. play=['NetStream.Play.Start (Started playing)'] video=54 msgs/276290 B H.264/AVC [1700000000] audio=63 msgs/16732 B AAC end=collected 6.0s
+
+Metadata excerpt:
+width=1280.0 height=720.0 framerate=10.0 videocodecid=7.0
+audiosamplerate=11025.0 stereo=False audiocodecid=10.0
+
+The metadata excerpt above is transcribed from the onMetaData record, not a measured sustained recording rate.

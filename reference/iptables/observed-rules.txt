@@ -1,0 +1,14 @@
+# Relevant IPv4 rules observed on debian-02, 2026-11-11 JST.
+# Excerpt only; NOT an iptables-restore input.
+-N IERMU_PRE
+-A IERMU_PRE -p udp -m udp --dport 53 -j DNAT --to-destination 192.168.10.1:53
+-A IERMU_PRE -p tcp -m tcp --dport 53 -j DNAT --to-destination 192.168.10.1:53
+-A IERMU_PRE -p udp -m udp --dport 3368 -j DNAT --to-destination 192.168.10.1:3368
+-A IERMU_PRE -p tcp -m tcp --dport 3399 -j DNAT --to-destination 192.168.10.1:3399
+-A IERMU_PRE -d 192.168.10.1/32 -p tcp -m multiport ! --dports 22,53 -j REDIRECT --to-ports 3399
+# nat PREROUTING / POSTROUTING
+-A PREROUTING -s 192.168.10.34/32 -i wlp1s0 -j IERMU_PRE
+-A POSTROUTING -s 192.168.10.0/24 -o ens18 -j MASQUERADE
+# filter FORWARD
+-A FORWARD -i ens18 -o wlp1s0 -m conntrack --ctstate RELATED,ESTABLISHED -j ACCEPT
+-A FORWARD -i wlp1s0 -o ens18 -j ACCEPT

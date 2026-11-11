@@ -1,0 +1,11 @@
+Source: /home/nmt3325/iermu_cam/fakecloud.log
+Timezone: Asia/Tokyo; 2026-11-11. Payload bytes omitted.
+
+09:16:00 TCP OPEN from 192.168.10.34:52460 orig=192.168.10.1:443
+09:16:26 UDP 192.168.10.34:56222 len=24
+09:16:30 TCP CLOSE 192.168.10.34:52460 orig=192.168.10.1:443 total=140
+09:16:31 TCP OPEN from 192.168.10.34:52461 orig=192.168.10.1:443
+09:16:57 UDP 192.168.10.34:56222 len=24
+09:17:01 TCP CLOSE 192.168.10.34:52461 orig=192.168.10.1:443 total=140
+
+These lines demonstrate local receipt, not HTTP/TLS or cloud API responses.

@@ -1,6 +1,6 @@
 {
-  "recorded_at": "2026-11-12T15:44:05+09:00",
-  "scope": "Sanitized repository files; initial reference manifest unchanged; this manifest and audit report excluded",
+  "recorded_at": "2026-11-12T18:28:35+09:00",
+  "scope": "Lightweight source repository only; external APK-derived originals and toolchains are indexed separately, not tracked; runtime secrets/media excluded; initial reference manifest unchanged; this manifest and audit report excluded",
   "files": [
     {
       "path": ".env.example",
@@ -8,15 +8,27 @@
     },
     {
       "path": ".gitignore",
-      "sha256": "4fb9693ded7681b87ffe00745d90a860719d71c36958439dfa6977e0f06cd5dd"
+      "sha256": "130d81a04d8d2b2b8caf1a6c068d47e6a6de228322fe9f541348cffd40a649de"
     },
     {
       "path": "README.md",
-      "sha256": "399033b578566d4f7e851a9770e5ee9f2290b73ce8b4be42e919b675f20931a6"
+      "sha256": "84f2da052ea9428b9a9a52b2f5ab1cede7d473f665e627a0980b74a2f24b9f40"
     },
     {
       "path": "SECURITY.md",
-      "sha256": "ae8bc3c11cba49e0b04b2d6309a30c55310af253a254bce6bd522613556e6818"
+      "sha256": "302c1182cdf08370f7d725b99e471ddf59d2fff3b374711ff27c838ff8719a58"
+    },
+    {
+      "path": "artifacts/README.md",
+      "sha256": "64d42029ac01db5ea9d40ea5f769669df453811007b7d4c4b2269ac6d390e923"
+    },
+    {
+      "path": "artifacts/archive.json",
+      "sha256": "20d51eb9b2baacf155f46a05e9a03a6ec240074ae321a5c3f803b86cfd5431b6"
+    },
+    {
+      "path": "artifacts/manifest.json",
+      "sha256": "c99f0aa164a5fb223b40d23ea97be9c6682beb084c0cba3a590d849287f18984"
     },
     {
       "path": "client/camctl.py",
@@ -148,7 +160,7 @@
     },
     {
       "path": "docs/APP-API-INDEX.md",
-      "sha256": "996c2213659997121ad2de0aa05c362e15937661b4888b4b6d32dcf4208d47aa"
+      "sha256": "93fd12e24310d02aa66563356b6d510c8fbcb4010ea7ae283b32b667f16aaa7c"
     },
     {
       "path": "docs/APP-OPERATIONS.md",
@@ -180,7 +192,7 @@
     },
     {
       "path": "docs/HANDOFF.md",
-      "sha256": "c2b174975e2bbf02d9973e4700626c6ec71fce91d9e625bb3a7ec321f9741b2b"
+      "sha256": "01559e934ac38299186952d3648a8cb00115d268636a00b3c8f49540953cf1e1"
     },
     {
       "path": "docs/HOME-AP.md",
@@ -192,7 +204,7 @@
     },
     {
       "path": "docs/METHODS.md",
-      "sha256": "1db45aac1b2ff1f104a0ba9f85c9d9bf0630f8fb75b93612ba87eab8e5802de6"
+      "sha256": "74fc349773b8b27af99d6bedb029bc995995827e36ca7ff0823ed8db15197d96"
     },
     {
       "path": "docs/OPERATIONS.md",
@@ -200,7 +212,7 @@
     },
     {
       "path": "docs/PROGRESS.md",
-      "sha256": "9d2f98bf4d50745c19b6d15909406684be53219fc956f5e97a48c8735c951c2c"
+      "sha256": "b9b8024b2b5f47a868bbc1d30b3b7a44a26ce25424cd1d20ce47c87d74a6b692"
     },
     {
       "path": "docs/PROTOCOL.md",
@@ -220,7 +232,7 @@
     },
     {
       "path": "docs/VERIFICATION.md",
-      "sha256": "56f5de00b3daf2b1501e6b7b9aa2592ef4dd953de436d0d3baa93babddbdf0a7"
+      "sha256": "abe65e025c2e4593f4c7d1ae916436363595807972b454738c9db2878830429c"
     },
     {
       "path": "docs/VIDEO3356.md",
@@ -248,7 +260,7 @@
     },
     {
       "path": "evidence/app-static-analysis.json",
-      "sha256": "94b843a7e67359a4e0e037e3768d3ae41dadde555dca2982f2ff8e5864db6746"
+      "sha256": "520353175ae8cd44a0d72eb79a0e943964f0c6deee5b95d74957e2257a87dd62"
     },
     {
       "path": "evidence/camera-deeper-20261112.json",
@@ -384,11 +396,15 @@
     },
     {
       "path": "research/README.md",
-      "sha256": "8155f94f363880244261a1bd2828f215b785d0522ca5e1809bdeaaddf47adc02"
+      "sha256": "6fdc5f36b75e298597a003a9d94ee6f1c2f0ca43a19312fab749641facc80adb"
     },
     {
       "path": "research/build_app_operations_report.py",
       "sha256": "485acab05db76f921bf4604a9e5a6c0a715e7df1c924d7517f3bb357fb41f84e"
+    },
+    {
+      "path": "research/decompiled/README.md",
+      "sha256": "d72f15a768f84c533df9c51e6cb1c8910bf31db5a219972a0afe4708ac2f1a47"
     },
     {
       "path": "research/index_app_operations.py",
@@ -423,6 +439,10 @@
       "sha256": "c263cc700e1a605e71747ca8640f523d1ae462346ac2f2bcc093b210ebe81389"
     },
     {
+      "path": "tests/test_artifacts.py",
+      "sha256": "fcfa7874585c85949cd3af5574da8aa1b7b497944fbefd7e817392fd57484f06"
+    },
+    {
       "path": "tests/test_controls.py",
       "sha256": "ad88aa20270a9fdee6ccef0411f93756f5d4a6b4ff1549cb94f97857dee066fc"
     },
@@ -448,11 +468,15 @@
     },
     {
       "path": "tools/update_manifest.py",
-      "sha256": "f8c266cd3894487dc6f71e03f61b98f0f13cc7a1508bc2072031bced7936655c"
+      "sha256": "2a2b7378bdecb5d4a4901f6a0ca03bd2f9a1d39b8b84a8360d4a24dda7231eb0"
+    },
+    {
+      "path": "tools/verify_artifacts.py",
+      "sha256": "e825f2f39954ea392f122e70ac4faf44cdbed9d6a7cb5cb16cc68e5c1a4c3062"
     },
     {
       "path": "tools/verify_repo.py",
-      "sha256": "02e143f40780044f439f1b8a0e567e630f8328419f6de576ebef2ef51b019169"
+      "sha256": "11db50a4bdabdbb0b2bbcad58f7cc2bee4c0e2819096d8422a1aee93baa16300"
     }
   ]
 }

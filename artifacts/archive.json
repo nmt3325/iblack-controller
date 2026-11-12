@@ -1,0 +1,14 @@
+{
+  "format_version": 1,
+  "filename": "iermu-camera-analysis-artifacts-5ce4fb0.tar.gz",
+  "extracted_directory": "iermu-camera-analysis-artifacts-5ce4fb0",
+  "url": "https://sea.salvare.me/seafdav/NotionAI/iermu-camera/iermu-camera-analysis-artifacts-5ce4fb0.tar.gz",
+  "bytes": 408235104,
+  "sha256": "a620dda7e5120e6c4e21bfb79b6b62d19c0ab18230be88f950e7afff2b9c349c",
+  "binary_files": 13,
+  "binary_bytes": 415685190,
+  "java_files": 4206,
+  "java_bytes": 21233895,
+  "storage": "Ordinary external archive, not Git LFS",
+  "authentication": "Sign into the configured private Seafile library; no credential is stored in this repository."
+}

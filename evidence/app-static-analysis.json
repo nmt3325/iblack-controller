@@ -63,5 +63,10 @@
   ],
   "scope": "Static findings are not proof of successful camera speaker playback. No APK/SO binaries, actual tokens, signatures, or media included.",
   "speaker_publish_start_verified": false,
-  "speaker_hardware_playback_verified": false
+  "speaker_hardware_playback_verified": false,
+  "external_artifact_archive": {
+    "index": "artifacts/archive.json",
+    "manifest": "artifacts/manifest.json",
+    "git_lfs_required": false
+  }
 }

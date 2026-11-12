@@ -54,3 +54,7 @@ python3 research/build_app_operations_report.py \
 ```
 
 入力ハッシュが必要なら生成時に`--apk /path/to/app.apk --native-root /path/to/native-libs`も指定できる。操作解説本文は人が実装を追跡した資料で、自動付録とは区別する。[調査本文](../docs/APP-OPERATIONS.md)と[機械可読索引](../evidence/app-operations-index.json)を参照。字句索引であり、Javaの型解析・native/server側の完全解析ではない。
+
+## 解析原本の取得
+
+APK由来の原本、Java全文、JADX/JDKはGit本体には含めず、[別アーカイブ](../artifacts/README.md)に保存している。原本を展開した場所を `index_app_operations.py --source-root` に渡せる。Git LFSは不要。

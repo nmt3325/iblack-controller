@@ -68,7 +68,7 @@ Linux側の無線を単一の物理STAへ整理し、既存IPを固定して映�
 python3 tools/verify_repo.py
 ```
 
-カメラへの接続、Wi-Fi切替、iptables変更は行いません。現時点のユニットテストは81件（うちアプリ操作索引の合成Javaテスト10件）。DNSの33件を含め、テストは全てオフライン。実機では180秒の映像・音声受信とping 180/180、補正追加後65秒の警告なし復号、別のTailscaleノードで約12秒の映像・音声復号を確認しています。Aterm移行後は有線受信の合成映像26フレームと、Tailscaleの実映像86フレーム・音声を復号しました。クラウド向けのカメラ自動pushとは区別しています。これらは長期安定性の保証ではありません。
+カメラへの接続、Wi-Fi切替、iptables変更は行いません。現時点のユニットテストは89件（うちアプリ操作索引の合成Javaテスト10件）。DNSの33件を含め、テストは全てオフライン。実機では180秒の映像・音声受信とping 180/180、補正追加後65秒の警告なし復号、別のTailscaleノードで約12秒の映像・音声復号を確認しています。Aterm移行後は有線受信の合成映像26フレームと、Tailscaleの実映像86フレーム・音声を復号しました。クラウド向けのカメラ自動pushとは区別しています。これらは長期安定性の保証ではありません。
 
 ## 保存範囲
 
@@ -94,3 +94,21 @@ python3 tools/verify_repo.py
 [本体の追加調査](docs/CAMERA-DEEPER.md)：3356のPTS/DTS、画質変更の実装、スピーカー形式、UART候補、実再生チェックで検出した中継停止と復旧。
 
 [アプリ操作の全体調査](docs/APP-OPERATIONS.md)：HTTP/LAN/Businessの契約宣言、画面の操作条件、夜間・露出の値、PTZのLAN/クラウド分岐、録画・NAS・警報・共有・設定、名前だけでは分からない副作用。全機能の実機対応を確認したという意味ではありません。
+
+## 解析原本は別アーカイブ（LFS不要）
+
+本体は通常のGitだけでclone・検証できる軽量構成。APK・DEX・SO・JADXのJava全文とリソース・JADX/JDK本体は[別保管の解析原本](artifacts/README.md)としてSeafileへ分離した。Gitには取得先とハッシュだけを残す。原本なしで89件のオフラインテストを実行できる。
+
+```sh
+python3 tools/verify_repo.py
+# 原本も検証する場合のみ
+python3 tools/verify_repo.py --artifacts-root /path/to/iermu-camera-analysis-artifacts-5ce4fb0
+```
+
+## ソースリポジトリ
+
+GitHub: https://github.com/nmt3325/iblack-controller
+
+大容量の解析原本はGitへ追加せず、`artifacts/archive.json` のSeafile保存先から別途取得する。
+
+公開前の履歴検査で、古い証跡に残っていた家庭用Wi-FiのSSID 1件を例示値へ置換した。変更内容・コミット順序は保持し、影響するSHAは再計算している。元のLFS入りリポジトリと置換前の履歴はローカルに保全し、公開しない。

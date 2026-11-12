@@ -1,0 +1,120 @@
+{
+  "version": 1,
+  "recorded_at": "2026-11-12T16:52:01.956236+09:00",
+  "apk": {
+    "path": "artifacts/apk/com.intl.iermu_1.8.0_1224_577.apk",
+    "package": "com.intl.iermu",
+    "versionName": "1.8.0_1224",
+    "versionCode": 577
+  },
+  "files": [
+    {
+      "path": "artifacts/apk/com.intl.iermu_1.8.0_1224_577.apk",
+      "bytes": 38791445,
+      "sha256": "e627cfdd4ccefc4a6a7fc5ce617ca4e00fbd861d5634c6ad88f0246a7e51377a",
+      "role": "original APK"
+    },
+    {
+      "path": "artifacts/toolchains/jadx-1.5.1.zip",
+      "bytes": 116173955,
+      "sha256": "12fd966431903b8e15c36e5007f19343475be7d8f2a55f082e7a929eeabc937e",
+      "role": "original JADX distribution"
+    },
+    {
+      "path": "artifacts/toolchains/temurin-21.0.13+9-linux-aarch64.tar.gz",
+      "bytes": 205995218,
+      "sha256": "e3522e707fc7dbe2a72c30746b1e7068301a0213ecd213d4491f35a14eb55578",
+      "role": "original analysis JDK distribution"
+    },
+    {
+      "path": "artifacts/jadx-output/iermu-jadx-1.5.1-full.tar.zst",
+      "bytes": 39299404,
+      "sha256": "cfcf1752078c1e3f2fa3f3debb449f21efe563faaf9a50b5a2e633babf62e09b",
+      "role": "complete existing JADX output"
+    },
+    {
+      "path": "artifacts/dex/classes.dex",
+      "bytes": 9345020,
+      "sha256": "b416f94c16526d8ce600d439db97de7e5188ac33539a806b4643dfbadc2c719c",
+      "role": "DEX extracted from original APK",
+      "apk_entry": "classes.dex"
+    },
+    {
+      "path": "artifacts/native/lib/armeabi-v7a/libMD5_v1.so",
+      "bytes": 37840,
+      "sha256": "3028ced8183a236e69adb585dbfc29b88e19236d3f20d889e35917be00cdfc2c",
+      "role": "native library extracted from original APK",
+      "apk_entry": "lib/armeabi-v7a/libMD5_v1.so"
+    },
+    {
+      "path": "artifacts/native/lib/armeabi-v7a/libSDK_topvdn.so",
+      "bytes": 2189312,
+      "sha256": "a0920720fc8f8396b7a83d052690fa5045614dd6c85926e8c5ecf0e1eb80e15a",
+      "role": "native library extracted from original APK",
+      "apk_entry": "lib/armeabi-v7a/libSDK_topvdn.so"
+    },
+    {
+      "path": "artifacts/native/lib/armeabi-v7a/libbase64encoder_v1_4.so",
+      "bytes": 13472,
+      "sha256": "20e9aea4ebd31c50e618cb3c618fb7028293a52f6561db86edb5eaee79e4bb2b",
+      "role": "native library extracted from original APK",
+      "apk_entry": "lib/armeabi-v7a/libbase64encoder_v1_4.so"
+    },
+    {
+      "path": "artifacts/native/lib/armeabi-v7a/libbdpush_V2_5.so",
+      "bytes": 17560,
+      "sha256": "eb011fc78cfa792df34e2b3bcf72b78a6a13196b680ae881aace5498ecc46856",
+      "role": "native library extracted from original APK",
+      "apk_entry": "lib/armeabi-v7a/libbdpush_V2_5.so"
+    },
+    {
+      "path": "artifacts/native/lib/armeabi-v7a/libcmsffmpeg.so",
+      "bytes": 3318936,
+      "sha256": "679c5d48133e8e1d1fc6e7290369f1a50febfb0b02ddfe51865eb156711d4903",
+      "role": "native library extracted from original APK",
+      "apk_entry": "lib/armeabi-v7a/libcmsffmpeg.so"
+    },
+    {
+      "path": "artifacts/native/lib/armeabi-v7a/libcmsplayer.so",
+      "bytes": 418228,
+      "sha256": "ff2d42fd4c4672f3d1c7f208bf8d68f5642dc469f2451a3c8b71ad05d10b834a",
+      "role": "native library extracted from original APK",
+      "apk_entry": "lib/armeabi-v7a/libcmsplayer.so"
+    },
+    {
+      "path": "artifacts/native/lib/armeabi-v7a/libgetuiext2.so",
+      "bytes": 42404,
+      "sha256": "81ac0f601e6f488da53429eee33965465c96d51a8e23fc53addc6c0195b7f5f0",
+      "role": "native library extracted from original APK",
+      "apk_entry": "lib/armeabi-v7a/libgetuiext2.so"
+    },
+    {
+      "path": "artifacts/native/lib/armeabi/libgetuiext2.so",
+      "bytes": 42396,
+      "sha256": "030e5e94fefcc269e499c735d452bfa9bbf1de13b1d444783b280f4f37569190",
+      "role": "native library extracted from original APK",
+      "apk_entry": "lib/armeabi/libgetuiext2.so"
+    }
+  ],
+  "java_source_tree": {
+    "root": "research/decompiled/iermu/sources",
+    "file_count": 4206,
+    "bytes": 21233895,
+    "sha256": "ccebf2ecbd8eaf538f47b4a2158e78a99dd4381852ee413e1b8671181b293cb6",
+    "hash_algorithm": "SHA256 of sorted UTF-8 relative-path + NUL + file-SHA256 + newline"
+  },
+  "full_jadx_output": {
+    "files": 8163,
+    "bytes": 69470813
+  },
+  "tool_versions": {
+    "jadx": "1.5.1",
+    "jdk": "Eclipse Temurin 21.0.13+9 LTS",
+    "jdk_os": "Linux",
+    "jdk_arch": "aarch64"
+  },
+  "storage": "Separate Seafile artifact archive; not tracked in the source Git repository; Git LFS is not required.",
+  "source_inputs_preserved_byte_for_byte": true,
+  "decompilation_note": "All existing JADX output is preserved, including any generated error/stub comments; this is not a rebuilt Android project.",
+  "source_material_provenance_commit": "5ce4fb04e202a1066b746a59a16ab943068f6de1"
+}

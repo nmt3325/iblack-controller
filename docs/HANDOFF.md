@@ -82,3 +82,7 @@ git status --short
 優先順は、最新構成のカメラ電源再投入／ホスト再起動、長期連続運転、暗室IR、スピーカーの実音。DIGAは機器側の稼働・IPを別途確認する。完了条件は[全進捗](PROGRESS.md)にまとめた。
 
 リモートは未設定。このローカルコミットをGitHub等へpushする場合は、公開範囲とリモート先を別途決める。Tailscale/LANアドレスやホスト名も公開したくない場合は、共有前に環境依存情報をさらに例示値へ置換する。
+
+## 解析原本の分離と復元
+
+本体はLFS不要の通常Git。APK・DEX・SO・Java全文・JADX/JDKは[Seafileの別アーカイブ](../artifacts/README.md)にある。通常検証は `python3 tools/verify_repo.py`、原本を含める場合だけ `--artifacts-root /path/to/extracted/archive` を指定する。カメラのネットワーク・配信サービスは今回の整理では変更しない。

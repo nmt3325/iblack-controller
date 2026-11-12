@@ -897,3 +897,7 @@ main/subは代入**順**を保持する。最後の値だけに潰さない。
 - `com/iermu/opensdk/lan/utils/LanUtil.java:115–121 getCardInforStruct`: L117 cmsCmdStruct.cmsMainCmd=74 [74]; L118 cmsCmdStruct.cmsSubCmd=(byte) 1 [1]; L116 new CmsCmdStruct()
 - `com/iermu/opensdk/lan/utils/LanUtil.java:122–128 getDevInfoStruct`: L124 cmsCmdStruct.cmsMainCmd=74 [74]; L125 cmsCmdStruct.cmsSubCmd=CmsProtocolDef.PARA3_GETNEEDINFO [76]; L123 new CmsCmdStruct()
 - `com/iermu/opensdk/setup/conn/HiwifiConnectRunnable.java:50–132 getHiWifiIpThread`: L102 cmsData.cmsMainCmd=5 [5]; L103 cmsData.cmsSubCmd=(byte) 18 [18]; L101 new CmsCmdStruct()
+
+## 原本の別保管
+
+索引の生成に使用したJava全文・APK・SO・ツールチェーンは[別アーカイブ](../artifacts/README.md)に保存している。本体Gitには原本を含めず、取得先とハッシュを記録する。

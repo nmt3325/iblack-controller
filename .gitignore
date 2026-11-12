@@ -46,3 +46,13 @@ jadx/
 
 # Private control snapshots (including NETSET hardware identity)
 stab/
+
+# External analysis payloads: never reintroduce them into this Git repository.
+/artifacts/apk/
+/artifacts/dex/
+/artifacts/native/
+/artifacts/toolchains/
+/artifacts/jadx-output/
+/research/decompiled/iermu/
+*.dex
+*.tar.zst

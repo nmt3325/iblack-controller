@@ -76,3 +76,9 @@ def request3356(session_id, media, selector16=2):
 - [単独音声・media=3の切り分け](../evidence/video3356-exclusive-20261112.json)
 - [中継の失敗と復帰後の実再生](../evidence/video3356-relay-health-20261112.json)
 - 実機プローブは私用作業ディレクトリの `probe-3356-initial.py`、`probe-3356-demux.py`、`probe-3356-final-phase.py`。自動停止を含む調査用であり、通常視聴用CLIとしては配備していない。
+
+## 追加：PTS/DTSと接続別の分離
+
+後続調査で、映像E0のPTS/DTS、音声C0のPTS（90kHz基準）を読み取った。音声要求の接続に映像E0が少量混入するため、接続種別だけでなくPES stream IDで分離する。約12秒で317映像フレーム・131072音声サンプルをエラー0で個別復号したが、同期多重化と長時間の同期は未検証。
+
+同時期に既存RTMP中継の実再生が停止し、中継2サービスの再起動が必要だった。3356の調査との因果関係は未確定で、並行運用の安全性が確認済みとは扱わない。詳細は[本体追加調査](CAMERA-DEEPER.md)、根拠は[後続調査JSON](../evidence/camera-deeper-20261112.json)。

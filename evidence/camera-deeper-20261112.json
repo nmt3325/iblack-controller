@@ -1,0 +1,712 @@
+{
+  "recorded_at": "2026-11-12T10:01:44.624002+09:00",
+  "scope": "Additional read-only camera research; relay-only recovery after a failed post-check",
+  "camera_settings_written": false,
+  "wifi_dns_or_routing_changed": false,
+  "speaker_audio_transmitted": false,
+  "camera_rebooted": false,
+  "raw_media_or_parameter_bodies_saved": false,
+  "production_relay_code_or_config_changed": false,
+  "relay_services_restarted_for_recovery": true,
+  "timing_probe": {
+    "recorded_at": "2026-11-12T09:45:04.149591+09:00",
+    "settings_written": false,
+    "raw_media_saved": false,
+    "services_changed": false,
+    "before": {
+      "iermu-rtmp": {
+        "MainPID": "469893",
+        "NRestarts": "0",
+        "ActiveState": "active"
+      },
+      "iermu-rtmp-publish": {
+        "MainPID": "469896",
+        "NRestarts": "0",
+        "ActiveState": "active"
+      }
+    },
+    "tests": [
+      {
+        "word8": 1,
+        "media_requests": [
+          1,
+          2
+        ],
+        "duration_limit_seconds": 12,
+        "duration_seconds": 12.007,
+        "streams": {
+          "1": {
+            "bytes": 87851,
+            "packets": {
+              "c0": 128,
+              "e0": 2
+            },
+            "pes_header_flags": {
+              "80/80/5": 128,
+              "80/c0/10": 2
+            },
+            "pts_count": 130,
+            "dts_count": 2,
+            "pts_first": 627181887,
+            "pts_last": 628244460,
+            "pts_delta_ticks_90khz": {
+              "distinct": 56,
+              "common": [
+                [
+                  9029,
+                  8
+                ],
+                [
+                  9023,
+                  7
+                ],
+                [
+                  7216,
+                  7
+                ],
+                [
+                  9016,
+                  7
+                ]
+              ]
+            },
+            "aac": {
+              "adts_pes": 128,
+              "sample_rate_index_10": 128,
+              "channels_1": 128
+            },
+            "resync_discarded_bytes": 0,
+            "unparsed_buffer_bytes": 0,
+            "timestamps_by_sid": {
+              "c0": {
+                "count": 128,
+                "first_pts": 627181887,
+                "last_pts": 628244460,
+                "pts_span_seconds": 11.806367,
+                "arrival_span_seconds": 11.84319,
+                "mean_spacing_ticks": 8366.716535
+              },
+              "e0": {
+                "count": 2,
+                "first_pts": 627183419,
+                "last_pts": 628104649,
+                "pts_span_seconds": 10.235889,
+                "arrival_span_seconds": 10.370857,
+                "mean_spacing_ticks": 921230.0
+              }
+            },
+            "audio_decode": {
+              "exit_code": 0,
+              "decoded_frames": 0,
+              "video": [],
+              "audio": [
+                "Stream #0:0: Audio: aac (LC), 11025 Hz, mono, fltp, 15 kb/s",
+                "Stream #0:0: Audio: pcm_s16le, 11025 Hz, mono, s16, 176 kb/s"
+              ],
+              "audio_samples": [
+                "[Parsed_astats_0 @ 0x7ff9b4002100] Number of samples: 131072"
+              ],
+              "errors": []
+            }
+          },
+          "2": {
+            "bytes": 708439,
+            "packets": {
+              "ba": 13,
+              "bb": 13,
+              "bc": 13,
+              "e0": 317
+            },
+            "pes_header_flags": {
+              "80/c0/10": 317
+            },
+            "pts_count": 317,
+            "dts_count": 317,
+            "pts_first": 627179899,
+            "pts_last": 628249919,
+            "pts_delta_ticks_90khz": {
+              "distinct": 35,
+              "common": [
+                [
+                  3520,
+                  64
+                ],
+                [
+                  3230,
+                  48
+                ],
+                [
+                  3231,
+                  47
+                ],
+                [
+                  3519,
+                  40
+                ]
+              ]
+            },
+            "aac": {},
+            "resync_discarded_bytes": 0,
+            "unparsed_buffer_bytes": 0,
+            "video_decode": {
+              "exit_code": 0,
+              "decoded_frames": 317,
+              "video": [
+                "Stream #0:0: Video: h264 (Baseline), yuv420p(progressive), 1024x288, 25 fps, 1200k tbr, 1200k tbn",
+                "Stream #0:0: Video: wrapped_avframe, yuv420p(progressive), 1024x288, q=2-31, 200 kb/s, 25 fps, 25 tbn"
+              ],
+              "audio": [],
+              "audio_samples": [],
+              "errors": []
+            },
+            "timestamps_by_sid": {
+              "e0": {
+                "count": 317,
+                "first_pts": 627179899,
+                "last_pts": 628249919,
+                "pts_span_seconds": 11.889111,
+                "arrival_span_seconds": 11.812193,
+                "mean_spacing_ticks": 3386.139241
+              }
+            }
+          }
+        },
+        "first_video_minus_audio_pts_seconds": -0.022089
+      }
+    ],
+    "after": {
+      "iermu-rtmp": {
+        "MainPID": "469893",
+        "NRestarts": "0",
+        "ActiveState": "active"
+      },
+      "iermu-rtmp-publish": {
+        "MainPID": "469896",
+        "NRestarts": "0",
+        "ActiveState": "active"
+      }
+    }
+  },
+  "request_word8_trials": [
+    {
+      "word8": 1,
+      "duration_seconds": 10.004,
+      "media_requests": [
+        1,
+        2
+      ],
+      "received_bytes_by_socket": {
+        "1": 26594,
+        "2": 553547
+      }
+    },
+    {
+      "word8": 0,
+      "duration_seconds": 4.026,
+      "media_requests": [
+        2
+      ],
+      "received_bytes_by_socket": {
+        "2": 0
+      }
+    },
+    {
+      "word8": 2,
+      "duration_seconds": 4.006,
+      "media_requests": [
+        2
+      ],
+      "received_bytes_by_socket": {
+        "2": 0
+      }
+    }
+  ],
+  "parameter_lengths": {
+    "recorded_at": "2026-11-12T09:46:55.172879+09:00",
+    "settings_written": false,
+    "raw_parameter_values_saved": false,
+    "parameters": {
+      "1": {
+        "length": 16
+      },
+      "3": {
+        "length": 122
+      },
+      "4": {
+        "length": 27
+      },
+      "5": {
+        "length": 82
+      },
+      "7": {
+        "length": 28
+      },
+      "48": {
+        "length": 96
+      },
+      "49": {
+        "length": 4
+      },
+      "54": {
+        "length": 36
+      },
+      "62": {
+        "length": 142
+      },
+      "76": {
+        "length": 156
+      }
+    },
+    "protocol_version_reply_length": 12
+  },
+  "decoded_parameter_observations": {
+    "recorded_at": "2026-11-12T09:48:30.170547+09:00",
+    "settings_written": false,
+    "version_text_candidates": [
+      {
+        "offset": 16,
+        "text": "A0C0V261"
+      }
+    ],
+    "app_mapped_fields": {
+      "camType_at_76_34": 1,
+      "type_at_76_35": 1,
+      "code_grade_value_be_at_5_10": 400
+    },
+    "parameter_7": {
+      "length": 28,
+      "nonzero_bytes": 12,
+      "ascii_diagnostic_keywords_present": [],
+      "common_baudrate_candidates": [
+        {
+          "offset": 8,
+          "endian": "big",
+          "baud": 9600
+        },
+        {
+          "offset": 20,
+          "endian": "big",
+          "baud": 9600
+        }
+      ]
+    },
+    "parameter_48": {
+      "length": 96,
+      "nonzero_bytes": 29,
+      "ascii_diagnostic_keywords_present": []
+    }
+  },
+  "ports": {
+    "target": "camera",
+    "connect_only": true,
+    "ports": [
+      {
+        "port": 21,
+        "state": "refused"
+      },
+      {
+        "port": 22,
+        "state": "refused"
+      },
+      {
+        "port": 23,
+        "state": "refused"
+      },
+      {
+        "port": 80,
+        "state": "open"
+      },
+      {
+        "port": 443,
+        "state": "refused"
+      },
+      {
+        "port": 554,
+        "state": "refused"
+      },
+      {
+        "port": 1935,
+        "state": "open"
+      },
+      {
+        "port": 2323,
+        "state": "refused"
+      },
+      {
+        "port": 3356,
+        "state": "open"
+      },
+      {
+        "port": 3357,
+        "state": "open"
+      },
+      {
+        "port": 5000,
+        "state": "refused"
+      },
+      {
+        "port": 8000,
+        "state": "refused"
+      },
+      {
+        "port": 8080,
+        "state": "refused"
+      },
+      {
+        "port": 8081,
+        "state": "refused"
+      },
+      {
+        "port": 8554,
+        "state": "refused"
+      },
+      {
+        "port": 8899,
+        "state": "refused"
+      },
+      {
+        "port": 34567,
+        "state": "refused"
+      }
+    ]
+  },
+  "http": {
+    "recorded_at": "2026-11-12T09:50:08.975984+09:00",
+    "read_only": true,
+    "response_bodies_saved": false,
+    "tests": [
+      {
+        "request_kind": "http10_root",
+        "response_bytes_capped_4096": 0,
+        "standard_http_headers": false,
+        "bare_html_response": false
+      },
+      {
+        "request_kind": "http11_index",
+        "response_bytes_capped_4096": 0,
+        "standard_http_headers": false,
+        "bare_html_response": false
+      },
+      {
+        "request_kind": "http11_head",
+        "response_bytes_capped_4096": 41,
+        "standard_http_headers": false,
+        "bare_html_response": true
+      },
+      {
+        "request_kind": "invalid_protocol_version_probe",
+        "response_bytes_capped_4096": 37,
+        "standard_http_headers": false,
+        "error_heading": "400 Bad Request",
+        "bare_html_response": true
+      }
+    ]
+  },
+  "static_analysis": {
+    "source": "com.intl.iermu 1.8.0_1224 (577), existing APK; JADX Java plus Capstone ARM disassembly",
+    "frozen_artifact": "camera-deeper-static-and-tailnet.json",
+    "frozen_artifact_sha256": "060568ebb9d389783c22c581bc95d9c6ca5452c9c9016cfb70dc3148412e39c3",
+    "speaker": {
+      "pcm_input": {
+        "sample_rate_hz": 11025,
+        "channels": 1,
+        "bits_per_sample": 16,
+        "android_channel_config": 16,
+        "android_audio_format": 2
+      },
+      "aac_audio_specific_config_hex": "1508",
+      "native_source": {
+        "library": "libcmsplayer.so",
+        "function": "audio_start",
+        "thumb_function_address": "0x35ab1",
+        "config_store_address": "0x35bec"
+      },
+      "app_selection": {
+        "LINYANG_connectType_2": "startLyyAudio -> startAudio with empty string",
+        "other_connect_types": "MineLiveFragment uses account BaiduAccessToken -> startBaiduAudio, which rejects empty token"
+      },
+      "vendor_type_is_LAN_WAN": false,
+      "speaker_sound_confirmed": false
+    },
+    "quality": {
+      "source_method": "NasDevImpl.setCodeGrade",
+      "commands": [
+        "74/5",
+        "75/5",
+        "65/3"
+      ],
+      "modified_fields": {
+        "offset_8": 0,
+        "offset_9": 0,
+        "offset_10_11": "big-endian 16-bit grade value"
+      },
+      "app_type_1_camType_1_choices": [
+        200,
+        500,
+        1000
+      ],
+      "units_confirmed": false,
+      "explicit_resolution_selector_found": false,
+      "executed_on_camera": false
+    },
+    "source_locations": {
+      "tv/danmaku/ijk/media/audio/AudioRecorder.java": "24..26,46..55",
+      "com/iermu/ui/fragment/live/MineLiveFragment.java": "285..300",
+      "tv/danmaku/ijk/media/widget/VideoView.java": "906..929",
+      "com/iermu/opensdk/lan/impl/NasDevImpl.java": "931..1170",
+      "tv/danmaku/ijk/media/player/IjkMediaPlayer.java": "187,221,757..762",
+      "com/iermu/opensdk/api/model/ConnectType.java": "BAIDU=1, LINYANG=2"
+    }
+  },
+  "tailnet_before": {
+    "recorded_at": "2026-11-12T09:39:07.187617+09:00",
+    "exit_code": 0,
+    "decoded_video_frames": 34,
+    "video": "H.264 Baseline 1280x720",
+    "audio": "AAC-LC 11025 Hz mono",
+    "errors": []
+  },
+  "post_check_failure": {
+    "separate_node": "outer 32-second subprocess timeout",
+    "same_host": {
+      "recorded_at": "2026-11-12T09:55:56.716445+09:00",
+      "local_tailnet_playback": {
+        "timeout": true,
+        "exit_code": -9,
+        "progress_frames": [],
+        "log_lines": [
+          "[in#0/flv @ 0x55ce5a77a2c0] Could not find codec parameters for stream 0 (Video: h264, none): unspecified size",
+          "Consider increasing the value for the 'analyzeduration' (1000000) and 'probesize' (262144) options",
+          "Input #0, flv, from 'rtmp://100.87.20.49:1935/live/camera':",
+          "Duration: N/A, start: 2879.190000, bitrate: N/A",
+          "Stream #0:0: Video: h264, none, 1k tbr, 1k tbn",
+          "Stream #0:1: Audio: aac (LC), 11025 Hz, mono, fltp, start 2879.190000",
+          "Stream mapping:",
+          "Stream #0:0 -> #0:0 (h264 (native) -> wrapped_avframe (native))",
+          "Stream #0:1 -> #0:1 (aac (native) -> pcm_s16le (native))"
+        ]
+      },
+      "process_io_5_seconds": {
+        "469893": {
+          "name": "mediamtx",
+          "wchan": "futex_wait_queue",
+          "rchar_delta": 3528,
+          "wchar_delta": 4263,
+          "syscr_delta": 27,
+          "syscw_delta": 30
+        },
+        "469896": {
+          "name": "iermu-rtmp-publ",
+          "wchan": "do_wait",
+          "rchar_delta": 0,
+          "wchar_delta": 0,
+          "syscr_delta": 0,
+          "syscw_delta": 0
+        },
+        "469898": {
+          "name": "ffmpeg",
+          "wchan": "futex_wait_queue",
+          "rchar_delta": 10393,
+          "wchar_delta": 0,
+          "syscr_delta": 52,
+          "syscw_delta": 0
+        },
+        "469901": {
+          "name": "python3",
+          "wchan": "do_sys_poll",
+          "rchar_delta": 0,
+          "wchar_delta": 15110,
+          "syscr_delta": 0,
+          "syscw_delta": 53
+        }
+      }
+    }
+  },
+  "relay_diagnosis": {
+    "recorded_at": "2026-11-12T09:54:54.669923+09:00",
+    "service_status": {
+      "iermu-cloud-rtmp.service": {
+        "MainPID": "432645",
+        "NRestarts": "0",
+        "Id": "iermu-cloud-rtmp.service",
+        "ActiveState": "active",
+        "SubState": "running",
+        "ActiveEnterTimestamp": "Wed 2026-11-11 23:38:13 JST"
+      },
+      "iermu-fakecloud.service": {
+        "MainPID": "381516",
+        "NRestarts": "0",
+        "Id": "iermu-fakecloud.service",
+        "ActiveState": "active",
+        "SubState": "running",
+        "ActiveEnterTimestamp": "Wed 2026-11-11 12:00:37 JST"
+      },
+      "iermu-home-dns.service": {
+        "MainPID": "431620",
+        "NRestarts": "0",
+        "Id": "iermu-home-dns.service",
+        "ActiveState": "active",
+        "SubState": "running",
+        "ActiveEnterTimestamp": "Wed 2026-11-11 23:26:43 JST"
+      },
+      "iermu-rtmp-publish.service": {
+        "MainPID": "469896",
+        "NRestarts": "0",
+        "Id": "iermu-rtmp-publish.service",
+        "ActiveState": "active",
+        "SubState": "running",
+        "ActiveEnterTimestamp": "Thu 2026-11-12 09:07:55 JST"
+      },
+      "iermu-rtmp.service": {
+        "MainPID": "469893",
+        "NRestarts": "0",
+        "Id": "iermu-rtmp.service",
+        "ActiveState": "active",
+        "SubState": "running",
+        "ActiveEnterTimestamp": "Thu 2026-11-12 09:07:55 JST"
+      },
+      "iermu-sslcloud.service": {
+        "MainPID": "381517",
+        "NRestarts": "0",
+        "Id": "iermu-sslcloud.service",
+        "ActiveState": "active",
+        "SubState": "running",
+        "ActiveEnterTimestamp": "Wed 2026-11-11 12:00:37 JST"
+      }
+    },
+    "relay_journal_event_counts": {
+      "connection_opened": 2,
+      "reader": 2,
+      "connection_closed": 2,
+      "end_of_file": 1
+    },
+    "relay_recent_events": [
+      {
+        "unit": "iermu-rtmp.service",
+        "unix_us": "1794443947860869",
+        "events": [
+          "connection_opened"
+        ]
+      },
+      {
+        "unit": "iermu-rtmp.service",
+        "unix_us": "1794443948312929",
+        "events": [
+          "reader"
+        ]
+      },
+      {
+        "unit": "iermu-rtmp.service",
+        "unix_us": "1794443953931550",
+        "events": [
+          "connection_closed"
+        ]
+      },
+      {
+        "unit": "iermu-rtmp.service",
+        "unix_us": "1794444820839428",
+        "events": [
+          "connection_opened"
+        ]
+      },
+      {
+        "unit": "iermu-rtmp.service",
+        "unix_us": "1794444820967580",
+        "events": [
+          "reader"
+        ]
+      },
+      {
+        "unit": "iermu-rtmp.service",
+        "unix_us": "1794444852810058",
+        "events": [
+          "connection_closed",
+          "end_of_file"
+        ]
+      }
+    ],
+    "connections": [
+      "ESTAB 0      0                                  192.168.10.22:48320               192.168.10.35:1935  users:((\"python3\",pid=469901,fd=3))",
+      "ESTAB 0      0                                   100.87.20.49:60000                100.87.20.49:1935  users:((\"ffmpeg\",pid=469898,fd=4))",
+      "ESTAB 0      0                                   100.87.20.49:1935                 100.87.20.49:60000 users:((\"mediamtx\",pid=469893,fd=7))"
+    ]
+  },
+  "fresh_camera_rtmp_probe": {
+    "recorded_at": "2026-11-12T09:56:59.371547+09:00",
+    "probe": "new direct camera RTMP reader; RAM only; no settings writes",
+    "media_message_counts": {},
+    "counts": {
+      "v": 0,
+      "vbytes": 0,
+      "a": 0,
+      "abytes": 0,
+      "end": "error during handshake: TimeoutError('timed out')"
+    },
+    "play_codes": []
+  },
+  "relay_recovery": {
+    "recorded_at": "2026-11-12T09:57:32.002194+09:00",
+    "reason": "Existing Tailnet viewer timed out; same-host reader lacked H.264 codec dimensions. Recovery, not planned configuration change.",
+    "settings_written": false,
+    "network_configuration_changed": false,
+    "camera_rebooted": false,
+    "before": {
+      "iermu-rtmp.service": {
+        "MainPID": "469893",
+        "NRestarts": "0",
+        "ActiveState": "active",
+        "SubState": "running",
+        "ActiveEnterTimestamp": "Thu 2026-11-12 09:07:55 JST"
+      },
+      "iermu-rtmp-publish.service": {
+        "MainPID": "469896",
+        "NRestarts": "0",
+        "ActiveState": "active",
+        "SubState": "running",
+        "ActiveEnterTimestamp": "Thu 2026-11-12 09:07:55 JST"
+      }
+    },
+    "restart_exit_code": 0,
+    "after": {
+      "iermu-rtmp.service": {
+        "MainPID": "472932",
+        "NRestarts": "0",
+        "ActiveState": "active",
+        "SubState": "running",
+        "ActiveEnterTimestamp": "Thu 2026-11-12 09:57:32 JST"
+      },
+      "iermu-rtmp-publish.service": {
+        "MainPID": "472934",
+        "NRestarts": "0",
+        "ActiveState": "active",
+        "SubState": "running",
+        "ActiveEnterTimestamp": "Thu 2026-11-12 09:57:32 JST"
+      }
+    }
+  },
+  "tailnet_after_recovery": {
+    "recorded_at": "2026-11-12T09:58:20.669938+09:00",
+    "source": "separate Tailscale node oracle-ubuntu-03; 5-second decode to null",
+    "exit_code": 0,
+    "timeout": false,
+    "decoded_video_frames": 42,
+    "video": "H.264 Baseline 1280x720",
+    "audio": "AAC-LC 11025 Hz mono",
+    "errors": [],
+    "raw_media_saved": false,
+    "source_file": "camera-deeper-tailnet-final.json"
+  },
+  "limits": [
+    "Timestamps are separated by PES stream ID. The initial mixed-stream audio timestamp interpretation was discarded.",
+    "Two E0 packets appeared on the audio-request socket; only C0 was sent to AAC decoding.",
+    "Short simultaneous decoding and nearby initial PTS do not prove lip sync or long-term clock stability.",
+    "No high-resolution selector for 3356 was established; production remains camera RTMP via FLV correction and MediaMTX.",
+    "Quality values have unconfirmed units and do not establish an explicit resolution switch.",
+    "9600 serial candidates do not establish Linux console enablement; parameter 48 remains undecoded.",
+    "A0C0V261 is a version-text candidate, not a verified hardware model or SoC.",
+    "The cause of the relay stall, including whether the 3356 research contributed, is unproven.",
+    "The fresh RTMP handshake timeout during an existing publisher does not prove a single-client restriction.",
+    "Open/closed port observations cover only the 17 tested ports, not a full service inventory."
+  ],
+  "derived_float_decimal_places": 6
+}

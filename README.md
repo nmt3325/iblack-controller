@@ -83,3 +83,5 @@ python3 tools/verify_repo.py
 ## 追加調査
 
 [TCP3356の映像・音声取得](docs/VIDEO3356.md)：3357認証、3356要求形式、映像・音声の別接続、現行RTMPとの違いと未確認範囲。通常中継はRTMPのまま。
+
+[本体の追加調査](docs/CAMERA-DEEPER.md)：3356のPTS/DTS、画質変更の実装、スピーカー形式、UART候補、実再生チェックで検出した中継停止と復旧。

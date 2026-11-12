@@ -1,0 +1,93 @@
+{
+  "recorded_at": "2026-11-12T09:09:51.656736+09:00",
+  "pre_investigation_playback_baseline_today": false,
+  "causation_by_3356_proven": false,
+  "intermediate_viewer_failures": {
+    "video3356-relay-after-initial.json": {
+      "exit_code": 251,
+      "errors": [
+        "[in#0 @ 0x55ffa6ac1ec0] Error opening input: Input/output error",
+        "Error opening input file rtmp://100.87.20.49:1935/live/camera.",
+        "Error opening input files: Input/output error"
+      ]
+    },
+    "video3356-relay-recovery.json": {},
+    "video3356-relay-current.json": {
+      "viewer": {
+        "timed_out": true
+      }
+    }
+  },
+  "recovery": {
+    "checked_at": "2026-11-12T09:07:55.029274+09:00",
+    "configuration_changed": false,
+    "action": "restart relay and publisher without configuration changes",
+    "exit_code": 0,
+    "streams": [
+      "Stream #0:0: Video: h264 (Baseline), yuv420p(progressive), 1280x720, 8.92 fps, 8.92 tbr, 1k tbn, start 5.677000",
+      "Stream #0:1: Audio: aac (LC), 11025 Hz, mono, fltp, start 4.935000",
+      "Stream #0:0 -> #0:0 (h264 (native) -> wrapped_avframe (native))",
+      "Stream #0:1 -> #0:1 (aac (native) -> pcm_s16le (native))",
+      "Stream #0:0: Video: wrapped_avframe, yuv420p(progressive), 1280x720, q=2-31, 200 kb/s, 8.92 fps, 8.92 tbn",
+      "Stream #0:1: Audio: pcm_s16le, 11025 Hz, mono, s16, 176 kb/s"
+    ],
+    "progress": {
+      "frame": "38",
+      "fps": "11.44",
+      "stream_0_0_q": "-0.0",
+      "bitrate": "N/A",
+      "total_size": "N/A",
+      "out_time_us": "5046729",
+      "out_time_ms": "5046729",
+      "out_time": "00:00:05.046729",
+      "dup_frames": "0",
+      "drop_frames": "0",
+      "speed": "1.52x",
+      "progress": "end"
+    },
+    "errors": [],
+    "diagnostic_tail": [
+      "  Stream #0:1: Audio: aac (LC), 11025 Hz, mono, fltp, start 4.935000",
+      "Stream mapping:",
+      "  Stream #0:0 -> #0:0 (h264 (native) -> wrapped_avframe (native))",
+      "  Stream #0:1 -> #0:1 (aac (native) -> pcm_s16le (native))",
+      "Output #0, null, to 'pipe:':",
+      "  Metadata:",
+      "    encoder         : Lavf63.17.100",
+      "  Stream #0:0: Video: wrapped_avframe, yuv420p(progressive), 1280x720, q=2-31, 200 kb/s, 8.92 fps, 8.92 tbn",
+      "    Metadata:",
+      "      encoder         : Lavc63.25.101 wrapped_avframe",
+      "  Stream #0:1: Audio: pcm_s16le, 11025 Hz, mono, s16, 176 kb/s",
+      "    Metadata:",
+      "      encoder         : Lavc63.25.101 pcm_s16le",
+      "[out#0/null @ 0x55d455397d40] video:16KiB audio:107KiB subtitle:0KiB other streams:0KiB global headers:0KiB muxing overhead: unknown",
+      "frame=   38 fps= 11 q=-0.0 Lsize=N/A time=00:00:05.04 bitrate=N/A speed=1.52x elapsed=0:00:03.32    "
+    ],
+    "iermu-rtmp": {
+      "NRestarts": "0",
+      "ActiveState": "active",
+      "SubState": "running"
+    },
+    "iermu-rtmp-publish": {
+      "NRestarts": "0",
+      "ActiveState": "active",
+      "SubState": "running"
+    }
+  },
+  "relay_source_protocol": "camera RTMP (not migrated to 3356)",
+  "cloud_dns_wifi_configuration_changed_during_3356_research": false,
+  "media_saved": false,
+  "remote_tailscale_validation": {
+    "source_result_job": "4796cf49bda348fe",
+    "checked_at": "2026-11-12T09:09:57.035375+09:00",
+    "source_host": "oracle-ubuntu-03",
+    "url": "rtmp://100.87.20.49:1935/live/camera",
+    "exit_code": 0,
+    "decoded_video_frames": 44,
+    "video": "H.264 Baseline 1280x720",
+    "audio": "AAC-LC 11025 Hz mono",
+    "output_time_seconds": 4.934579,
+    "errors": [],
+    "raw_media_saved": false
+  }
+}

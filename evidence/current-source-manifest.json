@@ -1,5 +1,5 @@
 {
-  "recorded_at": "2026-11-11T23:49:42+09:00",
+  "recorded_at": "2026-11-12T09:10:41+09:00",
   "scope": "Sanitized repository files; initial reference manifest unchanged; this manifest and audit report excluded",
   "files": [
     {
@@ -12,7 +12,7 @@
     },
     {
       "path": "README.md",
-      "sha256": "18cce71dd8e07c54af5c6e9da37710988a3cc48fe98207432b3a467c63af16e7"
+      "sha256": "ee79565f9e3e17a951b3e2f99a4476029d6d074180a9c18a10c5cb81c15fd822"
     },
     {
       "path": "SECURITY.md",
@@ -172,7 +172,7 @@
     },
     {
       "path": "docs/PROGRESS.md",
-      "sha256": "a0a97fe7f82a57e425c90b75c566857bb50f6261c51735e5d1ce510b194a891c"
+      "sha256": "f408d8fe2c67699853fd0beec9b98a2867c762e9db76b81619ae1688137bb04c"
     },
     {
       "path": "docs/PROTOCOL.md",
@@ -188,7 +188,11 @@
     },
     {
       "path": "docs/VERIFICATION.md",
-      "sha256": "99d512c63809f200bc18dace803415bf2eaa053a94b5720eaae94712b7fb5d82"
+      "sha256": "04b4d2cec6e3b56dc0dc4b10c8f1057a1daebc2bdd98d31972681b9a17aa97a6"
+    },
+    {
+      "path": "docs/VIDEO3356.md",
+      "sha256": "9912b67c8bfc0a44514ac48c890010e38f6d2a733d788bed269b69c28f15e290"
     },
     {
       "path": "evidence/20261111-power-cycle.txt",
@@ -237,6 +241,18 @@
     {
       "path": "evidence/validation.txt",
       "sha256": "d767f93d77acfc359c254c5db054f9de0f6908ae8e2a2e4d01b135e3cdf5d22f"
+    },
+    {
+      "path": "evidence/video3356-20261112.json",
+      "sha256": "880d87a36f7f5483eefc2ec8ab6a68884597b932d3aef89e42b5271d927942da"
+    },
+    {
+      "path": "evidence/video3356-exclusive-20261112.json",
+      "sha256": "10ea116117a828832c32221c879014f22e521f4d30117aca2eddfc7d6bb05d78"
+    },
+    {
+      "path": "evidence/video3356-relay-health-20261112.json",
+      "sha256": "050aa3f35afb9ff6731d33dc3a3d559b980b6fc4fe37cfd28974ddf14b9e002f"
     },
     {
       "path": "reference/README.md",

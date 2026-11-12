@@ -1,0 +1,117 @@
+{
+  "settings_written": false,
+  "raw_media_saved": false,
+  "tests": {
+    "video_offset16_zero": {
+      "fields_after_session": [
+        1,
+        2,
+        0,
+        0,
+        0
+      ],
+      "settings_written": false,
+      "raw_media_saved": false,
+      "duration_seconds": 8.033,
+      "received_bytes": 433276,
+      "parsed_packets": {
+        "ba": 8,
+        "bb": 8,
+        "bc": 8,
+        "e0": 187
+      },
+      "program_stream_map": [
+        {
+          "stream_type": 27,
+          "stream_id": 224
+        }
+      ],
+      "video_pes": 187,
+      "audio_pes": 0,
+      "unparsed_buffer_bytes": 0,
+      "resync_discarded_bytes": 0,
+      "h264_nal_types": {
+        "7": 8,
+        "8": 8,
+        "6": 8,
+        "5": 8,
+        "1": 179
+      },
+      "video_decode": {
+        "exit_code": 0,
+        "decoded_frames": 187,
+        "video": [
+          "Stream #0:0: Video: h264 (Baseline), yuv420p(progressive), 1024x288, 25 fps, 1200k tbr, 1200k tbn",
+          "Stream #0:0: Video: wrapped_avframe, yuv420p(progressive), 1024x288, q=2-31, 200 kb/s, 25 fps, 25 tbn"
+        ],
+        "audio": [],
+        "audio_samples": [],
+        "errors": []
+      },
+      "audio_payload_lengths": {},
+      "audio_first_element_types": {}
+    },
+    "simultaneous_audio_video": {
+      "one_control_session_two_data_connections": true,
+      "channels": {
+        "1": {
+          "received_bytes": 21376,
+          "packets": {
+            "c0": 107
+          },
+          "video_pes": 0,
+          "audio_pes": 107
+        },
+        "2": {
+          "received_bytes": 593601,
+          "packets": {
+            "ba": 11,
+            "bb": 11,
+            "bc": 11,
+            "e0": 256
+          },
+          "video_pes": 256,
+          "audio_pes": 0
+        }
+      },
+      "video_decode": {
+        "exit_code": 0,
+        "decoded_frames": 256,
+        "video": [
+          "Stream #0:0: Video: h264 (Baseline), yuv420p(progressive), 1024x288, 25 fps, 1200k tbr, 1200k tbn",
+          "Stream #0:0: Video: wrapped_avframe, yuv420p(progressive), 1024x288, q=2-31, 200 kb/s, 25 fps, 25 tbn"
+        ],
+        "audio": [],
+        "audio_samples": [],
+        "errors": []
+      },
+      "audio_decode": {
+        "exit_code": 0,
+        "decoded_frames": 0,
+        "video": [],
+        "audio": [
+          "Stream #0:0: Audio: aac (LC), 11025 Hz, mono, fltp, 16 kb/s",
+          "Stream #0:0: Audio: pcm_s16le, 11025 Hz, mono, s16, 176 kb/s"
+        ],
+        "audio_samples": [
+          "[Parsed_astats_0 @ 0x7f31cc002100] Number of samples: 109568"
+        ],
+        "errors": []
+      }
+    },
+    "exclusive_rtmp_source": {
+      "decoder_exit": 0,
+      "decoded_frames": 71,
+      "video": [
+        "Stream #0:0: Video: h264 (Baseline), yuv420p(progressive), 1280x720, 409 kb/s, 10 fps, 17.75 tbr, 1k tbn",
+        "Stream #0:0: Video: wrapped_avframe, yuv420p(progressive), 1280x720, q=2-31, 200 kb/s, 17.75 fps, 17.75 tbn"
+      ],
+      "audio": [
+        "Stream #0:1: Audio: aac (LC), 11025 Hz, mono, fltp, 44 kb/s, start 0.147000",
+        "Stream #0:1: Audio: pcm_s16le, 11025 Hz, mono, s16, 176 kb/s"
+      ],
+      "errors": []
+    }
+  },
+  "publisher_restored_active": true
+}

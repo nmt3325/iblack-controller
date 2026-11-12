@@ -51,3 +51,7 @@
 ## 通常Aterm AP移行の追加検証
 
 [通常AP移行JSON](../evidence/home-ap-migration-20261111.json) に、NETSET一致、実効DNS、有線受信、合成RTMP、Tailscale実映像、現行サービスと未確認範囲を保存。オフライン54件。生NETSET、Wi-Fi秘密、HTTPクエリー、室内映像・音声は含めない。
+
+## TCP3356追加検証
+
+[3356調査](VIDEO3356.md) と [同時受信のJSON](../evidence/video3356-20261112.json) に、1制御セッション・2データ接続でのH.264/AAC個別復号を記録。[中継復帰JSON](../evidence/video3356-relay-health-20261112.json) は、途中の再生失敗と設定変更なしの再起動後の成功を両方記載。service activeと実際の再生成功を区別した。

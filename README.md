@@ -79,3 +79,7 @@ python3 tools/verify_repo.py
 - [初回の運用採取](docs/OPERATIONS.md)
 - [初回のメディア確認](docs/MEDIA.md)
 - [初回参照版の説明](reference/README.md)
+
+## 追加調査
+
+[TCP3356の映像・音声取得](docs/VIDEO3356.md)：3357認証、3356要求形式、映像・音声の別接続、現行RTMPとの違いと未確認範囲。通常中継はRTMPのまま。

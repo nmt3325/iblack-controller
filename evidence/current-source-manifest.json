@@ -1,5 +1,5 @@
 {
-  "recorded_at": "2026-11-12T11:12:09+09:00",
+  "recorded_at": "2026-11-12T15:44:05+09:00",
   "scope": "Sanitized repository files; initial reference manifest unchanged; this manifest and audit report excluded",
   "files": [
     {
@@ -12,7 +12,7 @@
     },
     {
       "path": "README.md",
-      "sha256": "128f62697ea82fa9209d1e4c0e47c71bc024c64e1fdbf0ab1a1a5039cdc0aa23"
+      "sha256": "399033b578566d4f7e851a9770e5ee9f2290b73ce8b4be42e919b675f20931a6"
     },
     {
       "path": "SECURITY.md",
@@ -36,7 +36,11 @@
     },
     {
       "path": "deployment/NetworkManager/90-iermu-ap.conf",
-      "sha256": "72e75fe3a2d2b8e188df021e679f92d95e86f3fca3ad098877b4a765d21c06b8"
+      "sha256": "d5d0fbcdb80ed6e2d33cc1cd23d3ab7aa260c4b8fb2d83203adfa09e467a4ce7"
+    },
+    {
+      "path": "deployment/NetworkManager/conf.d/91-iermu-home-physical.conf",
+      "sha256": "47e2c5ab8fbcffad507b4fa204aa95ca51d83832f8066ef9fa67a3059010d9fd"
     },
     {
       "path": "deployment/cloud-mediamtx.yml",
@@ -64,7 +68,7 @@
     },
     {
       "path": "deployment/radio-private.json.example",
-      "sha256": "bdabf03c3fde84e1223ca6f717e13dd04e07029ac2bc459191f27aa141d80893"
+      "sha256": "2288364dbb66e2b36a47519b80b3ecd8e830074240d08ca97ff8be84b303b34f"
     },
     {
       "path": "deployment/sbin/iermu-ap-down",
@@ -76,15 +80,19 @@
     },
     {
       "path": "deployment/sbin/iermu-home-network",
-      "sha256": "e058a4389f9d4468c5ec2d7e5f1a0aba11104d7787255a9e824bfd1faff9f00f"
+      "sha256": "a7e99812e622e78afeac6b9ea480d5edd8d54fc4f5a59ee760fa43193cf9fd79"
+    },
+    {
+      "path": "deployment/sbin/iermu-home-uplink-guard",
+      "sha256": "31e85bd714db261679f64fb2a2a9703978f1c3344c92897719de68084d2718f6"
     },
     {
       "path": "deployment/sbin/iermu-rtmp-publish",
-      "sha256": "dbd29a332925896900b3328cff2cda54492c5ed528aa1c36ba5670c5612c82da"
+      "sha256": "0cc37730d10cfcc25e16a1092bd8b843a26a55af7dbe651941dbc3bc867e8fbe"
     },
     {
       "path": "deployment/sbin/iermu-wifi-vif-up",
-      "sha256": "74182cd1991b93ec40d344312afba5207d62cd5b36464f1e66abb8afb0985fd5"
+      "sha256": "ae9b4e4f28806b75fc22f0112df1e63864591a553f01fd15989b42a578875ab3"
     },
     {
       "path": "deployment/systemd/iermu-ap.service",
@@ -120,7 +128,7 @@
     },
     {
       "path": "deployment/systemd/iermu-rtmp-publish.service",
-      "sha256": "1a346e61c8e8c08bcaa5f55539f976a91a9991e0864d33d423a9dfa0e8ddaf20"
+      "sha256": "1e6ab30bf6e4ad5c1b86d7ab8f699093e0c4c8eb08c52c9b2f96edd8cf0c6ee5"
     },
     {
       "path": "deployment/systemd/iermu-rtmp.service",
@@ -136,7 +144,7 @@
     },
     {
       "path": "deployment/systemd/iermu-wifi-vif.service",
-      "sha256": "6a2c8981e26ff1bada55721dd2bf3d4ee077929f83b453f3771b94099d2ceba5"
+      "sha256": "9b7cb7fd2fac5620d3d022fe3811e9ffe97978d13daca6480caadbe7473e9c89"
     },
     {
       "path": "docs/APP-API-INDEX.md",
@@ -152,7 +160,7 @@
     },
     {
       "path": "docs/ARCHITECTURE.md",
-      "sha256": "7ed8558c14d7c225e89a7307488a8bb224864e87e0e798e03739c365a1bc8cb6"
+      "sha256": "121f734cd40cf5d085b07ccdcbc4d09953fa55318fe04c82709ec68f1b67e268"
     },
     {
       "path": "docs/CAMERA-DEEPER.md",
@@ -172,11 +180,11 @@
     },
     {
       "path": "docs/HANDOFF.md",
-      "sha256": "cbfb0cda2eb968df22e9263fd3d8cfd8ca8c56bf257e75b47f6a633d53b54414"
+      "sha256": "c2b174975e2bbf02d9973e4700626c6ec71fce91d9e625bb3a7ec321f9741b2b"
     },
     {
       "path": "docs/HOME-AP.md",
-      "sha256": "e9ed009ae43162754227dbec56018ee7c6fa6edc7a3cdfbeb8dc2a8147568456"
+      "sha256": "469b7a4b05800d95cd37b830d28081b112b98b63b1a11a89113846328edbb97b"
     },
     {
       "path": "docs/MEDIA.md",
@@ -192,7 +200,7 @@
     },
     {
       "path": "docs/PROGRESS.md",
-      "sha256": "796c74c6393e7ebef596ccefb7cecd248275c38a9158068005515627afd1760a"
+      "sha256": "9d2f98bf4d50745c19b6d15909406684be53219fc956f5e97a48c8735c951c2c"
     },
     {
       "path": "docs/PROTOCOL.md",
@@ -203,12 +211,16 @@
       "sha256": "64d51f74aeba66997419b80cb90f5f5c6a30f0569ce2dbdc15d6b819795fd3ff"
     },
     {
+      "path": "docs/STREAM-RECOVERY.md",
+      "sha256": "75b2f94a34e2e58d53d172ba114398173f793218078f1651cb220c27cb61fb80"
+    },
+    {
       "path": "docs/TAILSCALE-RTMP.md",
-      "sha256": "11b3e9d96daef1901487279ff00af34c261410de0a1ea3b770ac2a8f2318a48d"
+      "sha256": "b540a6b4f33332889b4d859673cab0267e5e044d841fc78fe12b3bebb68c2e32"
     },
     {
       "path": "docs/VERIFICATION.md",
-      "sha256": "26350b1524419b0508faf2be1f6c3885172e9e402fdc9c0d2b1850b1a00cd54d"
+      "sha256": "56f5de00b3daf2b1501e6b7b9aa2592ef4dd953de436d0d3baa93babddbdf0a7"
     },
     {
       "path": "docs/VIDEO3356.md",
@@ -260,7 +272,7 @@
     },
     {
       "path": "evidence/home-ap-migration-20261111.json",
-      "sha256": "63848956f362597619e95414d6b4ef23103b74a8f2893680c01d86f15e5af82e"
+      "sha256": "4fd362b4d549d35d9ecd1834fef690d56eb3adb538e3ca5e881890635cb44580"
     },
     {
       "path": "evidence/local-receiver.txt",
@@ -277,6 +289,10 @@
     {
       "path": "evidence/source-manifest.json",
       "sha256": "73ab2e118f5ecae8685e08a688f44a53e7ae14ae27cb2a4b7bef7505a8dcc6c0"
+    },
+    {
+      "path": "evidence/stream-repair-20261112.json",
+      "sha256": "b8b3c88471a917c0d736a1d0d2a8169c54a567da0b5c6535eac8f66c6a243db3"
     },
     {
       "path": "evidence/tailscale-rtmp-20261111.json",
@@ -427,12 +443,16 @@
       "sha256": "f1fd66668244d6c53112618f0f822ea6fcb999f9e62460f83faa9da186399487"
     },
     {
+      "path": "tests/test_uplink_guard.py",
+      "sha256": "acdc2cab067e9e7757c0bc4971698bd22aa1da4d15d30928d7ea551af42d7c24"
+    },
+    {
       "path": "tools/update_manifest.py",
       "sha256": "f8c266cd3894487dc6f71e03f61b98f0f13cc7a1508bc2072031bced7936655c"
     },
     {
       "path": "tools/verify_repo.py",
-      "sha256": "f4234fd9a78de1a637733692d1133ddf4446cd33186694f0f9db2d9431b5c69f"
+      "sha256": "02e143f40780044f439f1b8a0e567e630f8328419f6de576ebef2ef51b019169"
     }
   ]
 }

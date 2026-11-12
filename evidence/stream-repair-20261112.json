@@ -1,0 +1,108 @@
+{
+  "recorded_at": "2026-11-12T15:43:25.244339+09:00",
+  "outcome": "video and microphone restored over Tailscale",
+  "configuration": {
+    "recorded_at": "2026-11-12T15:37:00.880266+09:00",
+    "station_iface": "wlp1s0",
+    "station_address": "192.168.10.22/24",
+    "address_mode": "manual",
+    "duplicate_address_detection_ms": 3000,
+    "normal_ap": true,
+    "native_autoconnect": true,
+    "autoconnect_retries": 0,
+    "experimental_recovery_timer_enabled": false,
+    "camera_settings_changed": false,
+    "wired_address_unchanged": true,
+    "tailscale_address_unchanged": true,
+    "services": [
+      "active",
+      "active",
+      "active",
+      "active"
+    ],
+    "camera_route": "192.168.10.35 dev wlp1s0 src 192.168.10.22 uid 0 \n    cache",
+    "private_backup_dir": "/var/backups/iermu/stream-repair-20261112T150850"
+  },
+  "current_direct_route": [
+    {
+      "dst": "192.168.10.35",
+      "dev": "wlp1s0",
+      "prefsrc": "192.168.10.22",
+      "flags": [],
+      "uid": 1000,
+      "cache": []
+    }
+  ],
+  "service_states": {
+    "iermu-wifi-vif.service": "active",
+    "iermu-home-network.service": "active",
+    "iermu-home-dns.service": "active",
+    "iermu-rtmp.service": "active",
+    "iermu-rtmp-publish.service": "active"
+  },
+  "service_enablement": {
+    "iermu-wifi-vif.service": "enabled",
+    "iermu-home-network.service": "enabled",
+    "iermu-home-dns.service": "enabled",
+    "iermu-rtmp.service": "enabled",
+    "iermu-rtmp-publish.service": "enabled"
+  },
+  "dns_listener_checks": [
+    {
+      "server": "192.168.1.201",
+      "answers": [
+        "192.168.1.201"
+      ],
+      "rcode": 0
+    },
+    {
+      "server": "192.168.10.22",
+      "answers": [
+        "192.168.1.201"
+      ],
+      "rcode": 0
+    }
+  ],
+  "playback": {
+    "recorded_at": "2026-11-12T15:41:39.876117+09:00",
+    "requested_media_seconds": 60,
+    "decoded_media_seconds": 59.961,
+    "elapsed_seconds": 60.25,
+    "url": "rtmp://100.87.20.49:1935/live/camera",
+    "exit_code": 0,
+    "timeout": false,
+    "decoded_frames": 508,
+    "streams": [
+      "Stream #0:0: Video: h264, none, 128 kb/s, 1k tbn",
+      "Stream #0:1: Audio: aac (LC), 11025 Hz, mono, fltp"
+    ],
+    "errors": [],
+    "media_saved": false,
+    "verification_source": "separate Tailscale node",
+    "verified": true
+  },
+  "route_guard": "read-only; refuses a missing or unrelated route",
+  "reconnect_owner": "NetworkManager; one physical Wi-Fi station",
+  "natural_reconnect_observation": {
+    "link_loss": "2026-11-12T15:38:26+09:00",
+    "reason": "local beacon loss, reason 4",
+    "reconnected": "2026-11-12T15:38:37+09:00",
+    "manual_reconnect_used_during_that_interval": false,
+    "custom_recovery_timer_used": false,
+    "continuous_stream_during_link_loss": false
+  },
+  "unsuccessful_experiments": [
+    "Virtual-STA recovery variants did not prove reliable automatic recovery; the experimental timer and recovery mode were removed.",
+    "Wi-Fi PCI rebind completed but did not restore the virtual-STA route.",
+    "Physical station authenticated but DHCP did not provide an address; the prior Linux address was retained as static with duplicate-address detection.",
+    "An earlier requested 60-second playback ended after 26.46 seconds / 179 frames with I/O errors during beacon loss; it is not counted as a pass."
+  ],
+  "camera_settings_changed_this_repair": false,
+  "camera_firmware_changed": false,
+  "global_network_manager_restart": false,
+  "host_reboot_performed": false,
+  "long_term_stability_proven": false,
+  "dhcp_reservations_configured_on_router": false,
+  "offline_test_count": 81,
+  "media_saved": false
+}

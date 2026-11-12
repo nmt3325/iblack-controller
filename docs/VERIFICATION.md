@@ -76,3 +76,7 @@
 - [静的証拠JSON](../evidence/firmware-static-evidence.json)：APKと対象Java 17ファイルのSHA-256、更新API、CMS本体、アプリの状態・完了条件、公開URLの取得結果。
 - [調査概要JSON](../evidence/firmware-research-summary.json)：更新／設定／サービス変更なし、別ノードで28フレーム・720p＋AAC・エラーなし、オフラインQAと既知の秘密値の監査。
 - [詳細](FIRMWARE-UPDATE.md)に出典ファイル名・行範囲を記載。ファーム本体や実機での更新動作を検証したという意味ではない。新しい制御コードは追加していない。
+
+## 2026-11-12 — 修復後の再確認
+
+[修復検証JSON](../evidence/stream-repair-20261112.json)に、実際の直接経路、サービス状態、DNS応答と、別Tailscaleノードで完了した60秒の映像・音声復号を保存した。先行する26.46秒で中断した試行とは区別した。ユニットテストは81件、全てオフライン。実再生は映像・音声を保存しないnull出力。[詳細と未検証範囲](STREAM-RECOVERY.md)。

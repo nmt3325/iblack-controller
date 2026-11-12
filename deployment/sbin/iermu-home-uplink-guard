@@ -1,0 +1,51 @@
+#!/usr/bin/python3
+"""Read-only direct-route guard. NetworkManager owns Wi-Fi reconnects."""
+import json
+import os
+from pathlib import Path
+import subprocess
+import sys
+
+IP = '/usr/sbin/ip'
+IFACE = os.environ.get('CAMERA_IFACE', 'wlp1s0')
+SOURCE_IP = os.environ.get('CAMERA_SOURCE_IP', '192.168.10.22')
+CAMERA_IP = os.environ.get('CAMERA_IP', '192.168.10.35')
+
+
+def cmd(args, timeout=12):
+    try:
+        return subprocess.run(args, capture_output=True, text=True,
+                              timeout=timeout, env=dict(os.environ, LC_ALL='C'))
+    except (subprocess.TimeoutExpired, OSError):
+        return subprocess.CompletedProcess(args, 124, '', '')
+
+
+def route_matches(text, iface=IFACE, source_ip=SOURCE_IP):
+    try:
+        row = json.loads(text)[0]
+        return (row.get('dev') == iface and row.get('prefsrc') == source_ip
+                and not row.get('gateway'))
+    except (ValueError, KeyError, IndexError, TypeError, AttributeError):
+        return False
+
+
+def route_ready():
+    try:
+        carrier = Path('/sys/class/net', IFACE, 'carrier').read_text().strip()
+    except OSError:
+        return False
+    if carrier != '1':
+        return False
+    result = cmd([IP, '-j', '-4', 'route', 'get', CAMERA_IP])
+    return result.returncode == 0 and route_matches(result.stdout)
+
+
+def main():
+    if sys.argv[1:] != ['--check']:
+        print('Usage: iermu-home-uplink-guard --check (read-only)', file=sys.stderr)
+        return 2
+    return 0 if route_ready() else 1
+
+
+if __name__ == '__main__':
+    raise SystemExit(main())

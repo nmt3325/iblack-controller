@@ -11,6 +11,8 @@ User=nmt3325
 Group=nmt3325
 WorkingDirectory=/home/nmt3325/iermu_cam
 Environment=CAMERA_IP=192.168.10.35
+Environment=CAMERA_IFACE=wlp1s0
+Environment=CAMERA_SOURCE_IP=192.168.10.22
 ExecStart=/usr/local/sbin/iermu-rtmp-publish
 Restart=always
 RestartSec=3

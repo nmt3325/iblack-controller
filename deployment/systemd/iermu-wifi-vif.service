@@ -1,5 +1,5 @@
 [Unit]
-Description=Prepare the camera AP and home-Wi-Fi station interfaces
+Description=Prepare the physical home-camera Wi-Fi station
 Requires=NetworkManager.service sys-subsystem-net-devices-wlp1s0.device
 After=NetworkManager.service sys-subsystem-net-devices-wlp1s0.device
 Before=iermu-ap.service

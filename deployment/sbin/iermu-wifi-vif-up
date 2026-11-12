@@ -5,11 +5,13 @@ I=R['station_iface'];AP='wlp1s0'
 def run(a):
  p=subprocess.run(a,stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL)
  if p.returncode:raise SystemExit('Camera wireless-interface preparation failed; check local network status')
-if not pathlib.Path('/sys/class/net/'+I).exists():run(['/usr/sbin/iw','dev',AP,'interface','add',I,'type','managed'])
-p=pathlib.Path('/sys/class/net/'+I+'/address')
-if p.read_text().strip().lower()!=R['station_mac'].lower():
- run(['/usr/sbin/ip','link','set','dev',I,'down'])
- run(['/usr/sbin/ip','link','set','dev',I,'address',R['station_mac']])
-run(['/usr/sbin/ip','link','set','dev',I,'up'])
+# In home-client mode NetworkManager alone owns link and MAC changes.
+if I != AP:
+ if not pathlib.Path('/sys/class/net/'+I).exists():run(['/usr/sbin/iw','dev',AP,'interface','add',I,'type','managed'])
+ p=pathlib.Path('/sys/class/net/'+I+'/address')
+ if p.read_text().strip().lower()!=R['station_mac'].lower():
+  run(['/usr/sbin/ip','link','set','dev',I,'down'])
+  run(['/usr/sbin/ip','link','set','dev',I,'address',R['station_mac']])
+ run(['/usr/sbin/ip','link','set','dev',I,'up'])
 run(['/usr/sbin/sysctl','-qw','net.ipv4.conf.'+I+'.arp_ignore=1','net.ipv4.conf.'+I+'.arp_announce=2','net.ipv4.conf.'+I+'.proxy_arp=1','net.ipv4.conf.'+I+'.rp_filter=0'])
 run(['/usr/bin/nmcli','device','set',I,'managed','yes'])

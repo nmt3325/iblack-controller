@@ -34,6 +34,7 @@ rtmp://100.87.20.49:1935/live/camera
 | [現行構成](docs/ARCHITECTURE.md) | AP/STA、経路、クラウド受信、中継 |
 | [引継ぎ・依存関係](docs/HANDOFF.md) | 稼働場所、確認コマンド、再現範囲、注意点 |
 | [アプリ全操作の調査](docs/APP-OPERATIONS.md) | 画面・条件・LAN/クラウド/端末処理・保存・未検証範囲 |
+| [ファームウェア更新の調査](docs/FIRMWARE-UPDATE.md) | クラウド／NASの更新指示、完了判定、更新ファイル・検証の未確認範囲 |
 | [IR・マイク・操作](docs/CONTROLS.md) | 操作コマンド、制約、実機確認の詳細 |
 | [Tailscale RTMP](docs/TAILSCALE-RTMP.md) | 視聴、サービス、アクセス制限、外部ノード検証 |
 | [カメラ自身のDNS設定](docs/DNS.md) | 操作・安全策・DHCPと実効DNSの注意点 |

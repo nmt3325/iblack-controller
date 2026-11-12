@@ -1,0 +1,44 @@
+{
+  "recorded_at": "2026-11-12T11:06:59+09:00",
+  "scope": "Firmware update research, static APK and public vendor URL reads; no camera update/configuration commands. Existing production relay read only.",
+  "firmware_update_executed": false,
+  "camera_settings_written": false,
+  "camera_rebooted": false,
+  "runtime_services_restarted": false,
+  "runtime_config_or_code_modified": false,
+  "push_performed": false,
+  "camera_version_prior_observation": {
+    "text_candidate": "A0C0V261",
+    "source": "evidence/camera-deeper-20261112.json",
+    "hardware_compatibility_proven": false
+  },
+  "production_playback": {
+    "recorded_at": "2026-11-12T11:06:59+09:00",
+    "url": "rtmp://100.87.20.49:1935/live/camera",
+    "exit_code": 0,
+    "timeout": false,
+    "decoded_frames": 28,
+    "streams": [
+      "Stream #0:0: Video: h264 (Baseline), yuv420p(progressive), 1280x720, 8.92 fps, 8.92 tbr, 1k tbn",
+      "Stream #0:1: Audio: aac (LC), 11025 Hz, mono, fltp",
+      "Stream #0:0: Video: wrapped_avframe, yuv420p(progressive), 1280x720, q=2-31, 200 kb/s, 8.92 fps, 8.92 tbn",
+      "Stream #0:1: Audio: pcm_s16le, 11025 Hz, mono, s16, 176 kb/s"
+    ],
+    "errors": [],
+    "media_saved": false,
+    "scope": "Read existing production relay only. No CMS requests or updates, no service restart."
+  },
+  "qa": {
+    "verify_repo_exit_code": 0,
+    "offline_tests_passed": 64,
+    "new_control_code_added": false,
+    "new_tests_added": false,
+    "scope": "Existing Python/shell syntax, reference/current checksums, relative links and offline tests. Not firmware installation testing."
+  },
+  "secret_literal_audit": {
+    "files_checked": 110,
+    "private_values_checked_without_disclosure": 3,
+    "violation_count": 0,
+    "scope": "Known private literals across tracked/nonignored working files; MAC and private-key literals in changed/new files. No reachable-history re-audit this turn."
+  }
+}

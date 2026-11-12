@@ -70,3 +70,9 @@
 - `evidence/app-operations-summary.json`：範囲、限界、作業前後の外部ノードでの映像・音声の復号、リポジトリQA。
 - `tests/test_app_operations.py`：合成Javaのみの10件。匿名リスナー、コメント/文字列、native/generic宣言、HTTPキー、CMS代入順を検査。総テスト数64。
 - 「契約宣言の未採取0」は、Business/HTTP/LANの対象インターフェースの字句照合。全native/全実行経路の網羅や、この個体の対応を保証する意味ではない。
+
+## ファームウェア更新調査の根拠
+
+- [静的証拠JSON](../evidence/firmware-static-evidence.json)：APKと対象Java 17ファイルのSHA-256、更新API、CMS本体、アプリの状態・完了条件、公開URLの取得結果。
+- [調査概要JSON](../evidence/firmware-research-summary.json)：更新／設定／サービス変更なし、別ノードで28フレーム・720p＋AAC・エラーなし、オフラインQAと既知の秘密値の監査。
+- [詳細](FIRMWARE-UPDATE.md)に出典ファイル名・行範囲を記載。ファーム本体や実機での更新動作を検証したという意味ではない。新しい制御コードは追加していない。

@@ -1,0 +1,169 @@
+{
+  "recorded_at": "2026-11-12T11:06:27+09:00",
+  "scope": "Static APK analysis; no camera update or configuration writes; no camera or account secrets included",
+  "apk": {
+    "package": "com.intl.iermu",
+    "version_name": "1.8.0_1224",
+    "version_code": 577,
+    "sha256": "e627cfdd4ccefc4a6a7fc5ce617ca4e00fbd861d5634c6ad88f0246a7e51377a"
+  },
+  "sources": [
+    {
+      "path": "com/cms/iermu/cms/CmsNetUtil.java",
+      "sha256": "0cba9ce8335c95834ee49f9c7a57d6ceaac1196bac6505f14e284aa0f7b7764f"
+    },
+    {
+      "path": "com/cms/iermu/cms/CmsProtocolDef.java",
+      "sha256": "585d991afdd6f1660090f4a08a32c4d74d494af26bf14b92a5d7c6333bc6e7ec"
+    },
+    {
+      "path": "com/iermu/apiservice/ApiServiceModule.java",
+      "sha256": "ff701e6130afdc65dac302d118599e800922d79e1dfcd99f118edc6d881f6fd8"
+    },
+    {
+      "path": "com/iermu/apiservice/service/CamSettingService.java",
+      "sha256": "d7fee20b70a8f6b097a31337b14fc485e1966a57baac9fa11f6d321a8574a646"
+    },
+    {
+      "path": "com/iermu/client/business/api/CamSettingApi.java",
+      "sha256": "baab207fcd4e74aef6737bf9edca9f71422a711385d3c4a587f7fe2e2396aa72"
+    },
+    {
+      "path": "com/iermu/client/business/api/converter/CamUpdateStatusConverter.java",
+      "sha256": "8afd3193ecad2bd12734b8454501aeb1b96702afeadeb33bbe1b354dc13279a8"
+    },
+    {
+      "path": "com/iermu/client/business/api/converter/UpgradeVersionConverter.java",
+      "sha256": "3b8a3a76e0247dcd1ee5964d9411b9fc6cd86cd3b693f3e0b2be474360b933a1"
+    },
+    {
+      "path": "com/iermu/client/business/impl/CamSettingBusImpl.java",
+      "sha256": "0fe6e36212424f83da7ba86049665d75ae1e76fe7538b47f7185571b64d0ddf7"
+    },
+    {
+      "path": "com/iermu/client/business/impl/MineRecordBusImpl.java",
+      "sha256": "138635202c9c5cae8aac0866d2e76a334d8e2fe2f0be97bdd217ab05a0939ef4"
+    },
+    {
+      "path": "com/iermu/opensdk/lan/impl/NasDevImpl.java",
+      "sha256": "e416c957064dc0b65a86e43f98c56ef4f79a41c7e5b244650a16886cfe5beb00"
+    },
+    {
+      "path": "com/iermu/opensdk/lan/utils/LanUtil.java",
+      "sha256": "c292daf2ff251fe36509bab0f36aa06bf07ca4afb4e2a42c51e15594ea1e9be6"
+    },
+    {
+      "path": "com/iermu/ui/fragment/MineCommonFragment.java",
+      "sha256": "995a4f94e7420d90098d954ebd2d4f59f7ed2374c5c4448c52acad913acdfe65"
+    },
+    {
+      "path": "com/iermu/ui/fragment/camseting/CamInfoFragment.java",
+      "sha256": "fed79f1e67948c9ebadefafc7a5baf96f6d3c3081ea6d99d3d71a64874190cfb"
+    },
+    {
+      "path": "com/iermu/ui/fragment/camseting/SettingFragment.java",
+      "sha256": "310ef5bc2938722993564f591a4f61f9bca17921b08054983a0bbd410b00bedc"
+    },
+    {
+      "path": "com/iermu/ui/fragment/camseting/local/LocalRecordSetting.java",
+      "sha256": "d4cdb0eef5428d86cbf376067f0299cf5b110e5669011b780ec2325f6e0fc9a3"
+    },
+    {
+      "path": "com/iermu/ui/fragment/camseting/local/NasDataFragment.java",
+      "sha256": "35369d50e2d91d155490c0565d66e6557d10742990d3459146b5de4f188558e8"
+    },
+    {
+      "path": "com/iermu/ui/fragment/camseting/local/NasSettingFragment.java",
+      "sha256": "04747eb486dcdba9514f4e4263c92dd640421743c8962b88afcbd9293b5dc7c4"
+    }
+  ],
+  "cloud": {
+    "base_url": "https://api.iermu.com",
+    "path": "/v2/pcs/device",
+    "http_method": "POST",
+    "form_fields": [
+      "method",
+      "deviceid",
+      "access_token"
+    ],
+    "methods": {
+      "query_version": "checkupgrade",
+      "start_update": "upgrade",
+      "query_status": "upgradestatus"
+    },
+    "checkupgrade_extra_field": "lang",
+    "parsed_version_fields": [
+      "need_upgrade",
+      "version",
+      "desc"
+    ],
+    "parsed_status_fields": [
+      "status",
+      "deviceid"
+    ],
+    "poll_interval_ms": 3000,
+    "status_ui": {
+      "-2": "update_failed",
+      "-1": "download_failed",
+      "0": "idle_or_default",
+      "1": "updating",
+      "2": "downloading",
+      "3": "download_complete",
+      "4": "applying_update",
+      "5": "success"
+    },
+    "timeout_check_ms": 300000,
+    "timeout_is_strict": false,
+    "timeout_caveat": "Timeout mutates prior status object; subsequent poll replaces it. No unconditional break at timeout.",
+    "ui_progress": "increments by one per callback up to 99, not bytes downloaded"
+  },
+  "lan": {
+    "method_name": "kernelUpgrade",
+    "main": 75,
+    "sub": 42,
+    "payload_hex": "0050020000",
+    "payload_length": 5,
+    "encoded_port": 80,
+    "remaining_bytes_hex": "020000",
+    "mode_semantics": "unknown beyond static constant 2",
+    "includes_image_or_url": false,
+    "ui_condition": "isKerne && isSmb, then confirmation",
+    "nas_read_main": 74,
+    "nas_read_sub": 62,
+    "kernel_flag": "(b[0] & 0x04) != 0",
+    "smb_flag": "(b[0] & 0x80) != 0",
+    "poll_interval_ms": 1000,
+    "poll_limit_ms": 120000,
+    "success_condition": "getNasParam succeeds and isKerne becomes false",
+    "automatic_save_65_3": false,
+    "automatic_save_caveat": "No automatic save does not mean command cannot write firmware"
+  },
+  "other_constant": {
+    "PARA3_ENSUREUPDATE": 47,
+    "meaning": "declared; no application update invocation found; JADX constant replacement creates unrelated Base64/DES/SMB references"
+  },
+  "limits": [
+    "No firmware image recovered",
+    "No confirmed image download URL",
+    "No camera-side signature/hash/model/rollback/flash-layout analysis",
+    "No update command sent",
+    "No local arbitrary-image uploader demonstrated"
+  ],
+  "vendor_url_checks": [
+    {
+      "url": "http://www.iermu.com/question4.php",
+      "status": 451,
+      "reason": ""
+    },
+    {
+      "url": "https://www.iermu.com/question4.php",
+      "status": 451,
+      "reason": ""
+    },
+    {
+      "url": "https://api.iermu.com/",
+      "error": "URLError",
+      "reason": "<urlopen error [Errno -5] No address associated with hostname>"
+    }
+  ]
+}

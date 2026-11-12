@@ -1,5 +1,5 @@
 {
-  "recorded_at": "2026-11-12T10:43:28+09:00",
+  "recorded_at": "2026-11-12T11:12:09+09:00",
   "scope": "Sanitized repository files; initial reference manifest unchanged; this manifest and audit report excluded",
   "files": [
     {
@@ -12,7 +12,7 @@
     },
     {
       "path": "README.md",
-      "sha256": "50df3fc899f6daef77b968d3fc71147fda9f0e24390f0573b17d0adba30a8c91"
+      "sha256": "128f62697ea82fa9209d1e4c0e47c71bc024c64e1fdbf0ab1a1a5039cdc0aa23"
     },
     {
       "path": "SECURITY.md",
@@ -167,6 +167,10 @@
       "sha256": "2386ce13d26fd16377508dc4646189fe2a1499e0964206e8dd974988b2633a50"
     },
     {
+      "path": "docs/FIRMWARE-UPDATE.md",
+      "sha256": "500b30595856b394766b5892aedfd9875d2219b2a84b71581561308f1616f11e"
+    },
+    {
       "path": "docs/HANDOFF.md",
       "sha256": "cbfb0cda2eb968df22e9263fd3d8cfd8ca8c56bf257e75b47f6a633d53b54414"
     },
@@ -188,7 +192,7 @@
     },
     {
       "path": "docs/PROGRESS.md",
-      "sha256": "adead5eabfb8f935dfa6e28833abf54a4e015603e57278b140599ac675c6e2bd"
+      "sha256": "796c74c6393e7ebef596ccefb7cecd248275c38a9158068005515627afd1760a"
     },
     {
       "path": "docs/PROTOCOL.md",
@@ -204,7 +208,7 @@
     },
     {
       "path": "docs/VERIFICATION.md",
-      "sha256": "a7f275c51535321cb881dc447d5ac44fd97d34c6a43c5e54c47d64d1ae2c3228"
+      "sha256": "26350b1524419b0508faf2be1f6c3885172e9e402fdc9c0d2b1850b1a00cd54d"
     },
     {
       "path": "docs/VIDEO3356.md",
@@ -245,6 +249,14 @@
     {
       "path": "evidence/dns-control-20261111.json",
       "sha256": "46214c9eec414adbd4f0e0ada8e20085c19864386633ff8cbfe7ff4d92675667"
+    },
+    {
+      "path": "evidence/firmware-research-summary.json",
+      "sha256": "202d7541f79399231d1b440116b9ec58c894c478b3def24be01327f2e8cd064e"
+    },
+    {
+      "path": "evidence/firmware-static-evidence.json",
+      "sha256": "9882068affb819996d96b09959c5223e503e7589ea8c1f42d68c8a99f754b8cd"
     },
     {
       "path": "evidence/home-ap-migration-20261111.json",

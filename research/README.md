@@ -37,3 +37,20 @@ Pythonの通常のimport経路から依存を解決する。元スクリプト�
 - スピーカーへ音を送る実験スクリプトは、誤実行を避けるため通常ツールへ混在させていない。結果と残課題は[全進捗](../docs/PROGRESS.md)に記録する。
 
 詳細な使い分けは[手法](../docs/METHODS.md)と[制御プロトコル](../docs/PROTOCOL.md)を参照。
+
+
+## アプリ全操作の索引を再生成する
+
+既存のJADX展開ツリーを入力にするだけで、ネットワーク・カメラ・アカウントにはアクセスしない。APK/native実行やクラウド送信もしない。
+
+```bash
+python3 research/index_app_operations.py \
+  --source-root /path/to/jadx/sources \
+  --output /tmp/app-operations-index.json
+python3 research/build_app_operations_report.py \
+  --source-root /path/to/jadx/sources \
+  --index /tmp/app-operations-index.json \
+  --output-root /tmp/app-operations-report
+```
+
+入力ハッシュが必要なら生成時に`--apk /path/to/app.apk --native-root /path/to/native-libs`も指定できる。操作解説本文は人が実装を追跡した資料で、自動付録とは区別する。[調査本文](../docs/APP-OPERATIONS.md)と[機械可読索引](../evidence/app-operations-index.json)を参照。字句索引であり、Javaの型解析・native/server側の完全解析ではない。

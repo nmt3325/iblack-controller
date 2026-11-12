@@ -1,5 +1,5 @@
 {
-  "recorded_at": "2026-11-12T10:03:44+09:00",
+  "recorded_at": "2026-11-12T10:43:28+09:00",
   "scope": "Sanitized repository files; initial reference manifest unchanged; this manifest and audit report excluded",
   "files": [
     {
@@ -12,7 +12,7 @@
     },
     {
       "path": "README.md",
-      "sha256": "a7b61d21061e3468cb18fea67adab9cd4eeee4edf96a69e3f10802d42f1faf1e"
+      "sha256": "50df3fc899f6daef77b968d3fc71147fda9f0e24390f0573b17d0adba30a8c91"
     },
     {
       "path": "SECURITY.md",
@@ -139,6 +139,18 @@
       "sha256": "6a2c8981e26ff1bada55721dd2bf3d4ee077929f83b453f3771b94099d2ceba5"
     },
     {
+      "path": "docs/APP-API-INDEX.md",
+      "sha256": "996c2213659997121ad2de0aa05c362e15937661b4888b4b6d32dcf4208d47aa"
+    },
+    {
+      "path": "docs/APP-OPERATIONS.md",
+      "sha256": "9847f4c11cc095e4bce0db3eb2e9b1b541435e7b1203618dc5194f0e3aec36dc"
+    },
+    {
+      "path": "docs/APP-UI-INDEX.md",
+      "sha256": "f492d027f53e45090b99e5f7724d785db3b7b7d8e0589b831e8272abd8176289"
+    },
+    {
       "path": "docs/ARCHITECTURE.md",
       "sha256": "7ed8558c14d7c225e89a7307488a8bb224864e87e0e798e03739c365a1bc8cb6"
     },
@@ -176,7 +188,7 @@
     },
     {
       "path": "docs/PROGRESS.md",
-      "sha256": "4a74c1df802399c316e8dd5aacf23b8204e103687f24af933958d5ee52c8a490"
+      "sha256": "adead5eabfb8f935dfa6e28833abf54a4e015603e57278b140599ac675c6e2bd"
     },
     {
       "path": "docs/PROTOCOL.md",
@@ -192,7 +204,7 @@
     },
     {
       "path": "docs/VERIFICATION.md",
-      "sha256": "4dbfba888c2a1260020d69a143f56618052a84578459c18496fdc00faf8b72df"
+      "sha256": "a7f275c51535321cb881dc447d5ac44fd97d34c6a43c5e54c47d64d1ae2c3228"
     },
     {
       "path": "docs/VIDEO3356.md",
@@ -205,6 +217,18 @@
     {
       "path": "evidence/20261111-setup.txt",
       "sha256": "aefe42e367ae17a4a4a072c40129480ae2d197637c0a49f441abbf7c7e5f0bb5"
+    },
+    {
+      "path": "evidence/app-operations-details.json",
+      "sha256": "5ad990ff09e1a8602b213ac4c846ecf63617b2402af50f10d8add7de6ed94c11"
+    },
+    {
+      "path": "evidence/app-operations-index.json",
+      "sha256": "ffbebcc56c0f5e3677e4dac5bb4e4b44c743f985d72387046013955f67a6f361"
+    },
+    {
+      "path": "evidence/app-operations-summary.json",
+      "sha256": "1de57472cbeb9dd2886ad13064b7cce29d10fb9dbd076eb53be9f267e8627e83"
     },
     {
       "path": "evidence/app-static-analysis.json",
@@ -332,7 +356,15 @@
     },
     {
       "path": "research/README.md",
-      "sha256": "7b84ea6b585b7c48630cea2c1e3e4491f4d825e5c5e326f98eecfeee84ca32bd"
+      "sha256": "8155f94f363880244261a1bd2828f215b785d0522ca5e1809bdeaaddf47adc02"
+    },
+    {
+      "path": "research/build_app_operations_report.py",
+      "sha256": "485acab05db76f921bf4604a9e5a6c0a715e7df1c924d7517f3bb357fb41f84e"
+    },
+    {
+      "path": "research/index_app_operations.py",
+      "sha256": "e93bd58ab5f2c1895e7229a03c89c197f1c67e558b02dafc7d6ed6de03323e88"
     },
     {
       "path": "research/native/find_rtmp_xrefs.py",
@@ -357,6 +389,10 @@
     {
       "path": "server/sslcloud.py",
       "sha256": "ae8ff6e3bc5210e422644a7aa66883cda78971038f6ae23fa100bc37df9c8a3e"
+    },
+    {
+      "path": "tests/test_app_operations.py",
+      "sha256": "c263cc700e1a605e71747ca8640f523d1ae462346ac2f2bcc093b210ebe81389"
     },
     {
       "path": "tests/test_controls.py",

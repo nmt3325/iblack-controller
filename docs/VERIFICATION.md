@@ -61,3 +61,12 @@
 [追加調査JSON](../evidence/camera-deeper-20261112.json)に、PES stream ID別のPTS/DTS、317映像フレーム・131072音声サンプルの個別復号、読取りパラメータの長さと限定的な解釈、APKの対応実装を記録した。生メディア、認証値、パラメータ本体は含めていない。
 
 調査前の別ノード再生は34フレーム・720p＋AAC・終了0。調査後の最初の確認はタイムアウトし、同ホストでもH.264のサイズ不明で復号できなかった。中継2サービスを設定変更なしで再起動後、別ノードで42フレーム・720p＋AAC・終了0・エラー0を確認した。設定書込みなしと、サービス操作なしは別である。原因の確定、並行使用の安全性、長期安定性を意味しない。[詳細](CAMERA-DEEPER.md)。
+
+
+## アプリ全操作の調査に関する検証
+
+- `evidence/app-operations-index.json`：契約宣言、UI参照、CMS代入順、選択したJava 1060ファイルのSHA-256。
+- `evidence/app-operations-details.json`：APK/native入力のハッシュ、CamSettingApi 41メソッドのRPCとJSONキー、手動追跡したUI値・副作用。実際のトークン・認証値は含まない。
+- `evidence/app-operations-summary.json`：範囲、限界、作業前後の外部ノードでの映像・音声の復号、リポジトリQA。
+- `tests/test_app_operations.py`：合成Javaのみの10件。匿名リスナー、コメント/文字列、native/generic宣言、HTTPキー、CMS代入順を検査。総テスト数64。
+- 「契約宣言の未採取0」は、Business/HTTP/LANの対象インターフェースの字句照合。全native/全実行経路の網羅や、この個体の対応を保証する意味ではない。

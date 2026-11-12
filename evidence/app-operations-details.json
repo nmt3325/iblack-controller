@@ -1,0 +1,1008 @@
+{
+  "identity": {
+    "package": "com.intl.iermu",
+    "version_name": "1.8.0_1224",
+    "version_code": 577,
+    "apk_sha256": "e627cfdd4ccefc4a6a7fc5ce617ca4e00fbd861d5634c6ad88f0246a7e51377a",
+    "apk_bytes": 38791445,
+    "native_inputs_sha256": {
+      "libMD5_v1.so": "3028ced8183a236e69adb585dbfc29b88e19236d3f20d889e35917be00cdfc2c",
+      "libSDK_topvdn.so": "a0920720fc8f8396b7a83d052690fa5045614dd6c85926e8c5ecf0e1eb80e15a",
+      "libbase64encoder_v1_4.so": "20e9aea4ebd31c50e618cb3c618fb7028293a52f6561db86edb5eaee79e4bb2b",
+      "libbdpush_V2_5.so": "eb011fc78cfa792df34e2b3bcf72b78a6a13196b680ae881aace5498ecc46856",
+      "libcmsffmpeg.so": "679c5d48133e8e1d1fc6e7290369f1a50febfb0b02ddfe51865eb156711d4903",
+      "libcmsplayer.so": "ff2d42fd4c4672f3d1c7f208bf8d68f5642dc469f2451a3c8b71ad05d10b834a",
+      "libgetuiext2.so": "81ac0f601e6f488da53429eee33965465c96d51a8e23fc53addc6c0195b7f5f0"
+    }
+  },
+  "source_index_sha256": "ffbebcc56c0f5e3677e4dac5bb4e4b44c743f985d72387046013955f67a6f361",
+  "executed_new_camera_setting_writes": false,
+  "executed_destructive_operations": false,
+  "executed_speaker_transmission": false,
+  "cam_setting_api_calls": [
+    {
+      "file": "com/iermu/client/business/api/CamSettingApi.java",
+      "method": "apiGetCamInfo",
+      "line": 39,
+      "end_line": 50,
+      "service_calls": [
+        {
+          "service_method": "getCamSettings",
+          "rpc_method_literal": "setting",
+          "source_arguments_expression": "\"setting\", CamSettingResponse.Field.INFO, deviceId, accessToken",
+          "line": 41
+        }
+      ],
+      "json_fields": []
+    },
+    {
+      "file": "com/iermu/client/business/api/CamSettingApi.java",
+      "method": "apiGetCamStatus",
+      "line": 51,
+      "end_line": 62,
+      "service_calls": [
+        {
+          "service_method": "getCamSettings",
+          "rpc_method_literal": "setting",
+          "source_arguments_expression": "\"setting\", \"status\", deviceId, accessToken",
+          "line": 53
+        }
+      ],
+      "json_fields": []
+    },
+    {
+      "file": "com/iermu/client/business/api/CamSettingApi.java",
+      "method": "apiGetCamPowerCron",
+      "line": 63,
+      "end_line": 74,
+      "service_calls": [
+        {
+          "service_method": "getCamSettings",
+          "rpc_method_literal": "setting",
+          "source_arguments_expression": "\"setting\", \"power\", deviceId, accessToken",
+          "line": 65
+        }
+      ],
+      "json_fields": []
+    },
+    {
+      "file": "com/iermu/client/business/api/CamSettingApi.java",
+      "method": "apiGetCloudCvr",
+      "line": 75,
+      "end_line": 86,
+      "service_calls": [
+        {
+          "service_method": "getCamSettings",
+          "rpc_method_literal": "setting",
+          "source_arguments_expression": "\"setting\", \"cvr\", deviceId, accessToken",
+          "line": 77
+        }
+      ],
+      "json_fields": []
+    },
+    {
+      "file": "com/iermu/client/business/api/CamSettingApi.java",
+      "method": "apiGetCamAlarm",
+      "line": 87,
+      "end_line": 98,
+      "service_calls": [
+        {
+          "service_method": "getCamSettings",
+          "rpc_method_literal": "setting",
+          "source_arguments_expression": "\"setting\", \"alarm\", deviceId, accessToken",
+          "line": 89
+        }
+      ],
+      "json_fields": []
+    },
+    {
+      "file": "com/iermu/client/business/api/CamSettingApi.java",
+      "method": "apiGetCamBitLevel",
+      "line": 99,
+      "end_line": 111,
+      "service_calls": [
+        {
+          "service_method": "getCamSettings",
+          "rpc_method_literal": "setting",
+          "source_arguments_expression": "\"setting\", \"bit\", deviceId, accessToken",
+          "line": 101
+        }
+      ],
+      "json_fields": []
+    },
+    {
+      "file": "com/iermu/client/business/api/CamSettingApi.java",
+      "method": "apiCamFirmware",
+      "line": 112,
+      "end_line": 123,
+      "service_calls": [
+        {
+          "service_method": "checkCamFirmware",
+          "rpc_method_literal": "upgrade",
+          "source_arguments_expression": "\"upgrade\", deviceId, accessToken",
+          "line": 114
+        }
+      ],
+      "json_fields": []
+    },
+    {
+      "file": "com/iermu/client/business/api/CamSettingApi.java",
+      "method": "checkUpgradeVersion",
+      "line": 124,
+      "end_line": 136,
+      "service_calls": [
+        {
+          "service_method": "checkUpgradeVersion",
+          "rpc_method_literal": "checkupgrade",
+          "source_arguments_expression": "\"checkupgrade\", deviceId, accessToken, language",
+          "line": 127
+        }
+      ],
+      "json_fields": []
+    },
+    {
+      "file": "com/iermu/client/business/api/CamSettingApi.java",
+      "method": "apiGetCamUpdateStatus",
+      "line": 137,
+      "end_line": 148,
+      "service_calls": [
+        {
+          "service_method": "getCamUpdateStatus",
+          "rpc_method_literal": "upgradestatus",
+          "source_arguments_expression": "\"upgradestatus\", deviceId, accessToken",
+          "line": 139
+        }
+      ],
+      "json_fields": []
+    },
+    {
+      "file": "com/iermu/client/business/api/CamSettingApi.java",
+      "method": "apiRestartCamDev",
+      "line": 149,
+      "end_line": 162,
+      "service_calls": [
+        {
+          "service_method": "restartCamDev",
+          "rpc_method_literal": "updatesetting",
+          "source_arguments_expression": "\"updatesetting\", deviceId, accessToken, json.toString()",
+          "line": 153
+        }
+      ],
+      "json_fields": [
+        {
+          "key_expression": "\"restart\"",
+          "resolved_key": "restart",
+          "value_expression": "1",
+          "line": 152
+        }
+      ]
+    },
+    {
+      "file": "com/iermu/client/business/api/CamSettingApi.java",
+      "method": "apiDropCamDev",
+      "line": 163,
+      "end_line": 174,
+      "service_calls": [
+        {
+          "service_method": "dropCamDev",
+          "rpc_method_literal": "drop",
+          "source_arguments_expression": "\"drop\", deviceId, accessToken",
+          "line": 165
+        }
+      ],
+      "json_fields": []
+    },
+    {
+      "file": "com/iermu/client/business/api/CamSettingApi.java",
+      "method": "apiPowerCam",
+      "line": 175,
+      "end_line": 191,
+      "service_calls": [
+        {
+          "service_method": "powerCam",
+          "rpc_method_literal": "updatesetting",
+          "source_arguments_expression": "\"updatesetting\", deviceId, accessToken, json.toString()",
+          "line": 182
+        }
+      ],
+      "json_fields": [
+        {
+          "key_expression": "\"power\"",
+          "resolved_key": "power",
+          "value_expression": "power ? 1 : 0",
+          "line": 178
+        },
+        {
+          "key_expression": "CamCronConverter.PowerField.POWER_CRON",
+          "resolved_key": "power_cron",
+          "value_expression": "0",
+          "line": 180
+        }
+      ]
+    },
+    {
+      "file": "com/iermu/client/business/api/CamSettingApi.java",
+      "method": "apiUpdateCamName",
+      "line": 192,
+      "end_line": 203,
+      "service_calls": [
+        {
+          "service_method": "updateCamName",
+          "rpc_method_literal": "update",
+          "source_arguments_expression": "\"update\", deviceId, accessToken, camName",
+          "line": 194
+        }
+      ],
+      "json_fields": []
+    },
+    {
+      "file": "com/iermu/client/business/api/CamSettingApi.java",
+      "method": "apiUpdateCamTimezone",
+      "line": 204,
+      "end_line": 215,
+      "service_calls": [
+        {
+          "service_method": "updateCamTimezone",
+          "rpc_method_literal": "update",
+          "source_arguments_expression": "\"update\", deviceId, accessToken, timezone",
+          "line": 206
+        }
+      ],
+      "json_fields": []
+    },
+    {
+      "file": "com/iermu/client/business/api/CamSettingApi.java",
+      "method": "apiSetMaxUpspeed",
+      "line": 216,
+      "end_line": 230,
+      "service_calls": [
+        {
+          "service_method": "setMaxUpspeed",
+          "rpc_method_literal": "updatesetting",
+          "source_arguments_expression": "\"updatesetting\", deviceId, accessToken, json.toString()",
+          "line": 221
+        }
+      ],
+      "json_fields": [
+        {
+          "key_expression": "CamStatusConverter.Field.maxspeed",
+          "resolved_key": "maxspeed",
+          "value_expression": "maxSpeed",
+          "line": 219
+        },
+        {
+          "key_expression": "CamStatusConverter.Field.minspeed",
+          "resolved_key": "minspeed",
+          "value_expression": "\"50\"",
+          "line": 220
+        }
+      ]
+    },
+    {
+      "file": "com/iermu/client/business/api/CamSettingApi.java",
+      "method": "apiSetDevLight",
+      "line": 231,
+      "end_line": 244,
+      "service_calls": [
+        {
+          "service_method": "setDevLight",
+          "rpc_method_literal": "updatesetting",
+          "source_arguments_expression": "\"updatesetting\", deviceId, accessToken, json.toString()",
+          "line": 235
+        }
+      ],
+      "json_fields": [
+        {
+          "key_expression": "CamStatusConverter.Field.light",
+          "resolved_key": "light",
+          "value_expression": "light ? 1 : 0",
+          "line": 234
+        }
+      ]
+    },
+    {
+      "file": "com/iermu/client/business/api/CamSettingApi.java",
+      "method": "apiSetDevInvert",
+      "line": 245,
+      "end_line": 258,
+      "service_calls": [
+        {
+          "service_method": "setDevInvert",
+          "rpc_method_literal": "updatesetting",
+          "source_arguments_expression": "\"updatesetting\", deviceId, accessToken, json.toString()",
+          "line": 249
+        }
+      ],
+      "json_fields": [
+        {
+          "key_expression": "CamStatusConverter.Field.invert",
+          "resolved_key": "invert",
+          "value_expression": "invert ? 1 : 0",
+          "line": 248
+        }
+      ]
+    },
+    {
+      "file": "com/iermu/client/business/api/CamSettingApi.java",
+      "method": "apiSetDevAudio",
+      "line": 259,
+      "end_line": 272,
+      "service_calls": [
+        {
+          "service_method": "setDevAudio",
+          "rpc_method_literal": "updatesetting",
+          "source_arguments_expression": "\"updatesetting\", deviceId, accessToken, json.toString()",
+          "line": 263
+        }
+      ],
+      "json_fields": [
+        {
+          "key_expression": "\"audio\"",
+          "resolved_key": "audio",
+          "value_expression": "audio ? 1 : 0",
+          "line": 262
+        }
+      ]
+    },
+    {
+      "file": "com/iermu/client/business/api/CamSettingApi.java",
+      "method": "apiSetDevScene",
+      "line": 273,
+      "end_line": 286,
+      "service_calls": [
+        {
+          "service_method": "setDevScene",
+          "rpc_method_literal": "updatesetting",
+          "source_arguments_expression": "\"updatesetting\", deviceId, accessToken, json.toString()",
+          "line": 277
+        }
+      ],
+      "json_fields": [
+        {
+          "key_expression": "CamStatusConverter.Field.scene",
+          "resolved_key": "scene",
+          "value_expression": "scene ? 1 : 0",
+          "line": 276
+        }
+      ]
+    },
+    {
+      "file": "com/iermu/client/business/api/CamSettingApi.java",
+      "method": "apiSetDevNightMode",
+      "line": 287,
+      "end_line": 300,
+      "service_calls": [
+        {
+          "service_method": "setDevNightMode",
+          "rpc_method_literal": "updatesetting",
+          "source_arguments_expression": "\"updatesetting\", deviceId, accessToken, json.toString()",
+          "line": 291
+        }
+      ],
+      "json_fields": [
+        {
+          "key_expression": "CamStatusConverter.Field.nightmode",
+          "resolved_key": "nightmode",
+          "value_expression": "nightmode",
+          "line": 290
+        }
+      ]
+    },
+    {
+      "file": "com/iermu/client/business/api/CamSettingApi.java",
+      "method": "apiSetDevExposeMode",
+      "line": 301,
+      "end_line": 314,
+      "service_calls": [
+        {
+          "service_method": "setDevExposeMode",
+          "rpc_method_literal": "updatesetting",
+          "source_arguments_expression": "\"updatesetting\", deviceId, accessToken, json.toString()",
+          "line": 305
+        }
+      ],
+      "json_fields": [
+        {
+          "key_expression": "CamStatusConverter.Field.exposemode",
+          "resolved_key": "exposemode",
+          "value_expression": "exposemode",
+          "line": 304
+        }
+      ]
+    },
+    {
+      "file": "com/iermu/client/business/api/CamSettingApi.java",
+      "method": "apiSetCvr",
+      "line": 316,
+      "end_line": 329,
+      "service_calls": [
+        {
+          "service_method": "setDevCron",
+          "rpc_method_literal": "updatesetting",
+          "source_arguments_expression": "\"updatesetting\", deviceId, accessToken, json.toString()",
+          "line": 320
+        }
+      ],
+      "json_fields": [
+        {
+          "key_expression": "\"cvr\"",
+          "resolved_key": "cvr",
+          "value_expression": "isCvr ? 1 : 0",
+          "line": 319
+        }
+      ]
+    },
+    {
+      "file": "com/iermu/client/business/api/CamSettingApi.java",
+      "method": "apiSetCvrCron",
+      "line": 330,
+      "end_line": 355,
+      "service_calls": [
+        {
+          "service_method": "setDevCron",
+          "rpc_method_literal": "updatesetting",
+          "source_arguments_expression": "\"updatesetting\", deviceId, accessToken, json.toString()",
+          "line": 346
+        }
+      ],
+      "json_fields": [
+        {
+          "key_expression": "\"cvr\"",
+          "resolved_key": "cvr",
+          "value_expression": "isDevCvr ? 1 : 0",
+          "line": 341
+        },
+        {
+          "key_expression": "CamCronConverter.CvrField.CVR_CRON",
+          "resolved_key": "cvr_cron",
+          "value_expression": "isCron ? 1 : 0",
+          "line": 342
+        },
+        {
+          "key_expression": "CamCronConverter.CvrField.CVR_START",
+          "resolved_key": "cvr_start",
+          "value_expression": "beginTime",
+          "line": 343
+        },
+        {
+          "key_expression": "CamCronConverter.CvrField.CVR_END",
+          "resolved_key": "cvr_end",
+          "value_expression": "endTime",
+          "line": 344
+        },
+        {
+          "key_expression": "CamCronConverter.CvrField.CVR_REPEAT",
+          "resolved_key": "cvr_repeat",
+          "value_expression": "converter",
+          "line": 345
+        }
+      ]
+    },
+    {
+      "file": "com/iermu/client/business/api/CamSettingApi.java",
+      "method": "apiSetCamCron",
+      "line": 356,
+      "end_line": 379,
+      "service_calls": [
+        {
+          "service_method": "setDevCron",
+          "rpc_method_literal": "updatesetting",
+          "source_arguments_expression": "\"updatesetting\", deviceId, accessToken, json.toString()",
+          "line": 370
+        }
+      ],
+      "json_fields": [
+        {
+          "key_expression": "CamCronConverter.PowerField.POWER_CRON",
+          "resolved_key": "power_cron",
+          "value_expression": "isCron ? 1 : 0",
+          "line": 366
+        },
+        {
+          "key_expression": "CamCronConverter.PowerField.POWER_START",
+          "resolved_key": "power_start",
+          "value_expression": "beginTime",
+          "line": 367
+        },
+        {
+          "key_expression": "CamCronConverter.PowerField.POWER_END",
+          "resolved_key": "power_end",
+          "value_expression": "endTime",
+          "line": 368
+        },
+        {
+          "key_expression": "CamCronConverter.PowerField.POWER_REPEAT",
+          "resolved_key": "power_repeat",
+          "value_expression": "converter",
+          "line": 369
+        }
+      ]
+    },
+    {
+      "file": "com/iermu/client/business/api/CamSettingApi.java",
+      "method": "apiSetCamAlarm",
+      "line": 380,
+      "end_line": 402,
+      "service_calls": [
+        {
+          "service_method": "setDevCron",
+          "rpc_method_literal": "updatesetting",
+          "source_arguments_expression": "\"updatesetting\", deviceId, accessToken, json.toString()",
+          "line": 393
+        }
+      ],
+      "json_fields": [
+        {
+          "key_expression": "CamAlarmConverter.Field.ALARM_NOTICE",
+          "resolved_key": "alarm_push",
+          "value_expression": "1",
+          "line": 386
+        },
+        {
+          "key_expression": "CamCronConverter.AlarmField.ALARM_CRON",
+          "resolved_key": "alarm_cron",
+          "value_expression": "1",
+          "line": 387
+        },
+        {
+          "key_expression": "CamAlarmConverter.Field.ALARM_MOVE",
+          "resolved_key": "alarm_move",
+          "value_expression": "1",
+          "line": 388
+        },
+        {
+          "key_expression": "CamAlarmConverter.Field.ALARM_MOVE_LEVEL",
+          "resolved_key": "alarm_move_level",
+          "value_expression": "level",
+          "line": 389
+        },
+        {
+          "key_expression": "CamCronConverter.AlarmField.ALARM_START",
+          "resolved_key": "alarm_start",
+          "value_expression": "beginTime",
+          "line": 390
+        },
+        {
+          "key_expression": "CamCronConverter.AlarmField.ALARM_END",
+          "resolved_key": "alarm_end",
+          "value_expression": "endTime",
+          "line": 391
+        },
+        {
+          "key_expression": "CamCronConverter.AlarmField.ALARM_REPEAT",
+          "resolved_key": "alarm_repeat",
+          "value_expression": "repeatstr",
+          "line": 392
+        }
+      ]
+    },
+    {
+      "file": "com/iermu/client/business/api/CamSettingApi.java",
+      "method": "apiSetAlarmPush",
+      "line": 403,
+      "end_line": 416,
+      "service_calls": [
+        {
+          "service_method": "setDevAlarm",
+          "rpc_method_literal": "updatesetting",
+          "source_arguments_expression": "\"updatesetting\", deviceId, accessToken, json.toString()",
+          "line": 407
+        }
+      ],
+      "json_fields": [
+        {
+          "key_expression": "CamAlarmConverter.Field.ALARM_NOTICE",
+          "resolved_key": "alarm_push",
+          "value_expression": "push ? 1 : 0",
+          "line": 406
+        }
+      ]
+    },
+    {
+      "file": "com/iermu/client/business/api/CamSettingApi.java",
+      "method": "apiSetAlarmMove",
+      "line": 417,
+      "end_line": 431,
+      "service_calls": [
+        {
+          "service_method": "setDevAlarm",
+          "rpc_method_literal": "updatesetting",
+          "source_arguments_expression": "\"updatesetting\", deviceId, accessToken, json.toString()",
+          "line": 422
+        }
+      ],
+      "json_fields": [
+        {
+          "key_expression": "CamAlarmConverter.Field.ALARM_MOVE",
+          "resolved_key": "alarm_move",
+          "value_expression": "isChecked ? 1 : 0",
+          "line": 420
+        },
+        {
+          "key_expression": "CamAlarmConverter.Field.ALARM_MOVE_LEVEL",
+          "resolved_key": "alarm_move_level",
+          "value_expression": "level",
+          "line": 421
+        }
+      ]
+    },
+    {
+      "file": "com/iermu/client/business/api/CamSettingApi.java",
+      "method": "apiSetAlarmAudio",
+      "line": 432,
+      "end_line": 446,
+      "service_calls": [
+        {
+          "service_method": "setDevAlarm",
+          "rpc_method_literal": "updatesetting",
+          "source_arguments_expression": "\"updatesetting\", deviceId, accessToken, json.toString()",
+          "line": 437
+        }
+      ],
+      "json_fields": [
+        {
+          "key_expression": "CamAlarmConverter.Field.ALARM_AUDIO",
+          "resolved_key": "alarm_audio",
+          "value_expression": "isChecked",
+          "line": 435
+        },
+        {
+          "key_expression": "CamAlarmConverter.Field.ALARM_AUDIO_LEVEL",
+          "resolved_key": "alarm_audio_level",
+          "value_expression": "level",
+          "line": 436
+        }
+      ]
+    },
+    {
+      "file": "com/iermu/client/business/api/CamSettingApi.java",
+      "method": "apiSetAlarmCron",
+      "line": 447,
+      "end_line": 471,
+      "service_calls": [
+        {
+          "service_method": "setDevCron",
+          "rpc_method_literal": "updatesetting",
+          "source_arguments_expression": "\"updatesetting\", deviceId, accessToken, json.toString()",
+          "line": 462
+        }
+      ],
+      "json_fields": [
+        {
+          "key_expression": "CamCronConverter.AlarmField.ALARM_CRON",
+          "resolved_key": "alarm_cron",
+          "value_expression": "isCron ? 1 : 0",
+          "line": 458
+        },
+        {
+          "key_expression": "CamCronConverter.AlarmField.ALARM_START",
+          "resolved_key": "alarm_start",
+          "value_expression": "beginTime",
+          "line": 459
+        },
+        {
+          "key_expression": "CamCronConverter.AlarmField.ALARM_END",
+          "resolved_key": "alarm_end",
+          "value_expression": "endTime",
+          "line": 460
+        },
+        {
+          "key_expression": "CamCronConverter.AlarmField.ALARM_REPEAT",
+          "resolved_key": "alarm_repeat",
+          "value_expression": "converter",
+          "line": 461
+        }
+      ]
+    },
+    {
+      "file": "com/iermu/client/business/api/CamSettingApi.java",
+      "method": "apiSetAlarmMoveLevel",
+      "line": 472,
+      "end_line": 486,
+      "service_calls": [
+        {
+          "service_method": "setAlarmMoveLevel",
+          "rpc_method_literal": "updatesetting",
+          "source_arguments_expression": "\"updatesetting\", deviceId, accessToken, json.toString()",
+          "line": 477
+        }
+      ],
+      "json_fields": [
+        {
+          "key_expression": "CamAlarmConverter.Field.ALARM_MOVE",
+          "resolved_key": "alarm_move",
+          "value_expression": "1",
+          "line": 475
+        },
+        {
+          "key_expression": "CamAlarmConverter.Field.ALARM_MOVE_LEVEL",
+          "resolved_key": "alarm_move_level",
+          "value_expression": "level",
+          "line": 476
+        }
+      ]
+    },
+    {
+      "file": "com/iermu/client/business/api/CamSettingApi.java",
+      "method": "apiRegisterBaiduPush",
+      "line": 487,
+      "end_line": 501,
+      "service_calls": [
+        {
+          "service_method": "registerPush",
+          "rpc_method_literal": null,
+          "source_arguments_expression": "LightAppTableDefine.DB_TABLE_REGISTER, accessToken, udId, 1, json.toString(), 0, 2, lang",
+          "line": 492
+        }
+      ],
+      "json_fields": [
+        {
+          "key_expression": "\"channel_id\"",
+          "resolved_key": "channel_id",
+          "value_expression": "channelId",
+          "line": 490
+        },
+        {
+          "key_expression": "PushConstants.EXTRA_USER_ID",
+          "resolved_key": "user_id",
+          "value_expression": "userId",
+          "line": 491
+        }
+      ]
+    },
+    {
+      "file": "com/iermu/client/business/api/CamSettingApi.java",
+      "method": "apiRegisterGetuiPush",
+      "line": 502,
+      "end_line": 515,
+      "service_calls": [
+        {
+          "service_method": "registerPush",
+          "rpc_method_literal": null,
+          "source_arguments_expression": "LightAppTableDefine.DB_TABLE_REGISTER, accessToken, udId, 4, json.toString(), 1, 2, lang",
+          "line": 506
+        }
+      ],
+      "json_fields": [
+        {
+          "key_expression": "\"client_id\"",
+          "resolved_key": "client_id",
+          "value_expression": "clientId",
+          "line": 505
+        }
+      ]
+    },
+    {
+      "file": "com/iermu/client/business/api/CamSettingApi.java",
+      "method": "apiSetBitLevel",
+      "line": 516,
+      "end_line": 529,
+      "service_calls": [
+        {
+          "service_method": "setBitLevel",
+          "rpc_method_literal": "updatesetting",
+          "source_arguments_expression": "\"updatesetting\", deviceId, accessToken, json.toString()",
+          "line": 520
+        }
+      ],
+      "json_fields": [
+        {
+          "key_expression": "CamStatusConverter.Field.bitlevel",
+          "resolved_key": "bitlevel",
+          "value_expression": "bitlevel",
+          "line": 519
+        }
+      ]
+    },
+    {
+      "file": "com/iermu/client/business/api/CamSettingApi.java",
+      "method": "apiGetCapsule",
+      "line": 530,
+      "end_line": 541,
+      "service_calls": [
+        {
+          "service_method": "getCamCapsule",
+          "rpc_method_literal": "setting",
+          "source_arguments_expression": "\"setting\", \"capsule\", deviceId, accessToken",
+          "line": 532
+        }
+      ],
+      "json_fields": []
+    },
+    {
+      "file": "com/iermu/client/business/api/CamSettingApi.java",
+      "method": "uploadDevInfo",
+      "line": 542,
+      "end_line": 555,
+      "service_calls": [
+        {
+          "service_method": "uploadDevInfo",
+          "rpc_method_literal": "updatesetting",
+          "source_arguments_expression": "\"updatesetting\", deviceId, fileds, accessToken",
+          "line": 544
+        }
+      ],
+      "json_fields": []
+    },
+    {
+      "file": "com/iermu/client/business/api/CamSettingApi.java",
+      "method": "apiGetStorage",
+      "line": 556,
+      "end_line": 569,
+      "service_calls": [
+        {
+          "service_method": "getStorage",
+          "rpc_method_literal": "setting",
+          "source_arguments_expression": "\"setting\", \"storage\", deviceId, accessToken",
+          "line": 558
+        }
+      ],
+      "json_fields": []
+    },
+    {
+      "file": "com/iermu/client/business/api/CamSettingApi.java",
+      "method": "apiGetListCvrRecord",
+      "line": 570,
+      "end_line": 583,
+      "service_calls": [
+        {
+          "service_method": "getListCvrRecord",
+          "rpc_method_literal": "listcvrrecord",
+          "source_arguments_expression": "\"listcvrrecord\", deviceId, accessToken",
+          "line": 572
+        }
+      ],
+      "json_fields": []
+    },
+    {
+      "file": "com/iermu/client/business/api/CamSettingApi.java",
+      "method": "apiGetContactList",
+      "line": 584,
+      "end_line": 597,
+      "service_calls": [
+        {
+          "service_method": "getContactList",
+          "rpc_method_literal": "listcontact",
+          "source_arguments_expression": "\"listcontact\", deviceId, accessToken",
+          "line": 586
+        }
+      ],
+      "json_fields": []
+    },
+    {
+      "file": "com/iermu/client/business/api/CamSettingApi.java",
+      "method": "apiAddContact",
+      "line": 598,
+      "end_line": 611,
+      "service_calls": [
+        {
+          "service_method": "addContact",
+          "rpc_method_literal": "addcontact",
+          "source_arguments_expression": "\"addcontact\", deviceId, name, phone, accessToken",
+          "line": 600
+        }
+      ],
+      "json_fields": []
+    },
+    {
+      "file": "com/iermu/client/business/api/CamSettingApi.java",
+      "method": "apiUpdateContact",
+      "line": 612,
+      "end_line": 625,
+      "service_calls": [
+        {
+          "service_method": "updateContact",
+          "rpc_method_literal": "updatecontact",
+          "source_arguments_expression": "\"updatecontact\", id, name, phone, accessToken",
+          "line": 614
+        }
+      ],
+      "json_fields": []
+    },
+    {
+      "file": "com/iermu/client/business/api/CamSettingApi.java",
+      "method": "apiDeleteContact",
+      "line": 626,
+      "end_line": 639,
+      "service_calls": [
+        {
+          "service_method": "deleteContact",
+          "rpc_method_literal": "dropcontact",
+          "source_arguments_expression": "\"dropcontact\", id, accessToken",
+          "line": 628
+        }
+      ],
+      "json_fields": []
+    }
+  ],
+  "manually_verified_ui_values": {
+    "nightmode": {
+      "0": "Auto",
+      "1": "Turn off night vision",
+      "2": "Turn on night vision",
+      "source": "com/iermu/ui/fragment/camseting/CamNightFragment.java:78-96"
+    },
+    "exposemode": {
+      "0": "Auto",
+      "1": "Highlight priority",
+      "2": "Lowlight priority",
+      "source": "com/iermu/ui/fragment/camseting/CamNightFragment.java:98-116"
+    },
+    "scene": {
+      "0": "Indoor",
+      "1": "Outdoor",
+      "source": "com/iermu/ui/fragment/camseting/CamNightFragment.java:62-77"
+    },
+    "record_mode": {
+      "0": "recordContinue",
+      "1": "recordChange",
+      "source": "com/iermu/ui/fragment/camseting/local/SdSettingFragment.java:355-362"
+    },
+    "live_bitlevel": {
+      "0": "Low",
+      "1": "HD",
+      "2": "Super",
+      "send_condition": "isDoNekWork == true",
+      "source": "com/iermu/ui/fragment/live/MineLiveFragment.java:1523-1568"
+    },
+    "labels_source": [
+      "res/layout/setting_night_exposure.xml",
+      "res/values/strings.xml"
+    ]
+  },
+  "side_effects": [
+    {
+      "operation": "getLanPlayUrl",
+      "wire": "75/54",
+      "source": "com/iermu/opensdk/lan/impl/LanDevPlatformImpl.java:235",
+      "note": "get name does not imply read-only"
+    },
+    {
+      "operation": "getSmbFolder",
+      "source": "com/iermu/opensdk/lan/impl/NasDevImpl.java:47-124",
+      "note": "Phone SMB listing may create/delete iermutest to check write access"
+    },
+    {
+      "operation": "setDevParam",
+      "source": "com/cms/iermu/cms/CmsNetUtil.java:109-172",
+      "note": "main 75 auto-saves via 65/3 except sub 54/64/62/42"
+    },
+    {
+      "operation": "setRecordType",
+      "source": "com/iermu/opensdk/lan/impl/NasDevImpl.java:829-870",
+      "note": "6-byte zero-filled payload; only byte5 bit7 configured; explicit save in addition to wrapper"
+    },
+    {
+      "operation": "formatSdc",
+      "wire": "75/83",
+      "source": "com/iermu/opensdk/lan/impl/NasDevImpl.java:872-899",
+      "note": "Destructive; not executed"
+    },
+    {
+      "operation": "kernelUpgrade",
+      "wire": "75/42",
+      "source": "com/iermu/opensdk/lan/impl/NasDevImpl.java:719-746",
+      "note": "HTTP update, port80/type2; not executed"
+    },
+    {
+      "operation": "PTZ",
+      "source": "com/iermu/client/business/impl/CloudPlatformBusImpl.java:50-280",
+      "note": "camIsInLan branch; hardware support and fallback response not verified"
+    },
+    {
+      "operation": "talkback",
+      "source": "com/iermu/ui/fragment/live/MineLiveFragment.java:1075-1128",
+      "note": "Network, microphone permission, delayed500ms press/release; no audio transmitted"
+    }
+  ],
+  "decompiler_failure_markers": [
+    {
+      "file": "com/iermu/opensdk/setup/scan/WifiNetworkManager.java",
+      "line": 360
+    }
+  ],
+  "limitations": [
+    "Lexical source index, not Java compiler/type resolution. Method-name references are leads, not proof of reachable UI functionality. Native opaque paths and decompiler failures remain explicit.",
+    "No new hardware applicability tests; no exhaustive native/third-party/server coverage"
+  ]
+}

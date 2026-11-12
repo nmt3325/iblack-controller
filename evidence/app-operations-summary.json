@@ -1,0 +1,115 @@
+{
+  "identity": {
+    "package": "com.intl.iermu",
+    "version_name": "1.8.0_1224",
+    "version_code": 577,
+    "apk_sha256": "e627cfdd4ccefc4a6a7fc5ce617ca4e00fbd861d5634c6ad88f0246a7e51377a",
+    "apk_bytes": 38791445
+  },
+  "scope": {
+    "java_files_scanned": 1060,
+    "ui_java_files_scanned": 302,
+    "contract_files": 35,
+    "contract_methods_by_kind": {
+      "http": 128,
+      "business": 379,
+      "native_entry": 24,
+      "sdk_entry": 24,
+      "lan": 28
+    }
+  },
+  "contract_declarations_total": 583,
+  "ui_action_sites": 757,
+  "unique_view_ids": 449,
+  "ui_method_name_references": 1647,
+  "cms_construction_methods": 48,
+  "unparsed_interface_declarations": 0,
+  "unresolved_http_paths": 0,
+  "decompiler_failure_markers": [
+    {
+      "file": "com/iermu/opensdk/setup/scan/WifiNetworkManager.java",
+      "line": 360
+    }
+  ],
+  "unique_user_feature_count": "not_claimed; declarations overlap layers and include helpers",
+  "new_camera_settings_written": false,
+  "destructive_operations_executed": false,
+  "speaker_transmission_executed": false,
+  "native_3356_concurrency_tested": false,
+  "important_findings": [
+    "nightmode 0=auto,1=off,2=on",
+    "exposemode 0=auto,1=highlight-priority,2=lowlight-priority",
+    "many camera settings use cloud RPC /v2/pcs/device; literal form key fileds",
+    "PTZ branches on camIsInLan; presets metadata still uses cloud",
+    "setDevParam main75 auto-save except sub54/64/62/42",
+    "SMB getSmbFolder may create/delete a test file",
+    "getLanPlayUrl sends75/54; names are not safety classifications"
+  ],
+  "limitations": [
+    "Lexical source index, not Java compiler/type resolution. Method-name references are leads, not proof of reachable UI functionality. Native opaque paths and decompiler failures remain explicit.",
+    "No new hardware applicability tests; no exhaustive native/third-party/server coverage"
+  ],
+  "source_index_sha256": "ffbebcc56c0f5e3677e4dac5bb4e4b44c743f985d72387046013955f67a6f361",
+  "cam_setting_rpc_methods_indexed": 41,
+  "playback_baseline": {
+    "recorded_at": "2026-11-12T10:17:02.220723+09:00",
+    "scope": "baseline for all-app-operations static research",
+    "raw_media_saved": false,
+    "timeout": false,
+    "exit_code": 0,
+    "frames": 25,
+    "streams": [
+      "Stream #0:0: Video: h264 (Baseline), yuv420p, 1280x720, 1k tbr, 1k tbn",
+      "Stream #0:1: Audio: aac (LC), 11025 Hz, mono, fltp",
+      "Stream #0:0: Video: wrapped_avframe, yuv420p(progressive), 1280x720, q=2-31, 200 kb/s, 1k fps, 1k tbn",
+      "Stream #0:1: Audio: pcm_s16le, 11025 Hz, mono, s16, 176 kb/s"
+    ],
+    "errors": [],
+    "success": true
+  },
+  "playback_final": {
+    "recorded_at": "2026-11-12T10:37:35.805605+09:00",
+    "scope": "post app-operations static audit; separate Tailscale node; 5-second decode to null",
+    "raw_media_saved": false,
+    "timeout": false,
+    "exit_code": 0,
+    "frames": 27,
+    "streams": [
+      "Stream #0:0: Video: h264 (Baseline), yuv420p(progressive), 1280x720, 1k tbr, 1k tbn",
+      "Stream #0:1: Audio: aac (LC), 11025 Hz, mono, fltp",
+      "Stream #0:0: Video: wrapped_avframe, yuv420p(progressive), 1280x720, q=2-31, 200 kb/s, 1k fps, 1k tbn",
+      "Stream #0:1: Audio: pcm_s16le, 11025 Hz, mono, s16, 176 kb/s"
+    ],
+    "errors": [],
+    "success": true
+  },
+  "native_entry_visibility": {
+    "includes_private_initialization_entries": 3,
+    "remaining_public_entries": 21
+  },
+  "runtime_services": {
+    "iermu-rtmp.service": {
+      "NRestarts": "0",
+      "ActiveState": "active",
+      "SubState": "running",
+      "ActiveEnterTimestamp": "Thu 2026-11-12 09:57:32 JST"
+    },
+    "iermu-rtmp-publish.service": {
+      "NRestarts": "0",
+      "ActiveState": "active",
+      "SubState": "running",
+      "ActiveEnterTimestamp": "Thu 2026-11-12 09:57:32 JST"
+    }
+  },
+  "service_configuration_changed": false,
+  "repo_verification": {
+    "recorded_at": "2026-11-12T10:43:28.675869+09:00",
+    "files_checked": 107,
+    "passed": true,
+    "exact_private_values_checked": true,
+    "private_mac_variants_checked": true,
+    "new_literal_macs_allowed": false,
+    "offline_tests": 64,
+    "repository_verifier_exit_code": 0
+  }
+}

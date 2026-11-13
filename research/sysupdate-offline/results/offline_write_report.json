@@ -1,0 +1,454 @@
+{
+  "firmware_sha256": "c76e218d9dffde035ca5ed28cae89fa2dd679c539f647f6329f8dcf083e0c6d9",
+  "entrypoint": "0x9498; arguments from opcode 0x94 dispatcher at 0xd7ec",
+  "scope": "Actual writer/CRC/RC6/status/MTD helper instructions; OS I/O is simulated",
+  "not_tested": [
+    "live listener reachability",
+    "real flash write",
+    "reboot",
+    "custom firmware boot",
+    "0x91 boot writer",
+    "0x96 appfs writer"
+  ],
+  "network_calls": 0,
+  "host_commands_executed": 0,
+  "real_device_writes": 0,
+  "virtual_partition_bytes": 65536,
+  "erase_bytes": 65536,
+  "tests": {
+    "custom_image_1": {
+      "return": 0,
+      "status": [
+        [
+          253,
+          0
+        ],
+        [
+          254,
+          0
+        ]
+      ],
+      "reply_crc_valid": true,
+      "remaining_input": 0,
+      "io": [
+        [
+          "lseek",
+          0
+        ],
+        [
+          "MEMGETINFO"
+        ],
+        [
+          "MEMERASE",
+          0,
+          65536
+        ],
+        [
+          "write",
+          0,
+          9,
+          "e468116b0edb51741db209ada2836eb1a671b83a1da3823cf3c700cf87e7934a"
+        ]
+      ],
+      "commands": [],
+      "passed": true,
+      "input_image_sha256": "e7cf46a078fed4fafd0b5e3aff144802b853f8ae459a4f0c14add3314b7cc3a6",
+      "stored_image_sha256": "e7cf46a078fed4fafd0b5e3aff144802b853f8ae459a4f0c14add3314b7cc3a6"
+    },
+    "custom_image_12": {
+      "return": 0,
+      "status": [
+        [
+          253,
+          0
+        ],
+        [
+          254,
+          0
+        ]
+      ],
+      "reply_crc_valid": true,
+      "remaining_input": 0,
+      "io": [
+        [
+          "lseek",
+          0
+        ],
+        [
+          "MEMGETINFO"
+        ],
+        [
+          "MEMERASE",
+          0,
+          65536
+        ],
+        [
+          "write",
+          0,
+          20,
+          "824b980a162a196761926e42ee9fe34feab73e928f2de8c845438bd4a39bb1b4"
+        ]
+      ],
+      "commands": [],
+      "passed": true,
+      "input_image_sha256": "dd3fd284d8cc574a76de2481f20213f443ba8f939e41b9855023901e4b508f73",
+      "stored_image_sha256": "dd3fd284d8cc574a76de2481f20213f443ba8f939e41b9855023901e4b508f73"
+    },
+    "custom_image_13": {
+      "return": 0,
+      "status": [
+        [
+          253,
+          0
+        ],
+        [
+          254,
+          0
+        ]
+      ],
+      "reply_crc_valid": true,
+      "remaining_input": 0,
+      "io": [
+        [
+          "lseek",
+          0
+        ],
+        [
+          "MEMGETINFO"
+        ],
+        [
+          "MEMERASE",
+          0,
+          65536
+        ],
+        [
+          "write",
+          0,
+          21,
+          "efc337dc13a25e461b55f66c281c2c83936c7893c82f5498fe1372ac09011e6b"
+        ]
+      ],
+      "commands": [],
+      "passed": true,
+      "input_image_sha256": "f9a3612d255e62d4ea5f0b94b5543bf0c0efb9f9acc1e759ad574ab269a9edba",
+      "stored_image_sha256": "f9a3612d255e62d4ea5f0b94b5543bf0c0efb9f9acc1e759ad574ab269a9edba"
+    },
+    "custom_image_16": {
+      "return": 0,
+      "status": [
+        [
+          253,
+          0
+        ],
+        [
+          254,
+          0
+        ]
+      ],
+      "reply_crc_valid": true,
+      "remaining_input": 0,
+      "io": [
+        [
+          "lseek",
+          0
+        ],
+        [
+          "MEMGETINFO"
+        ],
+        [
+          "MEMERASE",
+          0,
+          65536
+        ],
+        [
+          "write",
+          0,
+          24,
+          "d87b3286f5de60b7acc471dd4f94944ebc58afebe701ab16fa008882a88094b3"
+        ]
+      ],
+      "commands": [],
+      "passed": true,
+      "input_image_sha256": "cd7d620a0588e54dd46e114a6f4ae5212c82e48abe5a13703649a745861a0c60",
+      "stored_image_sha256": "cd7d620a0588e54dd46e114a6f4ae5212c82e48abe5a13703649a745861a0c60"
+    },
+    "custom_image_63": {
+      "return": 0,
+      "status": [
+        [
+          253,
+          0
+        ],
+        [
+          254,
+          0
+        ]
+      ],
+      "reply_crc_valid": true,
+      "remaining_input": 0,
+      "io": [
+        [
+          "lseek",
+          0
+        ],
+        [
+          "MEMGETINFO"
+        ],
+        [
+          "MEMERASE",
+          0,
+          65536
+        ],
+        [
+          "write",
+          0,
+          71,
+          "e0b2b1d6c8e92b2f29c507af6a08eb9cb41c532dcb7e7266d2f80cac7ea0ae1e"
+        ]
+      ],
+      "commands": [],
+      "passed": true,
+      "input_image_sha256": "5f6401b96532c36de4e65beec0409b69b1d181864c8009b7a04f43e5d56350d1",
+      "stored_image_sha256": "5f6401b96532c36de4e65beec0409b69b1d181864c8009b7a04f43e5d56350d1"
+    },
+    "custom_image_64": {
+      "return": 0,
+      "status": [
+        [
+          253,
+          0
+        ],
+        [
+          254,
+          0
+        ]
+      ],
+      "reply_crc_valid": true,
+      "remaining_input": 0,
+      "io": [
+        [
+          "lseek",
+          0
+        ],
+        [
+          "MEMGETINFO"
+        ],
+        [
+          "MEMERASE",
+          0,
+          65536
+        ],
+        [
+          "write",
+          0,
+          72,
+          "eb7be83dd6a71e398e1aa573e0e8a5e3639d93745d51fe02b4a42b84584a25ff"
+        ]
+      ],
+      "commands": [],
+      "passed": true,
+      "input_image_sha256": "94eb5de4943613fd048dc93393ab06877405faa39c11f53e9386083339833e7e",
+      "stored_image_sha256": "94eb5de4943613fd048dc93393ab06877405faa39c11f53e9386083339833e7e"
+    },
+    "custom_image_65": {
+      "return": 0,
+      "status": [
+        [
+          253,
+          0
+        ],
+        [
+          254,
+          0
+        ]
+      ],
+      "reply_crc_valid": true,
+      "remaining_input": 0,
+      "io": [
+        [
+          "lseek",
+          0
+        ],
+        [
+          "MEMGETINFO"
+        ],
+        [
+          "MEMERASE",
+          0,
+          65536
+        ],
+        [
+          "write",
+          0,
+          73,
+          "77fd8676ff6d3e3e47fea593c1b5af2f0195863903666ee082d32f6a569f840a"
+        ]
+      ],
+      "commands": [],
+      "passed": true,
+      "input_image_sha256": "fc518669b6eb4b4dd91827ecacef86689c725bd5bab888fd3b26dbb196eec954",
+      "stored_image_sha256": "fc518669b6eb4b4dd91827ecacef86689c725bd5bab888fd3b26dbb196eec954"
+    },
+    "custom_image_4093": {
+      "return": 0,
+      "status": [
+        [
+          253,
+          0
+        ],
+        [
+          254,
+          0
+        ]
+      ],
+      "reply_crc_valid": true,
+      "remaining_input": 0,
+      "io": [
+        [
+          "lseek",
+          0
+        ],
+        [
+          "MEMGETINFO"
+        ],
+        [
+          "MEMERASE",
+          0,
+          65536
+        ],
+        [
+          "write",
+          0,
+          4101,
+          "a095297f1998e8b51b1233e39982b15425f75b938b00828ce825c4d99466215b"
+        ]
+      ],
+      "commands": [],
+      "passed": true,
+      "input_image_sha256": "62fc20547b02e03b784c2e631292b2582e39e48e8458cdffe214eb3a26711c87",
+      "stored_image_sha256": "62fc20547b02e03b784c2e631292b2582e39e48e8458cdffe214eb3a26711c87"
+    },
+    "bad_cipher_crc": {
+      "return": 4294967295,
+      "status": [
+        [
+          255,
+          69
+        ]
+      ],
+      "reply_crc_valid": true,
+      "remaining_input": 28,
+      "io": [],
+      "commands": [],
+      "passed": true
+    },
+    "bad_plain_crc": {
+      "return": 4294967295,
+      "status": [
+        [
+          255,
+          70
+        ]
+      ],
+      "reply_crc_valid": true,
+      "remaining_input": 28,
+      "io": [],
+      "commands": [],
+      "passed": true
+    },
+    "bad_magic": {
+      "return": 4294967295,
+      "status": [
+        [
+          255,
+          68
+        ]
+      ],
+      "reply_crc_valid": true,
+      "remaining_input": 28,
+      "io": [],
+      "commands": [],
+      "passed": true
+    },
+    "bad_image_type": {
+      "return": 4294967295,
+      "status": [
+        [
+          255,
+          76
+        ]
+      ],
+      "reply_crc_valid": true,
+      "remaining_input": 28,
+      "io": [],
+      "commands": [],
+      "passed": true
+    },
+    "expired_time": {
+      "return": 4294967295,
+      "status": [
+        [
+          255,
+          73
+        ]
+      ],
+      "reply_crc_valid": true,
+      "remaining_input": 28,
+      "io": [],
+      "commands": [],
+      "passed": true
+    },
+    "oversized_request": {
+      "return": 4294967295,
+      "status": [
+        [
+          255,
+          64
+        ]
+      ],
+      "reply_crc_valid": true,
+      "remaining_input": 124,
+      "io": [],
+      "commands": [],
+      "passed": true
+    },
+    "maintenance_time": {
+      "return": 0,
+      "status": [
+        [
+          253,
+          0
+        ],
+        [
+          254,
+          0
+        ]
+      ],
+      "reply_crc_valid": true,
+      "remaining_input": 0,
+      "io": [
+        [
+          "lseek",
+          0
+        ],
+        [
+          "MEMGETINFO"
+        ],
+        [
+          "MEMERASE",
+          0,
+          65536
+        ],
+        [
+          "write",
+          0,
+          60,
+          "1d4cddd387b54471376f3240b47ad72f95acb809909e4be776075c38d1092ae5"
+        ]
+      ],
+      "commands": [],
+      "passed": true
+    }
+  },
+  "passed": true
+}

@@ -58,3 +58,8 @@ python3 research/build_app_operations_report.py \
 ## 解析原本の取得
 
 APK由来の原本、Java全文、JADX/JDKはGit本体には含めず、[別アーカイブ](../artifacts/README.md)に保存している。原本を展開した場所を `index_app_operations.py --source-root` に渡せる。Git LFSは不要。
+
+
+## SysUpdateの自作更新・オフライン実証
+
+[調査報告](../docs/FIRMWARE-SELF-UPDATE.md)と[再現手順・検証コード](sysupdate-offline/README.md)を収録。ダンプ内のARM命令で、更新データの受信・CRC・復号・仮想MTDへの書込みを19ケース確認した。実機送信ツールや起動用イメージは含めない。appfsとbakfsを同時に書き換える点と、実機書込み・起動未確認の範囲を明記している。

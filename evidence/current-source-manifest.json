@@ -12,7 +12,7 @@
     },
     {
       "path": "README.md",
-      "sha256": "0d3dd2b6f2d9edfa2444e436d6e6103b6cfe255f94e3d3f5d3f8f0fd7d2a7764"
+      "sha256": "bfea09a0e010ed05269fcec10bcf9d4dec52fcf7d6aa5cdd8dfd7c0dede843fe"
     },
     {
       "path": "SECURITY.md",
@@ -188,7 +188,7 @@
     },
     {
       "path": "docs/FIRMWARE-UPDATE.md",
-      "sha256": "500b30595856b394766b5892aedfd9875d2219b2a84b71581561308f1616f11e"
+      "sha256": "e3f1be509be244231b65fb165a99db784ee2eeeb83ff1e0112da0cd1dcb6b62d"
     },
     {
       "path": "docs/HANDOFF.md",
@@ -216,7 +216,7 @@
     },
     {
       "path": "docs/PROGRESS.md",
-      "sha256": "b9b8024b2b5f47a868bbc1d30b3b7a44a26ce25424cd1d20ce47c87d74a6b692"
+      "sha256": "1bac62fc624713a3f7aa0ab84d5b7038bbee6ae52c3e97b2f3baa32031988f04"
     },
     {
       "path": "docs/PROTOCOL.md",
@@ -428,7 +428,7 @@
     },
     {
       "path": "research/README.md",
-      "sha256": "72e3cadf1cc14445d26b75da0fe6acf8446cdaf1b4a46ed29227fcc2f7009995"
+      "sha256": "aa6eb4b0897068c2aa9898d0ae17caaca7c20df909682bea4adff028f2593e82"
     },
     {
       "path": "research/build_app_operations_report.py",

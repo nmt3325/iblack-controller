@@ -1,0 +1,32 @@
+{
+  "passed": true,
+  "dynamic_cases": 19,
+  "positive_cases": 10,
+  "rejection_cases": 9,
+  "additional_envelope_roundtrips": 7,
+  "appfs_exact": true,
+  "bakfs_exact": true,
+  "stop_reason": "reboot_requested",
+  "appfs_input_sha256": "62fc20547b02e03b784c2e631292b2582e39e48e8458cdffe214eb3a26711c87",
+  "appfs_written_sha256": "62fc20547b02e03b784c2e631292b2582e39e48e8458cdffe214eb3a26711c87",
+  "bakfs_payload_sha256": "62fc20547b02e03b784c2e631292b2582e39e48e8458cdffe214eb3a26711c87",
+  "appfs_io_counts": {
+    "lseek": 2,
+    "MEMGETINFO": 2,
+    "MEMERASE": 80,
+    "write": 2,
+    "fsync": 2,
+    "close": 2
+  },
+  "network_calls": 0,
+  "real_device_writes": 0,
+  "host_commands_executed": 0,
+  "firmware_sha256": "c76e218d9dffde035ca5ed28cae89fa2dd679c539f647f6329f8dcf083e0c6d9",
+  "repo_revision": "7c09cfb854874aba3821983a58fa479a18d2546b",
+  "not_tested": [
+    "real listener",
+    "actual boot",
+    "full-sized bootable firmware",
+    "physical erase geometry"
+  ]
+}

@@ -1,0 +1,144 @@
+{
+  "recorded_at": "2026-11-13T11:02:36.052970+00:00",
+  "scope": "Non-disruptive native-upload investigation; not a successful wired-only migration.",
+  "source_firmware": {
+    "path": "firmware/iblack-8m/extracted/camera_modules/cmsapp/cmsMain.out",
+    "sha256": "4419e7f86607eb83337de021563db2bb7392040059b29b715090e2ba54572e56"
+  },
+  "runtime_health": {
+    "checked_at": "2026-11-13T10:53:08.980571+00:00",
+    "configuration_changes_applied": false,
+    "os_login_attempted": false,
+    "streams": {
+      "camera": {
+        "exit_code": 0,
+        "three_frames_decode_ok": true,
+        "elapsed_seconds": 12.23,
+        "error": null
+      },
+      "camera2": {
+        "exit_code": 0,
+        "three_frames_decode_ok": true,
+        "elapsed_seconds": 12.22,
+        "error": null
+      }
+    },
+    "camera2_dns_read_error": "RuntimeError",
+    "camera2_pull_route": {
+      "dev": "wlp1s0",
+      "src": "192.168.10.22"
+    },
+    "camera2_telnet": {
+      "tcp_open": true,
+      "login_prompt_seen": true,
+      "os_login_attempted": false,
+      "banner_bytes_received": 13
+    },
+    "dns_probe_note": "Repository client could not load the existing private CMS credentials; no DNS setting was changed."
+  },
+  "cloud_api_log_sample": {
+    "inspected_tail_bytes": 262144,
+    "log_mtime_utc": "2026-11-13T10:58:31.330595+00:00",
+    "event_counts": {
+      "HS-OK": 545,
+      "REQ": 545,
+      "RESP": 545,
+      "CLOSE": 545
+    },
+    "methods": [
+      {
+        "method": "GET",
+        "path": "/v2/pcs/device",
+        "operation": "getuploadtoken",
+        "count": 545
+      }
+    ],
+    "nat_source_seen": true,
+    "camera_identity_not_attributed_per_request": true,
+    "response_rule_count": 0
+  },
+  "static_findings": [
+    {
+      "entry": "0xba5dc",
+      "name": "cmsGetLyToken",
+      "endpoint": "GET /v2/pcs/device?method=getuploadtoken",
+      "response_keys": [
+        "error_code",
+        "upload_token",
+        "connect_cid",
+        "config"
+      ],
+      "missing_config_failure_branch": "0xbaef8"
+    },
+    {
+      "entry": "0xbdfb0",
+      "url_format_at": "0x30f444",
+      "url_format": "rtmp://%s/live/%s",
+      "initial_server_literal_at": "0x30f414",
+      "initial_server_literal": "ttt"
+    },
+    {
+      "entry": "0xc7390",
+      "observation": "This constructor overwrites incoming r0 before using it; the formatted URL is not consumed on this call path. It retains r1 as the camera context.",
+      "call_site": "0xbe3f8"
+    },
+    {
+      "entry": "0xc83f8",
+      "name_from_log_literal": "cmsLY_StartRtmpConnect",
+      "call_chain": [
+        "0xdb990",
+        "0xdbe50",
+        "0xe3ff0"
+      ]
+    },
+    {
+      "entry": "0xe3ff0",
+      "observation": "SDK obtains device status and a streaming-server address before connection; the zero-address case is explicitly checked.",
+      "static_messages": [
+        "get rtmp server ip is 0.0.0.0",
+        "========= get rtmp addr is 000000 =========="
+      ],
+      "message_addresses": [
+        "0x315277",
+        "0x315295"
+      ]
+    }
+  ],
+  "not_done": [
+    "OS login",
+    "native RTMP publish to Linux",
+    "camera2-only API success-response replay",
+    "camera1 migration",
+    "Linux Wi-Fi disconnection"
+  ],
+  "safety": {
+    "camera_configuration_written": false,
+    "firmware_update_sent": false,
+    "cloud_responses_modified": false,
+    "production_units_restarted": false,
+    "wifi_disconnected": false,
+    "credentials_or_device_identifiers_included": false
+  },
+  "explicit_frame_count_rechecks": {
+    "checked_at": "2026-11-13T11:01:43.444458+00:00",
+    "prior_recheck": {
+      "camera": {
+        "exit_code": 0,
+        "decoded_video_frames": 3
+      },
+      "camera2": {
+        "exit_code": 183,
+        "decoded_video_frames": 0
+      }
+    },
+    "service_status_query_timed_out": true,
+    "production_restart_performed": false,
+    "camera2_single_reader": {
+      "exit_code": 0,
+      "decoded_video_frames": 3,
+      "success": true,
+      "stderr": ""
+    }
+  },
+  "continuous_stream_stability_verified": false
+}

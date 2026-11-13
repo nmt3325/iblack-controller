@@ -32,6 +32,7 @@ rtmp://100.87.20.49:1935/live/camera
 | [全進捗・確認範囲](docs/PROGRESS.md) | 時系列、できること、失敗した試行、未完了事項 |
 | [使った手法](docs/METHODS.md) | パケット解析、アプリ静的解析、制御プロトコル、FLV補正 |
 | [通常Aterm APへの移行](docs/HOME-AP.md) | 現在のIP・DNS・受信先・制限・復旧 |
+| [有線側への自動送信調査](docs/NATIVE-PUSH.md) | SDKの送信先決定、Telnet認証、未切替の理由と移行条件 |
 | [ストリーム停止の修復](docs/STREAM-RECOVERY.md) | 物理STA・IP固定・直接経路ガード・最終実再生と限界 |
 | [現行構成](docs/ARCHITECTURE.md) | AP/STA、経路、クラウド受信、中継 |
 | [引継ぎ・依存関係](docs/HANDOFF.md) | 稼働場所、確認コマンド、再現範囲、注意点 |

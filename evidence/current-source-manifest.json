@@ -1,5 +1,5 @@
 {
-  "recorded_at": "2026-11-13T19:23:16+09:00",
+  "recorded_at": "2026-11-13T11:02:37.675693+00:00",
   "scope": "Lightweight source repository only; external APK-derived originals and toolchains are indexed separately, not tracked; runtime secrets/media excluded; initial reference manifest unchanged; this manifest and audit report excluded",
   "files": [
     {
@@ -12,7 +12,7 @@
     },
     {
       "path": "README.md",
-      "sha256": "58de48cdba9db7eca38324c9b7ba7f855d9d15013c8e57bb38409f7e78eeec65"
+      "sha256": "679b4aefdec6738373923052a39a81569886d9db7ed6a406742e867ff6dfe90b"
     },
     {
       "path": "SECURITY.md",
@@ -207,6 +207,10 @@
       "sha256": "74fc349773b8b27af99d6bedb029bc995995827e36ca7ff0823ed8db15197d96"
     },
     {
+      "path": "docs/NATIVE-PUSH.md",
+      "sha256": "1f91a61d129ac7f90a71e69625aebded16c0d48211a5ef73011c139fc27bbbfb"
+    },
+    {
       "path": "docs/OPERATIONS.md",
       "sha256": "61653e72f22ed5b69a44daf99c76455168bae541d98ed3fe2de55bc932253e4e"
     },
@@ -293,6 +297,10 @@
     {
       "path": "evidence/local-receiver.txt",
       "sha256": "eb05d312020e68652b30bb8f3d54f4955487901a49e247382c0c26e61a24dbb0"
+    },
+    {
+      "path": "evidence/native-upload-wired-investigation-20261113.json",
+      "sha256": "e7357cc23fd57fae76db07165d0fb4c8be3303fd692ff839d800ea7e513f348a"
     },
     {
       "path": "evidence/rtmp-play.txt",

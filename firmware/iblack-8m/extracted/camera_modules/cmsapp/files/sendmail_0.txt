@@ -1,0 +1,12 @@
+TitleDesc=I耳目报警
+AlarmTypeDesc=报警类型:
+ChanNoDesc=图片通道号:
+AlarmInDesc=外接报警输入，端子号为：
+VLostDesc=视频丢失，丢失通道号：
+VCoverDesc=视频遮挡报警，遮挡通道号：
+VSenseDesc=视频移动侦测报警，侦测通道号：
+HddDesc=硬盘读写错误
+UnkownDesc=未知报警类型
+TimeDesc=报警时间：
+AudioDesc=声音报警，通道号：
+

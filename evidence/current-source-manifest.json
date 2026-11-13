@@ -8,19 +8,19 @@
     },
     {
       "path": ".gitignore",
-      "sha256": "130d81a04d8d2b2b8caf1a6c068d47e6a6de228322fe9f541348cffd40a649de"
+      "sha256": "1235c6ac009e02de519f86fa53e5a4e261a257480d4f580b6b4b4538dd209fc3"
     },
     {
       "path": "README.md",
-      "sha256": "84f2da052ea9428b9a9a52b2f5ab1cede7d473f665e627a0980b74a2f24b9f40"
+      "sha256": "77ad28614b515e405ebd0cb7facdead54099816f7362625540b9ca99d41a08b2"
     },
     {
       "path": "SECURITY.md",
-      "sha256": "302c1182cdf08370f7d725b99e471ddf59d2fff3b374711ff27c838ff8719a58"
+      "sha256": "43a3a79c6ba3f061c9adcd9800f333f4742f4b2d86d0fc99eea618173b0eb9ff"
     },
     {
       "path": "artifacts/README.md",
-      "sha256": "64d42029ac01db5ea9d40ea5f769669df453811007b7d4c4b2269ac6d390e923"
+      "sha256": "e6e5cfa658465473d9713d396850be527d46ddb83d196f9fbee95c9c5fd547a7"
     },
     {
       "path": "artifacts/archive.json",
@@ -396,7 +396,7 @@
     },
     {
       "path": "research/README.md",
-      "sha256": "6fdc5f36b75e298597a003a9d94ee6f1c2f0ca43a19312fab749641facc80adb"
+      "sha256": "72e3cadf1cc14445d26b75da0fe6acf8446cdaf1b4a46ed29227fcc2f7009995"
     },
     {
       "path": "research/build_app_operations_report.py",

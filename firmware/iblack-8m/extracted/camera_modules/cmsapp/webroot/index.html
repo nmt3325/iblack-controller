@@ -1,0 +1,38 @@
+<html>
+<head>
+<title>WebVideo</title>
+</head>
+
+
+<body align="center" TopMargin="0" bgcolor="#FFFFFF" Leftmargin="0" RightMargin="0" Bottommargin="0" onResize="ReSet()" onLoad="ReSet()">
+<!-- do not modify start -->
+<input type=hidden name=cLanguage value=$$$$$$LANGUAGETAG$>
+<input type=hidden name=cDomain value=$$$$$$DOMAINTAG$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$>
+<input type=hidden name=cPassword value=$$$$$$PASSWORD$$$$$$$$$$$$$$$$$$>
+<input type=hidden name=cDvrStyle value=$$$$$$DVRSTYLE$$$$>
+<input type=hidden name=cCmdPort 		value=$$$$$$CMDPORT$$$$$>
+<!-- do not modify end -->
+
+<object codebase="webvideo.cab#version=1,0,0,48" name="webvideo" classid="clsid:fe7d5a0f-4e25-41b1-8a99-3d9d58f400d2"  width="100%" height="100%" align="center">
+</object>
+
+<script language="javascript">
+	webvideo.SetPort(document.all.cCmdPort.value);
+	webvideo.SetDomain(document.all.cDomain.value);
+	webvideo.SetBoard(document.all.cDvrStyle.value);
+	function ReSet()
+	{
+		webvideo.SetWindowRange(document.body.clientWidth, document.body.clientHeight);
+		if (document.body.clientWidth < 960)
+			webvideo.width = 960;
+		else
+			webvideo.width = document.body.clientWidth;
+		if (document.body.clientHeight < 580)
+			webvideo.height = 580;
+		else
+			webvideo.height = document.body.clientHeight;
+
+	}
+</script>
+</body>
+</html>

@@ -1,0 +1,1275 @@
+{
+  "version": 1,
+  "storage": "ordinary Git blobs; no LFS",
+  "sources": {
+    "dump": "https://sea.salvare.me/seafdav/NotionAI/iermu-camera/iblack_1.bin",
+    "extraction": "https://sea.salvare.me/seafdav/NotionAI/iermu-camera/iblack_firmware_extracted.zip",
+    "original_notes": "https://sea.salvare.me/seafdav/NotionAI/iermu-camera/firmware_analysis.md"
+  },
+  "originals_unmodified": true,
+  "extracted_file_count": 200,
+  "extracted_bytes": 8920348,
+  "symlink_representation": "Original .symlink regular files preserved; no active symlinks",
+  "files": [
+    {
+      "path": ".gitattributes",
+      "bytes": 97,
+      "sha256": "07a495129e86aae1a25ea5fb2392b93fcff0ad174a1764da2b5b7197607dd95e"
+    },
+    {
+      "path": "README.md",
+      "bytes": 2640,
+      "sha256": "a447a222681f5dae7a9130838f462db2786dda0935237606182b6aac11f74074"
+    },
+    {
+      "path": "analysis/README.md",
+      "bytes": 10615,
+      "sha256": "488c27ebad56de1e1929748014da1e80fdb6744ce87295491c14386a56df2dd5"
+    },
+    {
+      "path": "analysis/evidence_summary.json",
+      "bytes": 1971,
+      "sha256": "559138b99fde2720f7730ff582132ab07ac44c75a94db62e04671a9ff1c0d49c"
+    },
+    {
+      "path": "analysis/tools/index_firmware.py",
+      "bytes": 8492,
+      "sha256": "8e24f5092d5910252078a127609ec21d47857420a4db20f36318aed35b0d6795"
+    },
+    {
+      "path": "analysis/tools/offline_inspect.py",
+      "bytes": 2844,
+      "sha256": "66e20523ec620a7a200da3468460e663816e9db7144cf33281b33599b7967045"
+    },
+    {
+      "path": "analysis/tools/requirements.txt",
+      "bytes": 33,
+      "sha256": "54e61a59b8c131da2dd383e2414db2db02f55d88a5f877bcdcb897ba8bd27a94"
+    },
+    {
+      "path": "analysis/tools/test_index.py",
+      "bytes": 1623,
+      "sha256": "c68316515a3b8949424a0252e44270587f473f596361f01a2f0b978793828378"
+    },
+    {
+      "path": "analysis/tools/test_offline_inspect.py",
+      "bytes": 2340,
+      "sha256": "34ff122361d04bf4f456d751f9feb0aa401a9a66bfad1dcc07a7a45decc27dc6"
+    },
+    {
+      "path": "extracted/base_rootfs/bin/ash.symlink",
+      "bytes": 7,
+      "sha256": "9d75f0d7c398df565d7ac04c6819b62d6d8f9560f5eb4672596ecd8f7e96ae91",
+      "zip_entry": "base_rootfs/bin/ash.symlink"
+    },
+    {
+      "path": "extracted/base_rootfs/bin/btools",
+      "bytes": 37132,
+      "sha256": "b261ecf83a35aef18ac4ee2cf5bcef73a09fff65f3b89d2e45127f200edd6ac6",
+      "zip_entry": "base_rootfs/bin/btools"
+    },
+    {
+      "path": "extracted/base_rootfs/bin/busybox",
+      "bytes": 301432,
+      "sha256": "6cb859337d9a84e9ed56088319b398112a7f9173f7c0bfd009c3db4a647cad9f",
+      "zip_entry": "base_rootfs/bin/busybox"
+    },
+    {
+      "path": "extracted/base_rootfs/bin/cat.symlink",
+      "bytes": 7,
+      "sha256": "9d75f0d7c398df565d7ac04c6819b62d6d8f9560f5eb4672596ecd8f7e96ae91",
+      "zip_entry": "base_rootfs/bin/cat.symlink"
+    },
+    {
+      "path": "extracted/base_rootfs/bin/cp.symlink",
+      "bytes": 7,
+      "sha256": "9d75f0d7c398df565d7ac04c6819b62d6d8f9560f5eb4672596ecd8f7e96ae91",
+      "zip_entry": "base_rootfs/bin/cp.symlink"
+    },
+    {
+      "path": "extracted/base_rootfs/bin/date.symlink",
+      "bytes": 7,
+      "sha256": "9d75f0d7c398df565d7ac04c6819b62d6d8f9560f5eb4672596ecd8f7e96ae91",
+      "zip_entry": "base_rootfs/bin/date.symlink"
+    },
+    {
+      "path": "extracted/base_rootfs/bin/dd.symlink",
+      "bytes": 7,
+      "sha256": "9d75f0d7c398df565d7ac04c6819b62d6d8f9560f5eb4672596ecd8f7e96ae91",
+      "zip_entry": "base_rootfs/bin/dd.symlink"
+    },
+    {
+      "path": "extracted/base_rootfs/bin/df.symlink",
+      "bytes": 7,
+      "sha256": "9d75f0d7c398df565d7ac04c6819b62d6d8f9560f5eb4672596ecd8f7e96ae91",
+      "zip_entry": "base_rootfs/bin/df.symlink"
+    },
+    {
+      "path": "extracted/base_rootfs/bin/dmesg.symlink",
+      "bytes": 7,
+      "sha256": "9d75f0d7c398df565d7ac04c6819b62d6d8f9560f5eb4672596ecd8f7e96ae91",
+      "zip_entry": "base_rootfs/bin/dmesg.symlink"
+    },
+    {
+      "path": "extracted/base_rootfs/bin/dnsdomainname.symlink",
+      "bytes": 7,
+      "sha256": "9d75f0d7c398df565d7ac04c6819b62d6d8f9560f5eb4672596ecd8f7e96ae91",
+      "zip_entry": "base_rootfs/bin/dnsdomainname.symlink"
+    },
+    {
+      "path": "extracted/base_rootfs/bin/echo.symlink",
+      "bytes": 7,
+      "sha256": "9d75f0d7c398df565d7ac04c6819b62d6d8f9560f5eb4672596ecd8f7e96ae91",
+      "zip_entry": "base_rootfs/bin/echo.symlink"
+    },
+    {
+      "path": "extracted/base_rootfs/bin/egrep.symlink",
+      "bytes": 7,
+      "sha256": "9d75f0d7c398df565d7ac04c6819b62d6d8f9560f5eb4672596ecd8f7e96ae91",
+      "zip_entry": "base_rootfs/bin/egrep.symlink"
+    },
+    {
+      "path": "extracted/base_rootfs/bin/false.symlink",
+      "bytes": 7,
+      "sha256": "9d75f0d7c398df565d7ac04c6819b62d6d8f9560f5eb4672596ecd8f7e96ae91",
+      "zip_entry": "base_rootfs/bin/false.symlink"
+    },
+    {
+      "path": "extracted/base_rootfs/bin/fgrep.symlink",
+      "bytes": 7,
+      "sha256": "9d75f0d7c398df565d7ac04c6819b62d6d8f9560f5eb4672596ecd8f7e96ae91",
+      "zip_entry": "base_rootfs/bin/fgrep.symlink"
+    },
+    {
+      "path": "extracted/base_rootfs/bin/grep.symlink",
+      "bytes": 7,
+      "sha256": "9d75f0d7c398df565d7ac04c6819b62d6d8f9560f5eb4672596ecd8f7e96ae91",
+      "zip_entry": "base_rootfs/bin/grep.symlink"
+    },
+    {
+      "path": "extracted/base_rootfs/bin/himc.symlink",
+      "bytes": 6,
+      "sha256": "bf79c7db00555361f1177f2d80fc35608231f37e5cb1e07baa8ed2d6fd37c2e1",
+      "zip_entry": "base_rootfs/bin/himc.symlink"
+    },
+    {
+      "path": "extracted/base_rootfs/bin/himd.l.symlink",
+      "bytes": 6,
+      "sha256": "bf79c7db00555361f1177f2d80fc35608231f37e5cb1e07baa8ed2d6fd37c2e1",
+      "zip_entry": "base_rootfs/bin/himd.l.symlink"
+    },
+    {
+      "path": "extracted/base_rootfs/bin/himd.symlink",
+      "bytes": 6,
+      "sha256": "bf79c7db00555361f1177f2d80fc35608231f37e5cb1e07baa8ed2d6fd37c2e1",
+      "zip_entry": "base_rootfs/bin/himd.symlink"
+    },
+    {
+      "path": "extracted/base_rootfs/bin/himm.symlink",
+      "bytes": 6,
+      "sha256": "bf79c7db00555361f1177f2d80fc35608231f37e5cb1e07baa8ed2d6fd37c2e1",
+      "zip_entry": "base_rootfs/bin/himm.symlink"
+    },
+    {
+      "path": "extracted/base_rootfs/bin/ip.symlink",
+      "bytes": 7,
+      "sha256": "9d75f0d7c398df565d7ac04c6819b62d6d8f9560f5eb4672596ecd8f7e96ae91",
+      "zip_entry": "base_rootfs/bin/ip.symlink"
+    },
+    {
+      "path": "extracted/base_rootfs/bin/kill.symlink",
+      "bytes": 7,
+      "sha256": "9d75f0d7c398df565d7ac04c6819b62d6d8f9560f5eb4672596ecd8f7e96ae91",
+      "zip_entry": "base_rootfs/bin/kill.symlink"
+    },
+    {
+      "path": "extracted/base_rootfs/bin/ln.symlink",
+      "bytes": 7,
+      "sha256": "9d75f0d7c398df565d7ac04c6819b62d6d8f9560f5eb4672596ecd8f7e96ae91",
+      "zip_entry": "base_rootfs/bin/ln.symlink"
+    },
+    {
+      "path": "extracted/base_rootfs/bin/login.symlink",
+      "bytes": 7,
+      "sha256": "9d75f0d7c398df565d7ac04c6819b62d6d8f9560f5eb4672596ecd8f7e96ae91",
+      "zip_entry": "base_rootfs/bin/login.symlink"
+    },
+    {
+      "path": "extracted/base_rootfs/bin/ls.symlink",
+      "bytes": 7,
+      "sha256": "9d75f0d7c398df565d7ac04c6819b62d6d8f9560f5eb4672596ecd8f7e96ae91",
+      "zip_entry": "base_rootfs/bin/ls.symlink"
+    },
+    {
+      "path": "extracted/base_rootfs/bin/mkdir.symlink",
+      "bytes": 7,
+      "sha256": "9d75f0d7c398df565d7ac04c6819b62d6d8f9560f5eb4672596ecd8f7e96ae91",
+      "zip_entry": "base_rootfs/bin/mkdir.symlink"
+    },
+    {
+      "path": "extracted/base_rootfs/bin/mknod.symlink",
+      "bytes": 7,
+      "sha256": "9d75f0d7c398df565d7ac04c6819b62d6d8f9560f5eb4672596ecd8f7e96ae91",
+      "zip_entry": "base_rootfs/bin/mknod.symlink"
+    },
+    {
+      "path": "extracted/base_rootfs/bin/more.symlink",
+      "bytes": 7,
+      "sha256": "9d75f0d7c398df565d7ac04c6819b62d6d8f9560f5eb4672596ecd8f7e96ae91",
+      "zip_entry": "base_rootfs/bin/more.symlink"
+    },
+    {
+      "path": "extracted/base_rootfs/bin/mount.symlink",
+      "bytes": 7,
+      "sha256": "9d75f0d7c398df565d7ac04c6819b62d6d8f9560f5eb4672596ecd8f7e96ae91",
+      "zip_entry": "base_rootfs/bin/mount.symlink"
+    },
+    {
+      "path": "extracted/base_rootfs/bin/mv.symlink",
+      "bytes": 7,
+      "sha256": "9d75f0d7c398df565d7ac04c6819b62d6d8f9560f5eb4672596ecd8f7e96ae91",
+      "zip_entry": "base_rootfs/bin/mv.symlink"
+    },
+    {
+      "path": "extracted/base_rootfs/bin/netstat.symlink",
+      "bytes": 7,
+      "sha256": "9d75f0d7c398df565d7ac04c6819b62d6d8f9560f5eb4672596ecd8f7e96ae91",
+      "zip_entry": "base_rootfs/bin/netstat.symlink"
+    },
+    {
+      "path": "extracted/base_rootfs/bin/ping.symlink",
+      "bytes": 7,
+      "sha256": "9d75f0d7c398df565d7ac04c6819b62d6d8f9560f5eb4672596ecd8f7e96ae91",
+      "zip_entry": "base_rootfs/bin/ping.symlink"
+    },
+    {
+      "path": "extracted/base_rootfs/bin/ps.symlink",
+      "bytes": 7,
+      "sha256": "9d75f0d7c398df565d7ac04c6819b62d6d8f9560f5eb4672596ecd8f7e96ae91",
+      "zip_entry": "base_rootfs/bin/ps.symlink"
+    },
+    {
+      "path": "extracted/base_rootfs/bin/pwd.symlink",
+      "bytes": 7,
+      "sha256": "9d75f0d7c398df565d7ac04c6819b62d6d8f9560f5eb4672596ecd8f7e96ae91",
+      "zip_entry": "base_rootfs/bin/pwd.symlink"
+    },
+    {
+      "path": "extracted/base_rootfs/bin/rm.symlink",
+      "bytes": 7,
+      "sha256": "9d75f0d7c398df565d7ac04c6819b62d6d8f9560f5eb4672596ecd8f7e96ae91",
+      "zip_entry": "base_rootfs/bin/rm.symlink"
+    },
+    {
+      "path": "extracted/base_rootfs/bin/sed.symlink",
+      "bytes": 7,
+      "sha256": "9d75f0d7c398df565d7ac04c6819b62d6d8f9560f5eb4672596ecd8f7e96ae91",
+      "zip_entry": "base_rootfs/bin/sed.symlink"
+    },
+    {
+      "path": "extracted/base_rootfs/bin/sh.symlink",
+      "bytes": 7,
+      "sha256": "9d75f0d7c398df565d7ac04c6819b62d6d8f9560f5eb4672596ecd8f7e96ae91",
+      "zip_entry": "base_rootfs/bin/sh.symlink"
+    },
+    {
+      "path": "extracted/base_rootfs/bin/sleep.symlink",
+      "bytes": 7,
+      "sha256": "9d75f0d7c398df565d7ac04c6819b62d6d8f9560f5eb4672596ecd8f7e96ae91",
+      "zip_entry": "base_rootfs/bin/sleep.symlink"
+    },
+    {
+      "path": "extracted/base_rootfs/bin/stat.symlink",
+      "bytes": 7,
+      "sha256": "9d75f0d7c398df565d7ac04c6819b62d6d8f9560f5eb4672596ecd8f7e96ae91",
+      "zip_entry": "base_rootfs/bin/stat.symlink"
+    },
+    {
+      "path": "extracted/base_rootfs/bin/stty.symlink",
+      "bytes": 7,
+      "sha256": "9d75f0d7c398df565d7ac04c6819b62d6d8f9560f5eb4672596ecd8f7e96ae91",
+      "zip_entry": "base_rootfs/bin/stty.symlink"
+    },
+    {
+      "path": "extracted/base_rootfs/bin/sync.symlink",
+      "bytes": 7,
+      "sha256": "9d75f0d7c398df565d7ac04c6819b62d6d8f9560f5eb4672596ecd8f7e96ae91",
+      "zip_entry": "base_rootfs/bin/sync.symlink"
+    },
+    {
+      "path": "extracted/base_rootfs/bin/touch.symlink",
+      "bytes": 7,
+      "sha256": "9d75f0d7c398df565d7ac04c6819b62d6d8f9560f5eb4672596ecd8f7e96ae91",
+      "zip_entry": "base_rootfs/bin/touch.symlink"
+    },
+    {
+      "path": "extracted/base_rootfs/bin/true.symlink",
+      "bytes": 7,
+      "sha256": "9d75f0d7c398df565d7ac04c6819b62d6d8f9560f5eb4672596ecd8f7e96ae91",
+      "zip_entry": "base_rootfs/bin/true.symlink"
+    },
+    {
+      "path": "extracted/base_rootfs/bin/udevd",
+      "bytes": 52116,
+      "sha256": "b98e45fc59538b612181a67bfeaf2a79f177abd5f832a39edf637d383bde29bb",
+      "zip_entry": "base_rootfs/bin/udevd"
+    },
+    {
+      "path": "extracted/base_rootfs/bin/udevstart",
+      "bytes": 43816,
+      "sha256": "95216df76237f8fa8a39e525d9426ef39b20498ba0223aaa365609f025526fd3",
+      "zip_entry": "base_rootfs/bin/udevstart"
+    },
+    {
+      "path": "extracted/base_rootfs/bin/umount.symlink",
+      "bytes": 7,
+      "sha256": "9d75f0d7c398df565d7ac04c6819b62d6d8f9560f5eb4672596ecd8f7e96ae91",
+      "zip_entry": "base_rootfs/bin/umount.symlink"
+    },
+    {
+      "path": "extracted/base_rootfs/bin/uname.symlink",
+      "bytes": 7,
+      "sha256": "9d75f0d7c398df565d7ac04c6819b62d6d8f9560f5eb4672596ecd8f7e96ae91",
+      "zip_entry": "base_rootfs/bin/uname.symlink"
+    },
+    {
+      "path": "extracted/base_rootfs/bin/usleep.symlink",
+      "bytes": 7,
+      "sha256": "9d75f0d7c398df565d7ac04c6819b62d6d8f9560f5eb4672596ecd8f7e96ae91",
+      "zip_entry": "base_rootfs/bin/usleep.symlink"
+    },
+    {
+      "path": "extracted/base_rootfs/bin/wget.symlink",
+      "bytes": 7,
+      "sha256": "9d75f0d7c398df565d7ac04c6819b62d6d8f9560f5eb4672596ecd8f7e96ae91",
+      "zip_entry": "base_rootfs/bin/wget.symlink"
+    },
+    {
+      "path": "extracted/base_rootfs/etc/cmssysrun.sh",
+      "bytes": 442,
+      "sha256": "a0dbb6ff7a32d7e03f179bec0a022ff8b9624815f7e97af9a1ed0d1edc564278",
+      "zip_entry": "base_rootfs/etc/cmssysrun.sh"
+    },
+    {
+      "path": "extracted/base_rootfs/etc/fs-version",
+      "bytes": 30,
+      "sha256": "700c104785cf8707e1cc2a9231e439bf37ca86bb0c30b1bd2a3ec764c7314e3c",
+      "zip_entry": "base_rootfs/etc/fs-version"
+    },
+    {
+      "path": "extracted/base_rootfs/etc/fstab",
+      "bytes": 95,
+      "sha256": "fc5bbe943bbca26f1b43ada17a946b61894c5568c85ce4a8e6c6ca143e4dfa3a",
+      "zip_entry": "base_rootfs/etc/fstab"
+    },
+    {
+      "path": "extracted/base_rootfs/etc/group",
+      "bytes": 9,
+      "sha256": "37c812e5a1fb89911f2c31f04595ba86166c54ce6d59c2996a61189420901107",
+      "zip_entry": "base_rootfs/etc/group"
+    },
+    {
+      "path": "extracted/base_rootfs/etc/i2c_read",
+      "bytes": 9645,
+      "sha256": "1a3ae249b8a97003a6441a3244ace6a82ed65088f01c4dfde27f555f81c4ec6a",
+      "zip_entry": "base_rootfs/etc/i2c_read"
+    },
+    {
+      "path": "extracted/base_rootfs/etc/init.d/S00devs",
+      "bytes": 120,
+      "sha256": "8fbe3e9e97b58a71dda4b3a53f77ef25b073ea5d03cea844ff583e1351cfc77a",
+      "zip_entry": "base_rootfs/etc/init.d/S00devs"
+    },
+    {
+      "path": "extracted/base_rootfs/etc/init.d/S01udev",
+      "bytes": 85,
+      "sha256": "3cc88b894740bc959d135ca9fb97b7a03046355abe20e7147c89a2da15ebb86b",
+      "zip_entry": "base_rootfs/etc/init.d/S01udev"
+    },
+    {
+      "path": "extracted/base_rootfs/etc/init.d/S10mpp",
+      "bytes": 212,
+      "sha256": "a3e351c255c6c4e7be80da7ef4231cbc25a8c0657e3b8fc10a94ed59c0027551",
+      "zip_entry": "base_rootfs/etc/init.d/S10mpp"
+    },
+    {
+      "path": "extracted/base_rootfs/etc/init.d/rcS",
+      "bytes": 155,
+      "sha256": "c63f0f63c1c15dab57c042cf6e53574f4bfdab5be8eab4b723e3b932f6b7f4fa",
+      "zip_entry": "base_rootfs/etc/init.d/rcS"
+    },
+    {
+      "path": "extracted/base_rootfs/etc/inittab",
+      "bytes": 213,
+      "sha256": "5a6eb17e44a3b476aad523b696e1d58a20a0bff5b89046e4f55323a52bec5621",
+      "zip_entry": "base_rootfs/etc/inittab"
+    },
+    {
+      "path": "extracted/base_rootfs/etc/mtab",
+      "bytes": 101,
+      "sha256": "c337223f65871ff9b4d8e2d740fd56bd19fae436968ff879f62f29406305e74e",
+      "zip_entry": "base_rootfs/etc/mtab"
+    },
+    {
+      "path": "extracted/base_rootfs/etc/passwd",
+      "bytes": 51,
+      "sha256": "6ea0984320b7b988547ec1ebd9431210ad930d78e8dcfd324f9a882cc9f66265",
+      "zip_entry": "base_rootfs/etc/passwd"
+    },
+    {
+      "path": "extracted/base_rootfs/etc/passwd-",
+      "bytes": 51,
+      "sha256": "5109aeb67185a6223c034873323429f73dbb56d9f1cf88c4befa9a57bbf3d9f5",
+      "zip_entry": "base_rootfs/etc/passwd-"
+    },
+    {
+      "path": "extracted/base_rootfs/etc/profile",
+      "bytes": 415,
+      "sha256": "e92809ec54ad47f70ce706fb4ad42f5aedb56a78607bf59933224e517ede6b4b",
+      "zip_entry": "base_rootfs/etc/profile"
+    },
+    {
+      "path": "extracted/base_rootfs/etc/protocols",
+      "bytes": 2176,
+      "sha256": "c85a271a7991b70e942e08bc8d4bf68000531e4964dd07b93f6aebc4f72b0a5a",
+      "zip_entry": "base_rootfs/etc/protocols"
+    },
+    {
+      "path": "extracted/base_rootfs/etc/resolv.conf.symlink",
+      "bytes": 20,
+      "sha256": "8e659c28f0ba2974d34a359d11db22bb8f51c7fa3d090c560dd31ab7a8c2deba",
+      "zip_entry": "base_rootfs/etc/resolv.conf.symlink"
+    },
+    {
+      "path": "extracted/base_rootfs/etc/services",
+      "bytes": 8220,
+      "sha256": "d925772e45b2f28fa9d67dbc0efb4cff10389dea3824f7351e78a10a851232d2",
+      "zip_entry": "base_rootfs/etc/services"
+    },
+    {
+      "path": "extracted/base_rootfs/etc/udev/rules.d/75-cd-aliases-generator.rules.optional",
+      "bytes": 390,
+      "sha256": "170d791348e1651c1b38f5c25c87afacf5e51bb51aa8245f93c89b76090fd5af",
+      "zip_entry": "base_rootfs/etc/udev/rules.d/75-cd-aliases-generator.rules.optional"
+    },
+    {
+      "path": "extracted/base_rootfs/etc/udev/rules.d/75-persistent-net-generator.rules.optional",
+      "bytes": 2403,
+      "sha256": "54f5c8de5d3c6727ab5ecafb9e86fcdabdc0bbd4d406fbfe1ad01b8199365899",
+      "zip_entry": "base_rootfs/etc/udev/rules.d/75-persistent-net-generator.rules.optional"
+    },
+    {
+      "path": "extracted/base_rootfs/etc/udev/rules.d/90-hal.rules",
+      "bytes": 83,
+      "sha256": "9d05830bdde228dcc818e427c700ec1fd1c386ba0a1dac04f7d62754e587351f",
+      "zip_entry": "base_rootfs/etc/udev/rules.d/90-hal.rules"
+    },
+    {
+      "path": "extracted/base_rootfs/etc/udev/rules.d/99-fuse.rules",
+      "bytes": 28,
+      "sha256": "147fe82be2038bab8ecc8c5c4849bb438f6bb9fef723f5ad760897256b10b121",
+      "zip_entry": "base_rootfs/etc/udev/rules.d/99-fuse.rules"
+    },
+    {
+      "path": "extracted/base_rootfs/etc/udev/rules.d/device-mapper.rules",
+      "bytes": 201,
+      "sha256": "f0b0e928c1140dcf9ef3d26affecbd562959943d2ef2a26e5ac166f04f4b06f7",
+      "zip_entry": "base_rootfs/etc/udev/rules.d/device-mapper.rules"
+    },
+    {
+      "path": "extracted/base_rootfs/etc/udev/udev.conf",
+      "bytes": 206,
+      "sha256": "86fa8e925e3be794bebceacc0c1ca85519066b254731f0bca1c8cdbad5ac9305",
+      "zip_entry": "base_rootfs/etc/udev/udev.conf"
+    },
+    {
+      "path": "extracted/base_rootfs/init.symlink",
+      "bytes": 9,
+      "sha256": "4926c7ea83dead8ee52d44372399f2d74966d6cc2dc06131abd50555d21dd6b8",
+      "zip_entry": "base_rootfs/init.symlink"
+    },
+    {
+      "path": "extracted/base_rootfs/lib/ld-uClibc-0.9.32.1.so",
+      "bytes": 25932,
+      "sha256": "6f4d0996794ee0679fac0f7620fc5c51605b660c47f93bfca7cebf8ff102f47f",
+      "zip_entry": "base_rootfs/lib/ld-uClibc-0.9.32.1.so"
+    },
+    {
+      "path": "extracted/base_rootfs/lib/ld-uClibc.so.0.symlink",
+      "bytes": 21,
+      "sha256": "5914da9502d90e0b69204b66989b29d5ac0c4c81db9d430604663e6d0c1bb652",
+      "zip_entry": "base_rootfs/lib/ld-uClibc.so.0.symlink"
+    },
+    {
+      "path": "extracted/base_rootfs/lib/libc.so.0.symlink",
+      "bytes": 21,
+      "sha256": "c5f65d7b5855a563d2bcd60f5ac9b8916a9fe4db665beee3b21712120ffd8ca2",
+      "zip_entry": "base_rootfs/lib/libc.so.0.symlink"
+    },
+    {
+      "path": "extracted/base_rootfs/lib/libcrypt-0.9.32.1.so",
+      "bytes": 10491,
+      "sha256": "6684155b7e2404c067379cbb802cb37b70d85051e57c23377576459eb196f009",
+      "zip_entry": "base_rootfs/lib/libcrypt-0.9.32.1.so"
+    },
+    {
+      "path": "extracted/base_rootfs/lib/libcrypt.so.0.symlink",
+      "bytes": 20,
+      "sha256": "43a41542b00ca6b9a0421b5ac799c9f4ba1fd7060c8e7300092c1d740858e358",
+      "zip_entry": "base_rootfs/lib/libcrypt.so.0.symlink"
+    },
+    {
+      "path": "extracted/base_rootfs/lib/libdl-0.9.32.1.so",
+      "bytes": 9607,
+      "sha256": "515dcde4380acfd22e00197757b3d2ced46a5707032c497b1746c805645bbbe2",
+      "zip_entry": "base_rootfs/lib/libdl-0.9.32.1.so"
+    },
+    {
+      "path": "extracted/base_rootfs/lib/libdl.so.0.symlink",
+      "bytes": 17,
+      "sha256": "657d85cb31d91c55fddb655e42de8cf667ddfedfbb8d9652d4ec6718ac31fc62",
+      "zip_entry": "base_rootfs/lib/libdl.so.0.symlink"
+    },
+    {
+      "path": "extracted/base_rootfs/lib/libgcc_s.so.1",
+      "bytes": 186353,
+      "sha256": "ae6ec25ed5f2d8d82e5e801f87fb1960d1d3f9b57123d1a9f88a1d43645e85ab",
+      "zip_entry": "base_rootfs/lib/libgcc_s.so.1"
+    },
+    {
+      "path": "extracted/base_rootfs/lib/libgcc_s.so.symlink",
+      "bytes": 13,
+      "sha256": "07d6e1e661856bc400f1445f6e67b1cb26bebf76aa153267cf43b3b7d76354bf",
+      "zip_entry": "base_rootfs/lib/libgcc_s.so.symlink"
+    },
+    {
+      "path": "extracted/base_rootfs/lib/libm-0.9.32.1.so",
+      "bytes": 67183,
+      "sha256": "122c4639b3b8d09d137cc746d8ce8ff5c4f1da177568174f189f8313a1ce2797",
+      "zip_entry": "base_rootfs/lib/libm-0.9.32.1.so"
+    },
+    {
+      "path": "extracted/base_rootfs/lib/libm.so.0.symlink",
+      "bytes": 16,
+      "sha256": "5c12536f6fed9ed363096740f9a727d98de5d16de6fadd6ffe93d12ec40280fb",
+      "zip_entry": "base_rootfs/lib/libm.so.0.symlink"
+    },
+    {
+      "path": "extracted/base_rootfs/lib/libnsl-0.9.32.1.so",
+      "bytes": 1851,
+      "sha256": "e780a72f7c1023290e01534c187f9d7bbe35d8f4e13c46fabf7de39459576cad",
+      "zip_entry": "base_rootfs/lib/libnsl-0.9.32.1.so"
+    },
+    {
+      "path": "extracted/base_rootfs/lib/libnsl.so.0.symlink",
+      "bytes": 18,
+      "sha256": "81bc246285e930ab948f47feb769a185326ff648a16aed4f344757780516c55c",
+      "zip_entry": "base_rootfs/lib/libnsl.so.0.symlink"
+    },
+    {
+      "path": "extracted/base_rootfs/lib/libpthread-0.9.32.1.so",
+      "bytes": 107680,
+      "sha256": "6d12761f61661227be5a6ec590dc453d6ec46ea565b28084ceb55b6ab1a56525",
+      "zip_entry": "base_rootfs/lib/libpthread-0.9.32.1.so"
+    },
+    {
+      "path": "extracted/base_rootfs/lib/libpthread.so.0.symlink",
+      "bytes": 22,
+      "sha256": "bfba9fe58956163b962b13a7d778c5fb6af06cbd65e8081a75cd0c7736420771",
+      "zip_entry": "base_rootfs/lib/libpthread.so.0.symlink"
+    },
+    {
+      "path": "extracted/base_rootfs/lib/libresolv-0.9.32.1.so",
+      "bytes": 1859,
+      "sha256": "0bfbf0188b8399300a4030232749afb1600ec0e2575c306c893e612374c9daa9",
+      "zip_entry": "base_rootfs/lib/libresolv-0.9.32.1.so"
+    },
+    {
+      "path": "extracted/base_rootfs/lib/libresolv.so.0.symlink",
+      "bytes": 21,
+      "sha256": "44046e6ea2bf6af170c2707b63c23202625fe1edc32b17dc767d7ebd39dc0fe9",
+      "zip_entry": "base_rootfs/lib/libresolv.so.0.symlink"
+    },
+    {
+      "path": "extracted/base_rootfs/lib/librt-0.9.32.1.so",
+      "bytes": 11759,
+      "sha256": "dce986441552503d2e5bb8abc3c63084b518c41971c6221004007fe921ce92c6",
+      "zip_entry": "base_rootfs/lib/librt-0.9.32.1.so"
+    },
+    {
+      "path": "extracted/base_rootfs/lib/librt.so.0.symlink",
+      "bytes": 17,
+      "sha256": "3cc1e1a8e08807c19cbb2bc1bd21921e5d8520897cb85fb893ad9bf7b9ba3601",
+      "zip_entry": "base_rootfs/lib/librt.so.0.symlink"
+    },
+    {
+      "path": "extracted/base_rootfs/lib/libthread_db-0.9.32.1.so",
+      "bytes": 21749,
+      "sha256": "7196a93ebec2a7559e5543d9a0eca23dec5f876ab3b0c0f86b2c6ecbc357773f",
+      "zip_entry": "base_rootfs/lib/libthread_db-0.9.32.1.so"
+    },
+    {
+      "path": "extracted/base_rootfs/lib/libthread_db.so.1.symlink",
+      "bytes": 24,
+      "sha256": "7b0fdd5280aaf26532c4849fe9d6da552f2aea71720970085b0ab0da6fc79cd0",
+      "zip_entry": "base_rootfs/lib/libthread_db.so.1.symlink"
+    },
+    {
+      "path": "extracted/base_rootfs/lib/libuClibc-0.9.32.1.so",
+      "bytes": 596843,
+      "sha256": "bde417a8aa163598f44ce8b45d54095352723331ce3bcad59fb2748ac9dd194f",
+      "zip_entry": "base_rootfs/lib/libuClibc-0.9.32.1.so"
+    },
+    {
+      "path": "extracted/base_rootfs/lib/libutil-0.9.32.1.so",
+      "bytes": 4647,
+      "sha256": "c61a6bf5b0605d50997560ed04e8bcbe57a37c5db5b62f6bca043c1ede0caa68",
+      "zip_entry": "base_rootfs/lib/libutil-0.9.32.1.so"
+    },
+    {
+      "path": "extracted/base_rootfs/lib/libutil.so.0.symlink",
+      "bytes": 19,
+      "sha256": "6c673fc10b9dd5b18ed140b2272e5f1f2a4d2bd8b17e5027aaa2963a3b01f7e7",
+      "zip_entry": "base_rootfs/lib/libutil.so.0.symlink"
+    },
+    {
+      "path": "extracted/base_rootfs/linuxrc.symlink",
+      "bytes": 11,
+      "sha256": "c98e51923f832db7766318700fc13af6b0adb9dca27074d01b115868243f6316",
+      "zip_entry": "base_rootfs/linuxrc.symlink"
+    },
+    {
+      "path": "extracted/base_rootfs/root/.profile",
+      "bytes": 39,
+      "sha256": "6630bc30dcbc4a3852debbb21d9d2f4256d9c3ac38bc7c75b03fa05edc6b9e52",
+      "zip_entry": "base_rootfs/root/.profile"
+    },
+    {
+      "path": "extracted/base_rootfs/sbin/getty.symlink",
+      "bytes": 14,
+      "sha256": "85d4dd4ef86ceeb5656dbcb05c167fdbae84349ede4025f920e4aea8750c1757",
+      "zip_entry": "base_rootfs/sbin/getty.symlink"
+    },
+    {
+      "path": "extracted/base_rootfs/sbin/halt.symlink",
+      "bytes": 14,
+      "sha256": "85d4dd4ef86ceeb5656dbcb05c167fdbae84349ede4025f920e4aea8750c1757",
+      "zip_entry": "base_rootfs/sbin/halt.symlink"
+    },
+    {
+      "path": "extracted/base_rootfs/sbin/ifconfig.symlink",
+      "bytes": 14,
+      "sha256": "85d4dd4ef86ceeb5656dbcb05c167fdbae84349ede4025f920e4aea8750c1757",
+      "zip_entry": "base_rootfs/sbin/ifconfig.symlink"
+    },
+    {
+      "path": "extracted/base_rootfs/sbin/init.symlink",
+      "bytes": 14,
+      "sha256": "85d4dd4ef86ceeb5656dbcb05c167fdbae84349ede4025f920e4aea8750c1757",
+      "zip_entry": "base_rootfs/sbin/init.symlink"
+    },
+    {
+      "path": "extracted/base_rootfs/sbin/insmod.symlink",
+      "bytes": 14,
+      "sha256": "85d4dd4ef86ceeb5656dbcb05c167fdbae84349ede4025f920e4aea8750c1757",
+      "zip_entry": "base_rootfs/sbin/insmod.symlink"
+    },
+    {
+      "path": "extracted/base_rootfs/sbin/lsmod.symlink",
+      "bytes": 14,
+      "sha256": "85d4dd4ef86ceeb5656dbcb05c167fdbae84349ede4025f920e4aea8750c1757",
+      "zip_entry": "base_rootfs/sbin/lsmod.symlink"
+    },
+    {
+      "path": "extracted/base_rootfs/sbin/mkdosfs.symlink",
+      "bytes": 14,
+      "sha256": "85d4dd4ef86ceeb5656dbcb05c167fdbae84349ede4025f920e4aea8750c1757",
+      "zip_entry": "base_rootfs/sbin/mkdosfs.symlink"
+    },
+    {
+      "path": "extracted/base_rootfs/sbin/mkfs.vfat.symlink",
+      "bytes": 14,
+      "sha256": "85d4dd4ef86ceeb5656dbcb05c167fdbae84349ede4025f920e4aea8750c1757",
+      "zip_entry": "base_rootfs/sbin/mkfs.vfat.symlink"
+    },
+    {
+      "path": "extracted/base_rootfs/sbin/modprobe.symlink",
+      "bytes": 14,
+      "sha256": "85d4dd4ef86ceeb5656dbcb05c167fdbae84349ede4025f920e4aea8750c1757",
+      "zip_entry": "base_rootfs/sbin/modprobe.symlink"
+    },
+    {
+      "path": "extracted/base_rootfs/sbin/poweroff.symlink",
+      "bytes": 14,
+      "sha256": "85d4dd4ef86ceeb5656dbcb05c167fdbae84349ede4025f920e4aea8750c1757",
+      "zip_entry": "base_rootfs/sbin/poweroff.symlink"
+    },
+    {
+      "path": "extracted/base_rootfs/sbin/reboot.symlink",
+      "bytes": 14,
+      "sha256": "85d4dd4ef86ceeb5656dbcb05c167fdbae84349ede4025f920e4aea8750c1757",
+      "zip_entry": "base_rootfs/sbin/reboot.symlink"
+    },
+    {
+      "path": "extracted/base_rootfs/sbin/rmmod.symlink",
+      "bytes": 14,
+      "sha256": "85d4dd4ef86ceeb5656dbcb05c167fdbae84349ede4025f920e4aea8750c1757",
+      "zip_entry": "base_rootfs/sbin/rmmod.symlink"
+    },
+    {
+      "path": "extracted/base_rootfs/sbin/route.symlink",
+      "bytes": 14,
+      "sha256": "85d4dd4ef86ceeb5656dbcb05c167fdbae84349ede4025f920e4aea8750c1757",
+      "zip_entry": "base_rootfs/sbin/route.symlink"
+    },
+    {
+      "path": "extracted/base_rootfs/sbin/setconsole.symlink",
+      "bytes": 14,
+      "sha256": "85d4dd4ef86ceeb5656dbcb05c167fdbae84349ede4025f920e4aea8750c1757",
+      "zip_entry": "base_rootfs/sbin/setconsole.symlink"
+    },
+    {
+      "path": "extracted/base_rootfs/sbin/swapoff.symlink",
+      "bytes": 14,
+      "sha256": "85d4dd4ef86ceeb5656dbcb05c167fdbae84349ede4025f920e4aea8750c1757",
+      "zip_entry": "base_rootfs/sbin/swapoff.symlink"
+    },
+    {
+      "path": "extracted/base_rootfs/sbin/swapon.symlink",
+      "bytes": 14,
+      "sha256": "85d4dd4ef86ceeb5656dbcb05c167fdbae84349ede4025f920e4aea8750c1757",
+      "zip_entry": "base_rootfs/sbin/swapon.symlink"
+    },
+    {
+      "path": "extracted/base_rootfs/sbin/sysctl.symlink",
+      "bytes": 14,
+      "sha256": "85d4dd4ef86ceeb5656dbcb05c167fdbae84349ede4025f920e4aea8750c1757",
+      "zip_entry": "base_rootfs/sbin/sysctl.symlink"
+    },
+    {
+      "path": "extracted/base_rootfs/usr/bin/SysUpdate",
+      "bytes": 67424,
+      "sha256": "c76e218d9dffde035ca5ed28cae89fa2dd679c539f647f6329f8dcf083e0c6d9",
+      "zip_entry": "base_rootfs/usr/bin/SysUpdate"
+    },
+    {
+      "path": "extracted/base_rootfs/usr/bin/[.symlink",
+      "bytes": 17,
+      "sha256": "a45f328e8f8527741de5e5eb29abb79256c4d8580829e68d00b62bffc5a44390",
+      "zip_entry": "base_rootfs/usr/bin/[.symlink"
+    },
+    {
+      "path": "extracted/base_rootfs/usr/bin/[[.symlink",
+      "bytes": 17,
+      "sha256": "a45f328e8f8527741de5e5eb29abb79256c4d8580829e68d00b62bffc5a44390",
+      "zip_entry": "base_rootfs/usr/bin/[[.symlink"
+    },
+    {
+      "path": "extracted/base_rootfs/usr/bin/awk.symlink",
+      "bytes": 17,
+      "sha256": "a45f328e8f8527741de5e5eb29abb79256c4d8580829e68d00b62bffc5a44390",
+      "zip_entry": "base_rootfs/usr/bin/awk.symlink"
+    },
+    {
+      "path": "extracted/base_rootfs/usr/bin/basename.symlink",
+      "bytes": 17,
+      "sha256": "a45f328e8f8527741de5e5eb29abb79256c4d8580829e68d00b62bffc5a44390",
+      "zip_entry": "base_rootfs/usr/bin/basename.symlink"
+    },
+    {
+      "path": "extracted/base_rootfs/usr/bin/clear.symlink",
+      "bytes": 17,
+      "sha256": "a45f328e8f8527741de5e5eb29abb79256c4d8580829e68d00b62bffc5a44390",
+      "zip_entry": "base_rootfs/usr/bin/clear.symlink"
+    },
+    {
+      "path": "extracted/base_rootfs/usr/bin/cmp.symlink",
+      "bytes": 17,
+      "sha256": "a45f328e8f8527741de5e5eb29abb79256c4d8580829e68d00b62bffc5a44390",
+      "zip_entry": "base_rootfs/usr/bin/cmp.symlink"
+    },
+    {
+      "path": "extracted/base_rootfs/usr/bin/cmsInitSysRegs.symlink",
+      "bytes": 9,
+      "sha256": "4281e890d030f088074963efbd5d0872f2508af0de6a44fac02eb9e236612f51",
+      "zip_entry": "base_rootfs/usr/bin/cmsInitSysRegs.symlink"
+    },
+    {
+      "path": "extracted/base_rootfs/usr/bin/crontab.symlink",
+      "bytes": 17,
+      "sha256": "a45f328e8f8527741de5e5eb29abb79256c4d8580829e68d00b62bffc5a44390",
+      "zip_entry": "base_rootfs/usr/bin/crontab.symlink"
+    },
+    {
+      "path": "extracted/base_rootfs/usr/bin/deallocvt.symlink",
+      "bytes": 17,
+      "sha256": "a45f328e8f8527741de5e5eb29abb79256c4d8580829e68d00b62bffc5a44390",
+      "zip_entry": "base_rootfs/usr/bin/deallocvt.symlink"
+    },
+    {
+      "path": "extracted/base_rootfs/usr/bin/dirname.symlink",
+      "bytes": 17,
+      "sha256": "a45f328e8f8527741de5e5eb29abb79256c4d8580829e68d00b62bffc5a44390",
+      "zip_entry": "base_rootfs/usr/bin/dirname.symlink"
+    },
+    {
+      "path": "extracted/base_rootfs/usr/bin/env.symlink",
+      "bytes": 17,
+      "sha256": "a45f328e8f8527741de5e5eb29abb79256c4d8580829e68d00b62bffc5a44390",
+      "zip_entry": "base_rootfs/usr/bin/env.symlink"
+    },
+    {
+      "path": "extracted/base_rootfs/usr/bin/expr.symlink",
+      "bytes": 17,
+      "sha256": "a45f328e8f8527741de5e5eb29abb79256c4d8580829e68d00b62bffc5a44390",
+      "zip_entry": "base_rootfs/usr/bin/expr.symlink"
+    },
+    {
+      "path": "extracted/base_rootfs/usr/bin/killall.symlink",
+      "bytes": 17,
+      "sha256": "a45f328e8f8527741de5e5eb29abb79256c4d8580829e68d00b62bffc5a44390",
+      "zip_entry": "base_rootfs/usr/bin/killall.symlink"
+    },
+    {
+      "path": "extracted/base_rootfs/usr/bin/md5sum.symlink",
+      "bytes": 17,
+      "sha256": "a45f328e8f8527741de5e5eb29abb79256c4d8580829e68d00b62bffc5a44390",
+      "zip_entry": "base_rootfs/usr/bin/md5sum.symlink"
+    },
+    {
+      "path": "extracted/base_rootfs/usr/bin/od.symlink",
+      "bytes": 17,
+      "sha256": "a45f328e8f8527741de5e5eb29abb79256c4d8580829e68d00b62bffc5a44390",
+      "zip_entry": "base_rootfs/usr/bin/od.symlink"
+    },
+    {
+      "path": "extracted/base_rootfs/usr/bin/passwd.symlink",
+      "bytes": 17,
+      "sha256": "a45f328e8f8527741de5e5eb29abb79256c4d8580829e68d00b62bffc5a44390",
+      "zip_entry": "base_rootfs/usr/bin/passwd.symlink"
+    },
+    {
+      "path": "extracted/base_rootfs/usr/bin/sha1sum.symlink",
+      "bytes": 17,
+      "sha256": "a45f328e8f8527741de5e5eb29abb79256c4d8580829e68d00b62bffc5a44390",
+      "zip_entry": "base_rootfs/usr/bin/sha1sum.symlink"
+    },
+    {
+      "path": "extracted/base_rootfs/usr/bin/sum.symlink",
+      "bytes": 17,
+      "sha256": "a45f328e8f8527741de5e5eb29abb79256c4d8580829e68d00b62bffc5a44390",
+      "zip_entry": "base_rootfs/usr/bin/sum.symlink"
+    },
+    {
+      "path": "extracted/base_rootfs/usr/bin/tail.symlink",
+      "bytes": 17,
+      "sha256": "a45f328e8f8527741de5e5eb29abb79256c4d8580829e68d00b62bffc5a44390",
+      "zip_entry": "base_rootfs/usr/bin/tail.symlink"
+    },
+    {
+      "path": "extracted/base_rootfs/usr/bin/tee.symlink",
+      "bytes": 17,
+      "sha256": "a45f328e8f8527741de5e5eb29abb79256c4d8580829e68d00b62bffc5a44390",
+      "zip_entry": "base_rootfs/usr/bin/tee.symlink"
+    },
+    {
+      "path": "extracted/base_rootfs/usr/bin/test.symlink",
+      "bytes": 17,
+      "sha256": "a45f328e8f8527741de5e5eb29abb79256c4d8580829e68d00b62bffc5a44390",
+      "zip_entry": "base_rootfs/usr/bin/test.symlink"
+    },
+    {
+      "path": "extracted/base_rootfs/usr/bin/time.symlink",
+      "bytes": 17,
+      "sha256": "a45f328e8f8527741de5e5eb29abb79256c4d8580829e68d00b62bffc5a44390",
+      "zip_entry": "base_rootfs/usr/bin/time.symlink"
+    },
+    {
+      "path": "extracted/base_rootfs/usr/bin/top.symlink",
+      "bytes": 17,
+      "sha256": "a45f328e8f8527741de5e5eb29abb79256c4d8580829e68d00b62bffc5a44390",
+      "zip_entry": "base_rootfs/usr/bin/top.symlink"
+    },
+    {
+      "path": "extracted/base_rootfs/usr/bin/tty.symlink",
+      "bytes": 17,
+      "sha256": "a45f328e8f8527741de5e5eb29abb79256c4d8580829e68d00b62bffc5a44390",
+      "zip_entry": "base_rootfs/usr/bin/tty.symlink"
+    },
+    {
+      "path": "extracted/base_rootfs/usr/bin/udhcpc.symlink",
+      "bytes": 17,
+      "sha256": "a45f328e8f8527741de5e5eb29abb79256c4d8580829e68d00b62bffc5a44390",
+      "zip_entry": "base_rootfs/usr/bin/udhcpc.symlink"
+    },
+    {
+      "path": "extracted/base_rootfs/usr/bin/wdstop",
+      "bytes": 13422,
+      "sha256": "f7e1d5c309e86b91cd6430a0bce19df071fe7d27a412d2e326a3c00779f76d76",
+      "zip_entry": "base_rootfs/usr/bin/wdstop"
+    },
+    {
+      "path": "extracted/base_rootfs/usr/bin/yes.symlink",
+      "bytes": 17,
+      "sha256": "a45f328e8f8527741de5e5eb29abb79256c4d8580829e68d00b62bffc5a44390",
+      "zip_entry": "base_rootfs/usr/bin/yes.symlink"
+    },
+    {
+      "path": "extracted/base_rootfs/usr/sbin/chroot.symlink",
+      "bytes": 17,
+      "sha256": "a45f328e8f8527741de5e5eb29abb79256c4d8580829e68d00b62bffc5a44390",
+      "zip_entry": "base_rootfs/usr/sbin/chroot.symlink"
+    },
+    {
+      "path": "extracted/base_rootfs/usr/sbin/crond.symlink",
+      "bytes": 17,
+      "sha256": "a45f328e8f8527741de5e5eb29abb79256c4d8580829e68d00b62bffc5a44390",
+      "zip_entry": "base_rootfs/usr/sbin/crond.symlink"
+    },
+    {
+      "path": "extracted/base_rootfs/usr/sbin/fbset.symlink",
+      "bytes": 17,
+      "sha256": "a45f328e8f8527741de5e5eb29abb79256c4d8580829e68d00b62bffc5a44390",
+      "zip_entry": "base_rootfs/usr/sbin/fbset.symlink"
+    },
+    {
+      "path": "extracted/base_rootfs/usr/sbin/inetd.symlink",
+      "bytes": 17,
+      "sha256": "a45f328e8f8527741de5e5eb29abb79256c4d8580829e68d00b62bffc5a44390",
+      "zip_entry": "base_rootfs/usr/sbin/inetd.symlink"
+    },
+    {
+      "path": "extracted/base_rootfs/usr/sbin/sendmail.symlink",
+      "bytes": 17,
+      "sha256": "a45f328e8f8527741de5e5eb29abb79256c4d8580829e68d00b62bffc5a44390",
+      "zip_entry": "base_rootfs/usr/sbin/sendmail.symlink"
+    },
+    {
+      "path": "extracted/base_rootfs/usr/sbin/telnetd.symlink",
+      "bytes": 17,
+      "sha256": "a45f328e8f8527741de5e5eb29abb79256c4d8580829e68d00b62bffc5a44390",
+      "zip_entry": "base_rootfs/usr/sbin/telnetd.symlink"
+    },
+    {
+      "path": "extracted/base_rootfs/var/run/utmp",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "zip_entry": "base_rootfs/var/run/utmp"
+    },
+    {
+      "path": "extracted/camera_modules/cmsapp/cmsMain.out",
+      "bytes": 3806272,
+      "sha256": "4419e7f86607eb83337de021563db2bb7392040059b29b715090e2ba54572e56",
+      "zip_entry": "camera_modules/cmsapp/cmsMain.out"
+    },
+    {
+      "path": "extracted/camera_modules/cmsapp/files/sendmail_0.txt",
+      "bytes": 312,
+      "sha256": "c5381525271176f0126e2c2130314f88afae11af1c4ac9716d68518d2ad0cc63",
+      "zip_entry": "camera_modules/cmsapp/files/sendmail_0.txt"
+    },
+    {
+      "path": "extracted/camera_modules/cmsapp/res/AP.aac",
+      "bytes": 12318,
+      "sha256": "88a9f004cf247e31905b96ba4bc41b540e3ed71443ce4fbc36540cf3b929759a",
+      "zip_entry": "camera_modules/cmsapp/res/AP.aac"
+    },
+    {
+      "path": "extracted/camera_modules/cmsapp/res/AP_e.aac",
+      "bytes": 10775,
+      "sha256": "4baa8f23599040d47dee9e2d2bf129c6a79abd9f376a67a6ecbc730265fef454",
+      "zip_entry": "camera_modules/cmsapp/res/AP_e.aac"
+    },
+    {
+      "path": "extracted/camera_modules/cmsapp/res/image/iermu.bmp",
+      "bytes": 15098,
+      "sha256": "2e904e71795ed54b87ea8d5b29366f0553a065cd089bd82fd5a3a497dc3a2211",
+      "zip_entry": "camera_modules/cmsapp/res/image/iermu.bmp"
+    },
+    {
+      "path": "extracted/camera_modules/cmsapp/res/recvOK.aac",
+      "bytes": 5978,
+      "sha256": "dfc56f2a50267cd007d59febfb7a51b8746d7d51b86a718d22ab97ae2c90c1ae",
+      "zip_entry": "camera_modules/cmsapp/res/recvOK.aac"
+    },
+    {
+      "path": "extracted/camera_modules/cmsapp/res/recvOK_e.aac",
+      "bytes": 5573,
+      "sha256": "98d15309471ee622df32f9877c49c8d8d10f216d8b8ddb7850ffdf9c70df7173",
+      "zip_entry": "camera_modules/cmsapp/res/recvOK_e.aac"
+    },
+    {
+      "path": "extracted/camera_modules/cmsapp/res/smart.aac",
+      "bytes": 10782,
+      "sha256": "b79f6e507ae396973664db94dd75ff6fa0344381d06118ebfc34fbf798f4ef37",
+      "zip_entry": "camera_modules/cmsapp/res/smart.aac"
+    },
+    {
+      "path": "extracted/camera_modules/cmsapp/res/smart_e.aac",
+      "bytes": 7431,
+      "sha256": "f0bdc890ad19b4f13fac6c1705701c94d92c46b52f1400505650acc21e3570a0",
+      "zip_entry": "camera_modules/cmsapp/res/smart_e.aac"
+    },
+    {
+      "path": "extracted/camera_modules/cmsapp/webroot/index.html",
+      "bytes": 1364,
+      "sha256": "fdd72e99cd05c7ebbc307589e2a6053045f105e0fa1432a090f2f95d99877d1d",
+      "zip_entry": "camera_modules/cmsapp/webroot/index.html"
+    },
+    {
+      "path": "extracted/camera_modules/komod/acodec.ko",
+      "bytes": 14448,
+      "sha256": "2097db18f89731e7a5a83547416382d423db3524d5bf666987305048df7d5174",
+      "zip_entry": "camera_modules/komod/acodec.ko"
+    },
+    {
+      "path": "extracted/camera_modules/komod/clkcfg_hi3518.sh",
+      "bytes": 1847,
+      "sha256": "eddd25fdb815c65aac0d3312ed19857137f81f89eb765c1f615aebfd7eead7b3",
+      "zip_entry": "camera_modules/komod/clkcfg_hi3518.sh"
+    },
+    {
+      "path": "extracted/camera_modules/komod/hi3518_adec.ko",
+      "bytes": 12144,
+      "sha256": "c20b2cf038f0b920788c9d26419633c5cc720e3f7fae421de8719e23316e1dde",
+      "zip_entry": "camera_modules/komod/hi3518_adec.ko"
+    },
+    {
+      "path": "extracted/camera_modules/komod/hi3518_aenc.ko",
+      "bytes": 34860,
+      "sha256": "0750cfb08e2f8264377123fa15ae2425fd8fd94ca0e4e818282c5e2d82301662",
+      "zip_entry": "camera_modules/komod/hi3518_aenc.ko"
+    },
+    {
+      "path": "extracted/camera_modules/komod/hi3518_ai.ko",
+      "bytes": 53808,
+      "sha256": "205accb1097c54b014e50731ad2a8846c6cb8018c8fc1fc5a6bf1ca15eb13215",
+      "zip_entry": "camera_modules/komod/hi3518_ai.ko"
+    },
+    {
+      "path": "extracted/camera_modules/komod/hi3518_ao.ko",
+      "bytes": 46060,
+      "sha256": "ad7a5d5778161184aa7d0addad51ea3bdec3c6a9a3466c0f65de635147da9f40",
+      "zip_entry": "camera_modules/komod/hi3518_ao.ko"
+    },
+    {
+      "path": "extracted/camera_modules/komod/hi3518_base.ko",
+      "bytes": 48636,
+      "sha256": "9179916cc13a1868f20dd09df7de4937fe6d0bbb870a808ff20304edea3bee9e",
+      "zip_entry": "camera_modules/komod/hi3518_base.ko"
+    },
+    {
+      "path": "extracted/camera_modules/komod/hi3518_chnl.ko",
+      "bytes": 44180,
+      "sha256": "9383137ea2a735116c3428b27fc2665d448bab8c097d58f860aea4823a1ed531",
+      "zip_entry": "camera_modules/komod/hi3518_chnl.ko"
+    },
+    {
+      "path": "extracted/camera_modules/komod/hi3518_dsu.ko",
+      "bytes": 72192,
+      "sha256": "a2fb8514e0317af51ce09c73cbdfc9e716c735ba6f4aeb17d97af74fa620b7e1",
+      "zip_entry": "camera_modules/komod/hi3518_dsu.ko"
+    },
+    {
+      "path": "extracted/camera_modules/komod/hi3518_group.ko",
+      "bytes": 68364,
+      "sha256": "d655e0fc07394b86aa254df3e41632b957405f7cb35e1d1c720593b4f59da3d5",
+      "zip_entry": "camera_modules/komod/hi3518_group.ko"
+    },
+    {
+      "path": "extracted/camera_modules/komod/hi3518_h264e.ko",
+      "bytes": 178472,
+      "sha256": "03be3f7ff13ac18e7da69769bb26a57d07c3316f893021a07dc7e15b30707347",
+      "zip_entry": "camera_modules/komod/hi3518_h264e.ko"
+    },
+    {
+      "path": "extracted/camera_modules/komod/hi3518_isp.ko",
+      "bytes": 25372,
+      "sha256": "48b781223279084f04a7cc73267ac8d622add5d379b9bb807e090c914dfb33c4",
+      "zip_entry": "camera_modules/komod/hi3518_isp.ko"
+    },
+    {
+      "path": "extracted/camera_modules/komod/hi3518_ive.ko",
+      "bytes": 41284,
+      "sha256": "b7f476f51b0c8402f31ef06bd19b4518b8161c777e57536c7ec33b100eae1c31",
+      "zip_entry": "camera_modules/komod/hi3518_ive.ko"
+    },
+    {
+      "path": "extracted/camera_modules/komod/hi3518_jpege.ko",
+      "bytes": 50692,
+      "sha256": "92555beb999b4cba858073bf1b1b454f062b37ff9183afeb515293602e5f2584",
+      "zip_entry": "camera_modules/komod/hi3518_jpege.ko"
+    },
+    {
+      "path": "extracted/camera_modules/komod/hi3518_rc.ko",
+      "bytes": 169644,
+      "sha256": "86dd7dd27ebbe509b00eda06e5773486be61502a9d9155e6376bf7705ab95f01",
+      "zip_entry": "camera_modules/komod/hi3518_rc.ko"
+    },
+    {
+      "path": "extracted/camera_modules/komod/hi3518_region.ko",
+      "bytes": 53388,
+      "sha256": "c2a046e9daa8341efa25eef142e1d2826d22cb81ecbd661613cded7386f17e75",
+      "zip_entry": "camera_modules/komod/hi3518_region.ko"
+    },
+    {
+      "path": "extracted/camera_modules/komod/hi3518_sio.ko",
+      "bytes": 17216,
+      "sha256": "9d61173cd8559281f3fc744540ed88ed61ca430c312401b575d34bf91327c0d4",
+      "zip_entry": "camera_modules/komod/hi3518_sio.ko"
+    },
+    {
+      "path": "extracted/camera_modules/komod/hi3518_sys.ko",
+      "bytes": 44700,
+      "sha256": "c0c77e4937c69c8624d1c422c6dc13dd7a4d66e81c52f337d23e4c046219db6c",
+      "zip_entry": "camera_modules/komod/hi3518_sys.ko"
+    },
+    {
+      "path": "extracted/camera_modules/komod/hi3518_tde.ko",
+      "bytes": 127304,
+      "sha256": "bf8656eb0e55f21932df8f2a6b70c3e1126d89203ef49f1b4ffbe0f94d72ff0c",
+      "zip_entry": "camera_modules/komod/hi3518_tde.ko"
+    },
+    {
+      "path": "extracted/camera_modules/komod/hi3518_vda.ko",
+      "bytes": 66236,
+      "sha256": "aba478e76230363659957fb82690112524d2d884d0960b20b3c541210c3838a8",
+      "zip_entry": "camera_modules/komod/hi3518_vda.ko"
+    },
+    {
+      "path": "extracted/camera_modules/komod/hi3518_venc.ko",
+      "bytes": 95440,
+      "sha256": "08834f3788860e4955eb444e78b9a2e34a518e54e9196bf5fe0ceb2586c22bf9",
+      "zip_entry": "camera_modules/komod/hi3518_venc.ko"
+    },
+    {
+      "path": "extracted/camera_modules/komod/hi3518_viu.ko",
+      "bytes": 209896,
+      "sha256": "62db65dac2b0169d6a7f34b35f28c304c3b3e5261cb04bbc50fdd92c613bb050",
+      "zip_entry": "camera_modules/komod/hi3518_viu.ko"
+    },
+    {
+      "path": "extracted/camera_modules/komod/hi3518_vou.ko",
+      "bytes": 299040,
+      "sha256": "ab25f68aa2dd541c09f2e461b22105814ee8598e91b140edb52bdf76c5cc7543",
+      "zip_entry": "camera_modules/komod/hi3518_vou.ko"
+    },
+    {
+      "path": "extracted/camera_modules/komod/hi3518_vpss.ko",
+      "bytes": 178688,
+      "sha256": "7de027a94918cfa8520faca873e3a74a1ad02ca7210d613cbf427754fe74216e",
+      "zip_entry": "camera_modules/komod/hi3518_vpss.ko"
+    },
+    {
+      "path": "extracted/camera_modules/komod/hi_i2c.ko",
+      "bytes": 6168,
+      "sha256": "a71c3106649a419d7923084d2f9a7394524a7906703ed377d86112ba8b5ac966",
+      "zip_entry": "camera_modules/komod/hi_i2c.ko"
+    },
+    {
+      "path": "extracted/camera_modules/komod/hi_rtc.ko",
+      "bytes": 8088,
+      "sha256": "36ed2f21a9fdbdeb55987c6f8a48b228a50d8248a3121a04fb0909d51c4cc75c",
+      "zip_entry": "camera_modules/komod/hi_rtc.ko"
+    },
+    {
+      "path": "extracted/camera_modules/komod/hidmac.ko",
+      "bytes": 16524,
+      "sha256": "307571353d94042274854e95cd748a6ab68c399164fa40cb3894b22a64b503a9",
+      "zip_entry": "camera_modules/komod/hidmac.ko"
+    },
+    {
+      "path": "extracted/camera_modules/komod/hiuser.ko",
+      "bytes": 2532,
+      "sha256": "da88fe8c4c6d7dca19eb8c60cf0ff4c6340d7b7a85f41dd9320c4aa99c1b7675",
+      "zip_entry": "camera_modules/komod/hiuser.ko"
+    },
+    {
+      "path": "extracted/camera_modules/komod/load3518",
+      "bytes": 4861,
+      "sha256": "c543c8d261ee65376c24bcc3a98b0af992b3234d7a8cb965582f2f694e086bb7",
+      "zip_entry": "camera_modules/komod/load3518"
+    },
+    {
+      "path": "extracted/camera_modules/komod/lowpower.sh",
+      "bytes": 1141,
+      "sha256": "72c75085953cf190141c44bbf664adc6f9708ab8608abbe10cd57178d3550704",
+      "zip_entry": "camera_modules/komod/lowpower.sh"
+    },
+    {
+      "path": "extracted/camera_modules/komod/mmz.ko",
+      "bytes": 25196,
+      "sha256": "ba3b0e0f933047a67001d045de7f646ae20f71291a5239afb0708e5613f4de5e",
+      "zip_entry": "camera_modules/komod/mmz.ko"
+    },
+    {
+      "path": "extracted/camera_modules/komod/mt7601Uap.ko",
+      "bytes": 679820,
+      "sha256": "6befcd2147be4f7952d746ec54e6655c1557d345e04e346f3ec2caa6d79c3666",
+      "zip_entry": "camera_modules/komod/mt7601Uap.ko"
+    },
+    {
+      "path": "extracted/camera_modules/komod/mt7601Usta.ko",
+      "bytes": 736492,
+      "sha256": "870553c852564ddf6b0d6b297f8e6d8fe30edac550d7347f3876d2810c27c6e8",
+      "zip_entry": "camera_modules/komod/mt7601Usta.ko"
+    },
+    {
+      "path": "extracted/camera_modules/komod/pinmux_hi3518.sh",
+      "bytes": 4112,
+      "sha256": "045d643b5a576c3c319f64f9d1aae6e0c83548bb95a1e59e1ef1b00018455492",
+      "zip_entry": "camera_modules/komod/pinmux_hi3518.sh"
+    },
+    {
+      "path": "extracted/camera_modules/komod/pwm.ko",
+      "bytes": 3484,
+      "sha256": "3dfbe70e602df91493f5143d5240364d0fbddacba48158d4916fd6ab9f825de5",
+      "zip_entry": "camera_modules/komod/pwm.ko"
+    },
+    {
+      "path": "extracted/camera_modules/komod/ssp_ad9020.ko",
+      "bytes": 8401,
+      "sha256": "ff8cd3b1c524458679d3684998ffc5f4e46a0acc1fca880080568bbb89f2f6b1",
+      "zip_entry": "camera_modules/komod/ssp_ad9020.ko"
+    },
+    {
+      "path": "extracted/camera_modules/komod/sysctl_hi3518.sh",
+      "bytes": 1462,
+      "sha256": "21b8344413d0b642761fdb02c09720e71dc68a3f9f41330575ae3cfe40af0fa7",
+      "zip_entry": "camera_modules/komod/sysctl_hi3518.sh"
+    },
+    {
+      "path": "extracted/camera_modules/runapp.sh",
+      "bytes": 447,
+      "sha256": "80d6e87131e25aa8107cde5166fb3ed09612eb7f18b106ea6fbc34672410170f",
+      "zip_entry": "camera_modules/runapp.sh"
+    },
+    {
+      "path": "extracted/firmware_analysis.md",
+      "bytes": 3538,
+      "sha256": "750793405159a8d686bf3dd6ae4d9c797cc2e32c6d3c7f923a680f45af597227",
+      "zip_entry": "firmware_analysis.md"
+    },
+    {
+      "path": "extracted/partition_layout.txt",
+      "bytes": 255,
+      "sha256": "bc13ea6b1d653ef7cd8e1f98ad9c8f7c8e5f75c9ab2260555f9d2444669cd98e",
+      "zip_entry": "partition_layout.txt"
+    },
+    {
+      "path": "original/firmware_analysis.md",
+      "bytes": 3538,
+      "sha256": "750793405159a8d686bf3dd6ae4d9c797cc2e32c6d3c7f923a680f45af597227"
+    },
+    {
+      "path": "original/iblack_1.bin",
+      "bytes": 8388608,
+      "sha256": "b3e0ff253ed30696af53ecadb4ccf4e4220c6d6c6e38ce6730f4fe86e4a80da0"
+    },
+    {
+      "path": "original/iblack_firmware_extracted.zip",
+      "bytes": 4337744,
+      "sha256": "b767be104c56994154a4716fbe35e20b318614119a414db074517423995cd2e6"
+    }
+  ]
+}

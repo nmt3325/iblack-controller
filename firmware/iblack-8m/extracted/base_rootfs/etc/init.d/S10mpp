@@ -1,0 +1,9 @@
+# !/bin/sh
+ipaddr=192.168.1.10
+netmask=255.255.255.0
+gateway=192.168.1.254
+ifconfig eth0 ${ipaddr} netmask ${netmask}
+route add default gw ${gateway}
+ifconfig lo 127.0.0.1
+/usr/bin/SysUpdate &
+/etc/cmssysrun.sh 

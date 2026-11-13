@@ -1,0 +1,3 @@
+# Preserve original bytes; ordinary Git blobs, not Git LFS.
+original/** -text
+extracted/** -text

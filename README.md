@@ -1,6 +1,6 @@
 # iermu camera local
 
-古いiermuカメラから映像・マイク音声をローカルで取り出し、IRモードを制御し、Tailscale経由で視聴するためのコード・設定例・解析記録です。対象は今回の実機、作業記録は2026年11月10日〜12日（日本時間）。
+古いiermuカメラから映像・マイク音声をローカルで取り出し、IRモードを制御し、Tailscale経由で視聴するためのコード・設定例・解析記録です。対象は今回の実機、作業記録は2026年11月10日〜13日（日本時間）。
 
 ## 今できること
 
@@ -42,6 +42,7 @@ rtmp://100.87.20.49:1935/live/camera
 | [制御プロトコル](docs/PROTOCOL.md) | TCP 3357、コマンド、本体配置、応答の解釈 |
 | [検証根拠](docs/VERIFICATION.md) | 初回記録と後続の検証JSONへの案内 |
 | [解析補助ツール](research/README.md) | APK/ELF解析の入力ハッシュと再現手順 |
+| [ファームウェア原本・全展開物](firmware/iblack-8m/README.md) | 8MiBダンプ、展開ZIP、全200ファイル、追加解析と22テスト |
 | [秘密情報の扱い](SECURITY.md) | Gitに入れていないもの |
 
 ## ディレクトリ
@@ -51,6 +52,7 @@ client/       現行のCMS制御、RTMP取得、FLV補正、ストリーム出�
 server/       SSLv3/TLS互換HTTP受信と依存ライブラリ一覧
 deployment/  現行systemd・AP/STA・中継設定の参照版／例示値
 research/     静的解析ツール、解析経路、未解決事項
+firmware/     ファームウェア原本・全展開物・追加解析（LFS不要）
 docs/        日本語の進捗・手法・構成・運用手順
  evidence/    識別子を除いた検証記録とSHA-256一覧
 reference/    初回採取版。現行設定とは区別して保存
@@ -74,9 +76,9 @@ python3 tools/verify_repo.py
 
 - 稼働機は `debian-02`。作業用Gitと `/home/nmt3325/iermu_cam` の実運用ディレクトリは分離しています。
 - `deployment/` は既存環境の参照資料です。パス・IP・無線構成は機体依存で、汎用の自動インストーラーではありません。
-- Wi-Fi PSK、家庭用SSID、実MAC、認証文字列、トークン、TLS秘密鍵、未加工の通信ログ、部屋の映像・音声、APK/共有ライブラリ本体は同梱しません。
+- Wi-Fi PSK、家庭用SSID、実MAC、認証文字列、トークン、TLS秘密鍵、未加工の通信ログ、部屋の映像・音声、APK/Android由来の共有ライブラリ本体は同梱しません。ファームウェア由来のバイナリは `firmware/` に収録します。
 - TCP/UDP受信と最小HTTP応答は用意していますが、メーカーのクラウドAPI全体を再実装したものではありません。
-- GitHub等のリモートは未設定です。このリポジトリの整理・コミットだけで、公開やpushは行いません。
+- ソースは下記GitHubリポジトリで共有します。運用機の私的設定や部屋のメディアは公開しません。
 
 ## 初回の記録
 
@@ -97,7 +99,7 @@ python3 tools/verify_repo.py
 
 ## 解析原本は別アーカイブ（LFS不要）
 
-本体は通常のGitだけでclone・検証できる軽量構成。APK・DEX・SO・JADXのJava全文とリソース・JADX/JDK本体は[別保管の解析原本](artifacts/README.md)としてSeafileへ分離した。Gitには取得先とハッシュだけを残す。原本なしで89件のオフラインテストを実行できる。
+本体は通常のGitだけでclone・検証できる軽量構成。APK・DEX・Android由来SO・JADXのJava全文とリソース・JADX/JDK本体は[別保管の解析原本](artifacts/README.md)としてSeafileへ分離した。Gitには取得先とハッシュだけを残す。原本なしで89件のオフラインテストを実行できる。
 
 ```sh
 python3 tools/verify_repo.py
@@ -109,6 +111,6 @@ python3 tools/verify_repo.py --artifacts-root /path/to/iermu-camera-analysis-art
 
 GitHub: https://github.com/nmt3325/iblack-controller
 
-大容量の解析原本はGitへ追加せず、`artifacts/archive.json` のSeafile保存先から別途取得する。
+APK由来の解析原本と大きなツールチェーンは `artifacts/archive.json` のSeafile保存先から別途取得する。ユーザー指定のファームウェア原本・展開ZIP・全展開物は [firmware/iblack-8m/](firmware/iblack-8m/README.md) に通常Gitで収録している。
 
 公開前の履歴検査で、古い証跡に残っていた家庭用Wi-FiのSSID 1件を例示値へ置換した。変更内容・コミット順序は保持し、影響するSHAは再計算している。元のLFS入りリポジトリと置換前の履歴はローカルに保全し、公開しない。

@@ -5,7 +5,7 @@
 - Android Java側：JADX 1.5.1。
 - ARM/Thumbネイティブ側：pyelftoolsとCapstone。ELFのシンボル・PT_LOAD・PLTを使い、関数と文字列参照を読む。
 - 入力：`com.intl.iermu`、versionName `1.8.0_1224`、versionCode 577。
-- 原本は解析機の私用ディレクトリに置き、APK・共有ライブラリ・JDK/JADX本体はGitへ収録しない。
+- 原本は解析機の私用ディレクトリに置き、APK・Android由来の共有ライブラリ・JDK/JADX本体はGitへ収録しない。ユーザー指定の[ファームウェア原本・展開物](../firmware/iblack-8m/README.md)は通常Gitに収録する。
 - [入力SHA-256と見つかったシンボル](../evidence/app-static-analysis.json)を保存した。
 
 ## 収録コード

@@ -1,0 +1,50 @@
+{
+  "scope": "static analysis of supplied dump; no camera or service changes",
+  "source": {
+    "dump_url": "https://sea.salvare.me/seafdav/NotionAI/iermu-camera/iblack_1.bin",
+    "extracted_url": "https://sea.salvare.me/seafdav/NotionAI/iermu-camera/iblack_firmware_extracted.zip",
+    "dump_sha256": "b3e0ff253ed30696af53ecadb4ccf4e4220c6d6c6e38ce6730f4fe86e4a80da0",
+    "cmsMain_sha256": "4419e7f86607eb83337de021563db2bb7392040059b29b715090e2ba54572e56",
+    "SysUpdate_sha256": "c76e218d9dffde035ca5ed28cae89fa2dd679c539f647f6329f8dcf083e0c6d9"
+  },
+  "findings": {
+    "dns": {
+      "writer": "0x5b954",
+      "gateway_getter": "0x64b9c",
+      "configured_dns_getter": "0x64dc8",
+      "always_appends_google_dns_in_successful_write_path": true,
+      "conditional_appends_public114": true,
+      "runtime_exclusivity_proven": false,
+      "second_dns_wire_field_mapping_proven": false
+    },
+    "uart": {
+      "boot_getty": "ttyS000 115200, timeout 5; no active respawn line",
+      "ptz_console_detection": "0x818e4..0x81bb8",
+      "detection_branch_sets_noPTZ_flag_not_kill": true,
+      "physical_console_verified": false
+    },
+    "updater": {
+      "listener": "0.0.0.0:3508/TCP",
+      "listener_code": "0xca50..0xcb1c",
+      "local_client": "0xe954..0xea38",
+      "initial_message_bytes": 28,
+      "file_checker": "0x89404",
+      "header_bytes": 36,
+      "header_checksum": "sum of first eight little-endian uint32 modulo 2^32 equals ninth uint32",
+      "no_signature_claim_proven": false,
+      "flash_test_performed": false
+    },
+    "rtmp": {
+      "url_builder": "0xbe388..0xbe3f8",
+      "sender_initialization": "0xbe458..0xbe520",
+      "camera_originated_publisher_code_present": true,
+      "local_camera_push_success": false
+    }
+  },
+  "tests": {
+    "run": 22,
+    "failures": 0,
+    "errors": 0
+  },
+  "included_artifacts": "Original analysis scripts and sanitized notes only; no firmware, APK-derived files, or credentials"
+}

@@ -56,3 +56,9 @@ stab/
 /research/decompiled/iermu/
 *.dex
 *.tar.zst
+
+# User-requested complete firmware archive/extraction; APK exclusions above remain.
+!/firmware/iblack-8m/original/
+!/firmware/iblack-8m/original/**
+!/firmware/iblack-8m/extracted/
+!/firmware/iblack-8m/extracted/**

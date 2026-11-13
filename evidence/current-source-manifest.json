@@ -1,5 +1,5 @@
 {
-  "recorded_at": "2026-11-12T18:28:35+09:00",
+  "recorded_at": "2026-11-13T19:23:16+09:00",
   "scope": "Lightweight source repository only; external APK-derived originals and toolchains are indexed separately, not tracked; runtime secrets/media excluded; initial reference manifest unchanged; this manifest and audit report excluded",
   "files": [
     {
@@ -12,7 +12,7 @@
     },
     {
       "path": "README.md",
-      "sha256": "77ad28614b515e405ebd0cb7facdead54099816f7362625540b9ca99d41a08b2"
+      "sha256": "58de48cdba9db7eca38324c9b7ba7f855d9d15013c8e57bb38409f7e78eeec65"
     },
     {
       "path": "SECURITY.md",
@@ -231,6 +231,10 @@
       "sha256": "b540a6b4f33332889b4d859673cab0267e5e044d841fc78fe12b3bebb68c2e32"
     },
     {
+      "path": "docs/TELNET.md",
+      "sha256": "f27c5f0c39c94991831f5b1c93db8ad2a6b422dc4f174b6cc8051fbb05bf59fa"
+    },
+    {
       "path": "docs/VERIFICATION.md",
       "sha256": "abe65e025c2e4593f4c7d1ae916436363595807972b454738c9db2878830429c"
     },
@@ -309,6 +313,10 @@
     {
       "path": "evidence/tailscale-rtmp-20261111.json",
       "sha256": "9f9073c6a9ea5033fd0f7a7366500b51bddcd34749990ba229c4edc2561640a9"
+    },
+    {
+      "path": "evidence/telnet-control-20261113.json",
+      "sha256": "470dfa8b037cd37b062b4e692ee659fd6bafc9b10acca4ed6459459faac8577d"
     },
     {
       "path": "evidence/validation.txt",
@@ -395,6 +403,10 @@
       "sha256": "cda453b64cdda01e06e5812f80fc5b12f6888a34c088211c913427105164b268"
     },
     {
+      "path": "requirements-telnet.txt",
+      "sha256": "f822bf3215e05ae1136c763bf083ba8bc5c5c1f6230dd6aaa24a9c03e827549f"
+    },
+    {
       "path": "research/README.md",
       "sha256": "72e3cadf1cc14445d26b75da0fe6acf8446cdaf1b4a46ed29227fcc2f7009995"
     },
@@ -455,6 +467,10 @@
       "sha256": "3a403b100ec01e03927a3cc5d80d62aa4d61c135d778ac9e4544b363920bcbc6"
     },
     {
+      "path": "tests/test_iermu_telnet.py",
+      "sha256": "b9ea9839b23ca2b45c900baeddde5ea6761b330dda6acbc39dd172f18e404ad9"
+    },
+    {
       "path": "tests/test_nal_headers.py",
       "sha256": "7210ae1b0e64eab142f026abe323be2a91a4d3946358805eb19f39dba7a20995"
     },
@@ -465,6 +481,10 @@
     {
       "path": "tests/test_uplink_guard.py",
       "sha256": "acdc2cab067e9e7757c0bc4971698bd22aa1da4d15d30928d7ea551af42d7c24"
+    },
+    {
+      "path": "tools/iermu_telnet.py",
+      "sha256": "53b2b12b23543c62f9b966208eaf3082dffe4e304a9d1eca3a8cea004221b455"
     },
     {
       "path": "tools/update_manifest.py",

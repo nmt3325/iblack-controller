@@ -1,0 +1,258 @@
+{
+  "recorded_at": "2026-11-13T19:23:16+09:00",
+  "scope": "Owned camera2 only for control writes; camera1 status only. No credentials or packet payloads recorded.",
+  "firmware_sha256": "c76e218d9dffde035ca5ed28cae89fa2dd679c539f647f6329f8dcf083e0c6d9",
+  "control_port": 3508,
+  "telnet_port": 23,
+  "records": {
+    "offline": {
+      "firmware_sha256": "c76e218d9dffde035ca5ed28cae89fa2dd679c539f647f6329f8dcf083e0c6d9",
+      "network_calls": 0,
+      "host_commands_executed": 0,
+      "tests": {
+        "cipher_roundtrip_cases": 3,
+        "enable": {
+          "return": 0,
+          "commands": [
+            "telnetd"
+          ],
+          "reply": [
+            [
+              254,
+              0
+            ]
+          ],
+          "reply_crc_valid": true,
+          "queued_bytes_remaining": 0
+        },
+        "disable": {
+          "return": 0,
+          "commands": [
+            "killall -9 telnetd"
+          ],
+          "reply": [
+            [
+              254,
+              0
+            ]
+          ],
+          "reply_crc_valid": true,
+          "queued_bytes_remaining": 0
+        },
+        "bad_cipher_crc": {
+          "return": 4294967295,
+          "commands": [],
+          "reply": [
+            [
+              255,
+              69
+            ]
+          ],
+          "reply_crc_valid": true,
+          "queued_bytes_remaining": 28
+        },
+        "bad_plain_crc": {
+          "return": 4294967295,
+          "commands": [],
+          "reply": [
+            [
+              255,
+              70
+            ]
+          ],
+          "reply_crc_valid": true,
+          "queued_bytes_remaining": 28
+        },
+        "expired_time": {
+          "return": 4294967295,
+          "commands": [],
+          "reply": [
+            [
+              255,
+              73
+            ]
+          ],
+          "reply_crc_valid": true,
+          "queued_bytes_remaining": 28
+        },
+        "maintenance_time": {
+          "return": 0,
+          "commands": [
+            "telnetd"
+          ],
+          "reply": [
+            [
+              254,
+              0
+            ]
+          ],
+          "reply_crc_valid": true,
+          "queued_bytes_remaining": 0
+        }
+      },
+      "passed": true
+    },
+    "initial_time_rejection": {
+      "host": "192.168.10.29",
+      "action": "enable",
+      "sent": true,
+      "request_bytes": 76,
+      "request_sha256": "82602e051e3c5f51e1cd7e0956dc4b828a6fe3e4800a546959965a1d24a04b67",
+      "response_opcode": 255,
+      "response_status": 73,
+      "response_crc_valid": true,
+      "before": {
+        "host": "192.168.10.29",
+        "port": 23,
+        "open": false,
+        "login_prompt": false,
+        "reason": "connection_refused"
+      },
+      "after": {
+        "host": "192.168.10.29",
+        "port": 23,
+        "open": false,
+        "login_prompt": false,
+        "reason": "connection_refused"
+      },
+      "confirmed": false
+    },
+    "enable": {
+      "host": "192.168.10.29",
+      "action": "enable",
+      "sent": true,
+      "request_bytes": 76,
+      "request_sha256": "0463cd968005af761141db8c8b63a29a8e19668ed6e13c1e0cbab56164a6f2a1",
+      "maintenance_time": true,
+      "response_opcode": 254,
+      "response_status": 0,
+      "response_crc_valid": true,
+      "before": {
+        "host": "192.168.10.29",
+        "port": 23,
+        "open": false,
+        "login_prompt": false,
+        "reason": "connection_refused"
+      },
+      "after": {
+        "host": "192.168.10.29",
+        "port": 23,
+        "open": true,
+        "login_prompt": true,
+        "banner_sha256": "184210bd7f0974a68efb663d71d2d8001387da1c055e07d8d98a0ec5229912fc",
+        "banner_bytes": 26
+      },
+      "confirmed": true
+    },
+    "disable": {
+      "host": "192.168.10.29",
+      "action": "disable",
+      "sent": true,
+      "request_bytes": 76,
+      "request_sha256": "fa47bcc6e3b27478f1bb63cac5e544967abb0fa8389e92230f2214b37b9343c6",
+      "maintenance_time": true,
+      "response_opcode": 254,
+      "response_status": 0,
+      "response_crc_valid": true,
+      "before": {
+        "host": "192.168.10.29",
+        "port": 23,
+        "open": true,
+        "login_prompt": true,
+        "banner_sha256": "184210bd7f0974a68efb663d71d2d8001387da1c055e07d8d98a0ec5229912fc",
+        "banner_bytes": 26
+      },
+      "after": {
+        "host": "192.168.10.29",
+        "port": 23,
+        "open": false,
+        "login_prompt": false,
+        "reason": "connection_refused"
+      },
+      "confirmed": true
+    },
+    "re_enable": {
+      "host": "192.168.10.29",
+      "action": "enable",
+      "sent": true,
+      "request_bytes": 76,
+      "request_sha256": "a615afce4860aa5852701c79284b37f99ac4ff04a72657908465aea6a589334b",
+      "maintenance_time": true,
+      "response_opcode": 254,
+      "response_status": 0,
+      "response_crc_valid": true,
+      "before": {
+        "host": "192.168.10.29",
+        "port": 23,
+        "open": false,
+        "login_prompt": false,
+        "reason": "connection_refused"
+      },
+      "after": {
+        "host": "192.168.10.29",
+        "port": 23,
+        "open": true,
+        "login_prompt": true,
+        "banner_sha256": "184210bd7f0974a68efb663d71d2d8001387da1c055e07d8d98a0ec5229912fc",
+        "banner_bytes": 26
+      },
+      "confirmed": true
+    },
+    "camera1_status_only": {
+      "host": "192.168.10.35",
+      "port": 23,
+      "open": false,
+      "login_prompt": false,
+      "reason": "connection_refused"
+    }
+  },
+  "service_observations": {
+    "iermu-rtmp-publish": {
+      "baseline": "iermu-rtmp-publish 656275 active 2704171620597 ",
+      "after": "iermu-rtmp-publish 656275 active 2704171620597 ",
+      "same_process_observation": true
+    },
+    "iermu-rtmp-publish-camera2": {
+      "baseline": "iermu-rtmp-publish-camera2 659522 active 2706026628549 ",
+      "after": "iermu-rtmp-publish-camera2 660142 active 2706327120504 ",
+      "same_process_observation": false
+    },
+    "iermu-rtmp": {
+      "baseline": "iermu-rtmp 472932 active 2586261416727 ",
+      "after": "iermu-rtmp 472932 active 2586261416727 ",
+      "same_process_observation": true
+    },
+    "iermu-fakecloud": {
+      "baseline": "iermu-fakecloud 381516 active 2507246507783 ",
+      "after": "iermu-fakecloud 381516 active 2507246507783 ",
+      "same_process_observation": true
+    },
+    "iermu-sslcloud": {
+      "baseline": "iermu-sslcloud 381517 active 2507246511625 ",
+      "after": "iermu-sslcloud 381517 active 2507246511625 ",
+      "same_process_observation": true
+    }
+  },
+  "post_control_video_decode": {
+    "camera": {
+      "transport": "RTMP via server Tailscale IPv4",
+      "exit_code": 0,
+      "decoded_frames": 3,
+      "progress": "end"
+    },
+    "camera2": {
+      "transport": "RTMP via server Tailscale IPv4",
+      "exit_code": 0,
+      "decoded_frames": 3,
+      "progress": "end"
+    }
+  },
+  "limitations": [
+    "No OS login/password attempt or root shell verification.",
+    "No firmware flash, reboot, persistence, Wi-Fi/DNS edits, or production service stop/restart was requested by this test.",
+    "Camera2 relay PID changed during observation; uninterrupted streaming is not established.",
+    "Earlier localhost read failed because RTMP listens only on selected IPv4 addresses. A wired self-read failed; Tailscale reads succeeded.",
+    "The camera internal time was not read; normal timestamp request was rejected with FF49."
+  ],
+  "final_camera2_telnet_state": "enabled_login_prompt_confirmed"
+}

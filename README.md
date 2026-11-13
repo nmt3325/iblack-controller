@@ -33,6 +33,7 @@ rtmp://100.87.20.49:1935/live/camera
 | [使った手法](docs/METHODS.md) | パケット解析、アプリ静的解析、制御プロトコル、FLV補正 |
 | [通常Aterm APへの移行](docs/HOME-AP.md) | 現在のIP・DNS・受信先・制限・復旧 |
 | [有線側への自動送信調査](docs/NATIVE-PUSH.md) | SDKの送信先決定、Telnet認証、未切替の理由と移行条件 |
+| [SDKトークン・配信先の解析](docs/SDK-UPLOAD.md) | INIのTracker、UDPの接続先応答、RTMP URL構成、23ケースのARM部分実行 |
 | [ストリーム停止の修復](docs/STREAM-RECOVERY.md) | 物理STA・IP固定・直接経路ガード・最終実再生と限界 |
 | [現行構成](docs/ARCHITECTURE.md) | AP/STA、経路、クラウド受信、中継 |
 | [引継ぎ・依存関係](docs/HANDOFF.md) | 稼働場所、確認コマンド、再現範囲、注意点 |
@@ -101,7 +102,7 @@ python3 tools/verify_repo.py
 
 ## 解析原本は別アーカイブ（LFS不要）
 
-本体は通常のGitだけでclone・検証できる軽量構成。APK・DEX・Android由来SO・JADXのJava全文とリソース・JADX/JDK本体は[別保管の解析原本](artifacts/README.md)としてSeafileへ分離した。Gitには取得先とハッシュだけを残す。APK原本なしで103件のオフラインテストを実行できる（telnetの追加4件にはUnicornが必要）。
+本体は通常のGitだけでclone・検証できる軽量構成。APK・DEX・Android由来SO・JADXのJava全文とリソース・JADX/JDK本体は[別保管の解析原本](artifacts/README.md)としてSeafileへ分離した。Gitには取得先とハッシュだけを残す。APK原本なしで110件のオフラインテストを実行できる。ARM命令の再現テストには対応ファームウェアと任意依存のUnicorn／pyelftoolsが必要で、未導入時は該当テストをスキップする。
 
 ```sh
 python3 tools/verify_repo.py

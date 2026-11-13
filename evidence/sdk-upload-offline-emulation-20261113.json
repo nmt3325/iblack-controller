@@ -1,0 +1,452 @@
+{
+  "recorded_at": "2026-11-13T11:33:56.396306+00:00",
+  "firmware_sha256": "4419e7f86607eb83337de021563db2bb7392040059b29b715090e2ba54572e56",
+  "method": "Unmodified ARM instructions executed offline with Unicorn",
+  "network_allowed": false,
+  "arm_syscalls_allowed": false,
+  "fixtures": "Synthetic RFC5737 IPs and non-secret token-shaped hex",
+  "scope": "Parser, one receive loop, CRC32, hex decoding and endpoint getter only",
+  "limitations": [
+    "No live camera, cloud bootstrap, SDK threads or RTMP session",
+    "State and selected tracker are initialized as test preconditions",
+    "Logging, libc memory/string operations and clock are modeled",
+    "Endpoint getter probe models asynchronous receiver completion",
+    "CRC non-validation finding applies only to the tested 76-byte receive path"
+  ],
+  "passed": true,
+  "tests": 23,
+  "results": [
+    {
+      "case": "valid-mode2",
+      "group": "reply-parser",
+      "state_before": 2,
+      "state_after": 4,
+      "mode": 2,
+      "endpoint_copied": true,
+      "crc_corrupted": false,
+      "passed": true,
+      "entry": "0xff248",
+      "returned": true,
+      "return_r0": 1,
+      "modeled_calls": [
+        "0x101ffc",
+        "0x10d78",
+        "0x11924",
+        "0xfe3ac"
+      ],
+      "visited": [
+        "0xff248"
+      ]
+    },
+    {
+      "case": "valid-mode3",
+      "group": "reply-parser",
+      "state_before": 2,
+      "state_after": 4,
+      "mode": 3,
+      "endpoint_copied": true,
+      "crc_corrupted": false,
+      "passed": true,
+      "entry": "0xff248",
+      "returned": true,
+      "return_r0": 1,
+      "modeled_calls": [
+        "0x101ffc",
+        "0x10d78",
+        "0x11924",
+        "0xfe3ac"
+      ],
+      "visited": [
+        "0xff248"
+      ]
+    },
+    {
+      "case": "valid-mode4",
+      "group": "reply-parser",
+      "state_before": 2,
+      "state_after": 4,
+      "mode": 4,
+      "endpoint_copied": true,
+      "crc_corrupted": false,
+      "passed": true,
+      "entry": "0xff248",
+      "returned": true,
+      "return_r0": 1,
+      "modeled_calls": [
+        "0x101ffc",
+        "0x10d78",
+        "0x11924",
+        "0xfe3ac"
+      ],
+      "visited": [
+        "0xff248"
+      ]
+    },
+    {
+      "case": "valid-mode5",
+      "group": "reply-parser",
+      "state_before": 2,
+      "state_after": 4,
+      "mode": 5,
+      "endpoint_copied": true,
+      "crc_corrupted": false,
+      "passed": true,
+      "entry": "0xff248",
+      "returned": true,
+      "return_r0": 1,
+      "modeled_calls": [
+        "0x101ffc",
+        "0x10d78",
+        "0x11924",
+        "0xfe3ac"
+      ],
+      "visited": [
+        "0xff248"
+      ]
+    },
+    {
+      "case": "valid-mode6",
+      "group": "reply-parser",
+      "state_before": 2,
+      "state_after": 4,
+      "mode": 6,
+      "endpoint_copied": true,
+      "crc_corrupted": false,
+      "passed": true,
+      "entry": "0xff248",
+      "returned": true,
+      "return_r0": 1,
+      "modeled_calls": [
+        "0x101ffc",
+        "0x10d78",
+        "0x11924",
+        "0xfe3ac"
+      ],
+      "visited": [
+        "0xff248"
+      ]
+    },
+    {
+      "case": "wrong-source-ip",
+      "group": "reply-parser",
+      "state_before": 2,
+      "state_after": 2,
+      "mode": 2,
+      "endpoint_copied": false,
+      "crc_corrupted": false,
+      "passed": true,
+      "entry": "0xff248",
+      "returned": true,
+      "return_r0": 0,
+      "modeled_calls": [
+        "0x10d78"
+      ],
+      "visited": [
+        "0xff248"
+      ]
+    },
+    {
+      "case": "wrong-source-port",
+      "group": "reply-parser",
+      "state_before": 2,
+      "state_after": 2,
+      "mode": 2,
+      "endpoint_copied": false,
+      "crc_corrupted": false,
+      "passed": true,
+      "entry": "0xff248",
+      "returned": true,
+      "return_r0": 0,
+      "modeled_calls": [
+        "0x10d78"
+      ],
+      "visited": [
+        "0xff248"
+      ]
+    },
+    {
+      "case": "status-not-success",
+      "group": "reply-parser",
+      "state_before": 2,
+      "state_after": 2,
+      "mode": 2,
+      "endpoint_copied": false,
+      "crc_corrupted": false,
+      "passed": true,
+      "entry": "0xff248",
+      "returned": true,
+      "return_r0": 1,
+      "modeled_calls": [
+        "0x101ffc",
+        "0x10d78",
+        "0x11924"
+      ],
+      "visited": [
+        "0xff248"
+      ]
+    },
+    {
+      "case": "wrong-length",
+      "group": "reply-parser",
+      "state_before": 2,
+      "state_after": 2,
+      "mode": 2,
+      "endpoint_copied": false,
+      "crc_corrupted": false,
+      "passed": true,
+      "entry": "0xff248",
+      "returned": true,
+      "return_r0": 0,
+      "modeled_calls": [
+        "0x10d78"
+      ],
+      "visited": [
+        "0xff248"
+      ]
+    },
+    {
+      "case": "wrong-state",
+      "group": "reply-parser",
+      "state_before": 1,
+      "state_after": 1,
+      "mode": 2,
+      "endpoint_copied": false,
+      "crc_corrupted": false,
+      "passed": true,
+      "entry": "0xff248",
+      "returned": true,
+      "return_r0": 1,
+      "modeled_calls": [
+        "0x10d78"
+      ],
+      "visited": [
+        "0xff248"
+      ]
+    },
+    {
+      "case": "wrong-command",
+      "group": "reply-parser",
+      "state_before": 2,
+      "state_after": 2,
+      "mode": 2,
+      "endpoint_copied": false,
+      "crc_corrupted": false,
+      "passed": true,
+      "entry": "0xff248",
+      "returned": true,
+      "return_r0": 0,
+      "modeled_calls": [
+        "0x10d78"
+      ],
+      "visited": [
+        "0xff248"
+      ]
+    },
+    {
+      "case": "wrong-transport",
+      "group": "reply-parser",
+      "state_before": 2,
+      "state_after": 2,
+      "mode": 2,
+      "endpoint_copied": false,
+      "crc_corrupted": false,
+      "passed": true,
+      "entry": "0xff248",
+      "returned": true,
+      "return_r0": 0,
+      "modeled_calls": [
+        "0x10d78"
+      ],
+      "visited": [
+        "0xff248"
+      ]
+    },
+    {
+      "case": "receiver-valid",
+      "group": "receiver",
+      "state_before": 2,
+      "state_after": 4,
+      "mode": 2,
+      "endpoint_copied": true,
+      "crc_corrupted": false,
+      "passed": true,
+      "entry": "0xf911c",
+      "returned": true,
+      "return_r0": 0,
+      "modeled_calls": [
+        "0x101ffc",
+        "0x10d78",
+        "0x115ac",
+        "0x11924",
+        "0xfe3ac"
+      ],
+      "visited": [
+        "0xfdca8",
+        "0xff248"
+      ]
+    },
+    {
+      "case": "receiver-bad-crc",
+      "group": "receiver",
+      "state_before": 2,
+      "state_after": 4,
+      "mode": 2,
+      "endpoint_copied": true,
+      "crc_corrupted": true,
+      "passed": true,
+      "entry": "0xf911c",
+      "returned": true,
+      "return_r0": 0,
+      "modeled_calls": [
+        "0x101ffc",
+        "0x10d78",
+        "0x115ac",
+        "0x11924",
+        "0xfe3ac"
+      ],
+      "visited": [
+        "0xfdca8",
+        "0xff248"
+      ]
+    },
+    {
+      "case": "receiver-wrong-source",
+      "group": "receiver",
+      "state_before": 2,
+      "state_after": 2,
+      "mode": 2,
+      "endpoint_copied": false,
+      "crc_corrupted": false,
+      "passed": true,
+      "entry": "0xf911c",
+      "returned": true,
+      "return_r0": 0,
+      "modeled_calls": [
+        "0x10d78",
+        "0x115ac"
+      ],
+      "visited": [
+        "0xfdca8",
+        "0xff248"
+      ]
+    },
+    {
+      "case": "receiver-short",
+      "group": "receiver",
+      "state_before": 2,
+      "state_after": 2,
+      "mode": 2,
+      "endpoint_copied": false,
+      "crc_corrupted": false,
+      "passed": true,
+      "entry": "0xf911c",
+      "returned": true,
+      "return_r0": 0,
+      "modeled_calls": [
+        "0x10d78",
+        "0x115ac"
+      ],
+      "visited": [
+        "0xfdca8",
+        "0xff248"
+      ]
+    },
+    {
+      "case": "crc-empty",
+      "group": "crc32",
+      "bytes": 0,
+      "passed": true,
+      "entry": "0xee238",
+      "returned": true,
+      "return_r0": 0,
+      "modeled_calls": [],
+      "visited": []
+    },
+    {
+      "case": "crc-check-vector",
+      "group": "crc32",
+      "bytes": 9,
+      "passed": true,
+      "entry": "0xee238",
+      "returned": true,
+      "return_r0": 3421780262,
+      "modeled_calls": [],
+      "visited": []
+    },
+    {
+      "case": "crc-synthetic-reply",
+      "group": "crc32",
+      "bytes": 72,
+      "passed": true,
+      "entry": "0xee238",
+      "returned": true,
+      "return_r0": 3389502408,
+      "modeled_calls": [],
+      "visited": []
+    },
+    {
+      "case": "hex-lower",
+      "group": "hex-token",
+      "input_length": 32,
+      "decoded_bytes": 16,
+      "passed": true,
+      "entry": "0xf5098",
+      "returned": true,
+      "return_r0": 0,
+      "modeled_calls": [
+        "0x11030",
+        "0x113f0"
+      ],
+      "visited": []
+    },
+    {
+      "case": "hex-upper",
+      "group": "hex-token",
+      "input_length": 32,
+      "decoded_bytes": 16,
+      "passed": true,
+      "entry": "0xf5098",
+      "returned": true,
+      "return_r0": 0,
+      "modeled_calls": [
+        "0x11030",
+        "0x113f0"
+      ],
+      "visited": []
+    },
+    {
+      "case": "hex-odd-truncates",
+      "group": "hex-token",
+      "input_length": 17,
+      "decoded_bytes": 8,
+      "passed": true,
+      "entry": "0xf5098",
+      "returned": true,
+      "return_r0": 0,
+      "modeled_calls": [
+        "0x11030",
+        "0x113f0"
+      ],
+      "visited": []
+    },
+    {
+      "case": "selected-endpoint-copy",
+      "group": "endpoint-getter",
+      "passed": true,
+      "completion": "Asynchronous receiver completion modeled at sleep boundary",
+      "entry": "0xf720c",
+      "returned": true,
+      "return_r0": 4,
+      "modeled_calls": [
+        "0x101ffc",
+        "0x10d78",
+        "0x11924",
+        "0xfe3ac",
+        "0xfe4cc"
+      ],
+      "visited": [
+        "0xf720c"
+      ]
+    }
+  ]
+}

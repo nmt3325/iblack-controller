@@ -1,5 +1,5 @@
 {
-  "recorded_at": "2026-11-13T11:02:37.675693+00:00",
+  "recorded_at": "2026-11-13T11:34:16.942253+00:00",
   "scope": "Lightweight source repository only; external APK-derived originals and toolchains are indexed separately, not tracked; runtime secrets/media excluded; initial reference manifest unchanged; this manifest and audit report excluded",
   "files": [
     {
@@ -12,7 +12,7 @@
     },
     {
       "path": "README.md",
-      "sha256": "679b4aefdec6738373923052a39a81569886d9db7ed6a406742e867ff6dfe90b"
+      "sha256": "0d3dd2b6f2d9edfa2444e436d6e6103b6cfe255f94e3d3f5d3f8f0fd7d2a7764"
     },
     {
       "path": "SECURITY.md",
@@ -208,7 +208,7 @@
     },
     {
       "path": "docs/NATIVE-PUSH.md",
-      "sha256": "1f91a61d129ac7f90a71e69625aebded16c0d48211a5ef73011c139fc27bbbfb"
+      "sha256": "10d31c9cbeee96a693d07b10b3b4d4b7c4b85ab646c30ff49fc8862b5522eae6"
     },
     {
       "path": "docs/OPERATIONS.md",
@@ -221,6 +221,10 @@
     {
       "path": "docs/PROTOCOL.md",
       "sha256": "2b13ead0a3e2a1cbac776861c58ce536476bc845160b67d40e75bcead64baba2"
+    },
+    {
+      "path": "docs/SDK-UPLOAD.md",
+      "sha256": "8284b5735107a5c4f78c4003dd5693113d6f4c59ec8f4224065503fe12ac110f"
     },
     {
       "path": "docs/SETUP.md",
@@ -309,6 +313,14 @@
     {
       "path": "evidence/runtime-20261111T092704.json",
       "sha256": "8e997c6793a63f311549bd19b340dca91cf840de7ec6bdc71e3f5ca789753a39"
+    },
+    {
+      "path": "evidence/sdk-upload-offline-emulation-20261113.json",
+      "sha256": "fe677503b6585f1f6a6a94c87b40e4c59e0509762f68746a29614e8fa85b52c6"
+    },
+    {
+      "path": "evidence/sdk-upload-static-analysis-20261113.json",
+      "sha256": "d0467e0bcbec9cb54cbeffc97dcf6731b262649f7c0be33aff99f832af4caa70"
     },
     {
       "path": "evidence/source-manifest.json",
@@ -487,12 +499,20 @@
       "sha256": "f1fd66668244d6c53112618f0f822ea6fcb999f9e62460f83faa9da186399487"
     },
     {
+      "path": "tests/test_sdk_upload_probe.py",
+      "sha256": "e538785e83a30b0a607251f1b658739b42d925f75823808f16ce3b5775ba4908"
+    },
+    {
       "path": "tests/test_uplink_guard.py",
       "sha256": "acdc2cab067e9e7757c0bc4971698bd22aa1da4d15d30928d7ea551af42d7c24"
     },
     {
       "path": "tools/iermu_telnet.py",
       "sha256": "53b2b12b23543c62f9b966208eaf3082dffe4e304a9d1eca3a8cea004221b455"
+    },
+    {
+      "path": "tools/sdk_upload_probe.py",
+      "sha256": "f71d532ccddd2fc1bcb020eb4d165a4e59eede005a5ca3cb68fb81aaa6aaef9a"
     },
     {
       "path": "tools/update_manifest.py",

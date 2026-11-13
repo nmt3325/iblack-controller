@@ -1,0 +1,259 @@
+{
+  "recorded_at": "2026-11-13T11:33:27.687972+00:00",
+  "method": "Offline ELF import/literal/PIC/branch/dataflow analysis; selected ARM execution is recorded separately",
+  "firmware": {
+    "path": "firmware/iblack-8m/extracted/camera_modules/cmsapp/cmsMain.out",
+    "sha256": "4419e7f86607eb83337de021563db2bb7392040059b29b715090e2ba54572e56",
+    "architecture": "ARM32 little-endian"
+  },
+  "sdk_identification": {
+    "vendor_string": "Topvdn",
+    "version_string": "1.6.7.0",
+    "build_string": "2017-03-28 16:40:28"
+  },
+  "safe_format_literals": [
+    {
+      "va": "0x3142eb",
+      "text": "rtmp://%s:%d/live/"
+    },
+    {
+      "va": "0x3142fe",
+      "text": "%s%u_%u_%u_%s"
+    },
+    {
+      "va": "0x3155b4",
+      "text": "[Config]\r\nCID=%u\r\nTokenControl=%u\r\nTokenExpire=%u\r\nTokenStr=%s%s"
+    }
+  ],
+  "source_regions": [
+    {
+      "label": "manufacturer-api",
+      "va": "0xba5dc",
+      "bytes": 2560,
+      "sha256": "9939ae049e65fd215043cd6cf6132d12d6b70c2f6c62cb969e6572caa8b62db4"
+    },
+    {
+      "label": "sdk-start",
+      "va": "0xdc8c0",
+      "bytes": 288,
+      "sha256": "34c8422511bb6b6f56a6611df929dab4a32a77925a7837bb5bca938440bb4455"
+    },
+    {
+      "label": "token-ini-bridge",
+      "va": "0xe5044",
+      "bytes": 868,
+      "sha256": "e02adaf876dd936c37c8795e9757a83e6c9e641d773c02daea4f19992f208ff3"
+    },
+    {
+      "label": "ini-parser",
+      "va": "0x102194",
+      "bytes": 2416,
+      "sha256": "0a977df593b547fd44d337a2f0ac4c7ba79bc1e5caec37bf71acce4194e7819c"
+    },
+    {
+      "label": "discovery-reply-branch",
+      "va": "0xff6f4",
+      "bytes": 352,
+      "sha256": "099f9cf75d39227a87f3e82fbfa1a02d770b6896a7be885e002499756a0736fe"
+    },
+    {
+      "label": "rtmp-base-url",
+      "va": "0xdbd88",
+      "bytes": 128,
+      "sha256": "3bd41fbbd432db90cdabd6fc9786c2f9f6bbe94c389ec7bdc9f6eb7a232fd75b"
+    },
+    {
+      "label": "rtmp-stream-name",
+      "va": "0xdbf04",
+      "bytes": 132,
+      "sha256": "41e24303828f9617227125f075b6dc1e9b219d903fd4009f2d7ed822257dc17e"
+    },
+    {
+      "label": "crc32",
+      "va": "0xee238",
+      "bytes": 60,
+      "sha256": "f280901ccf5e4b872bba8771b523bfc66efcfacf40230fefafb371dfa21e1854"
+    },
+    {
+      "label": "hex-token-decoder",
+      "va": "0xf5098",
+      "bytes": 96,
+      "sha256": "a7d25cc942b7d3912bb8a822bb1ea08e2790fabc3b6d3b69c645d2a63be06fca"
+    }
+  ],
+  "observations": [
+    {
+      "name": "manufacturer-response",
+      "addresses": [
+        "0xba5dc",
+        "0xba7d8",
+        "0xba7ec",
+        "0xba8a0",
+        "0xbaef8"
+      ],
+      "fields": [
+        "upload_token",
+        "connect_cid",
+        "config"
+      ],
+      "config_required": true
+    },
+    {
+      "name": "init-is-string",
+      "addresses": [
+        "0xbaa6c",
+        "0xc28f8",
+        "0xbab08"
+      ],
+      "result": "config.init is read as a string and passed to SDK configuration handling"
+    },
+    {
+      "name": "sdk-start-wrapper",
+      "addresses": [
+        "0xc8adc",
+        "0xc8b04",
+        "0xc8b2c",
+        "0xc8b54",
+        "0xdba50",
+        "0xdc8c0"
+      ],
+      "result": "SDK start consumes token and configuration; db9f8 is not this start wrapper"
+    },
+    {
+      "name": "token-format",
+      "addresses": [
+        "0xdc8c0",
+        "0xe5044"
+      ],
+      "scan_format": "%u_%u_%u_%s",
+      "items": [
+        "CID",
+        "TokenControl",
+        "TokenExpire",
+        "TokenStr"
+      ],
+      "connect_cid_equivalence_proven": false,
+      "cryptographic_validity_proven": false
+    },
+    {
+      "name": "ini-composition",
+      "addresses": [
+        "0xe5288",
+        "0xe52fc",
+        "0xf79b8",
+        "0x102194"
+      ],
+      "result": "Parsed token fields are formatted into INI with SDK configuration string at pointer +8",
+      "prefix_validation_proven": false
+    },
+    {
+      "name": "numeric-trackers",
+      "addresses": [
+        "0x102550",
+        "0x102578",
+        "0x1025b4",
+        "0x102608"
+      ],
+      "section": "Tracker",
+      "keys": [
+        "Count",
+        "IP%u",
+        "Port%u"
+      ],
+      "ip_parser": "inet_addr",
+      "default_port": 80,
+      "entry_bytes": 6
+    },
+    {
+      "name": "discovery-endpoint",
+      "addresses": [
+        "0xff248",
+        "0xff6f4",
+        "0xff824",
+        "0xff83c",
+        "0xff840"
+      ],
+      "packet_bytes": 76,
+      "command_le32_at_4": "0x01010818",
+      "status_at_8": 0,
+      "endpoint_at_12": "uint32 little-endian IPv4 value + uint16 little-endian port",
+      "required_modes": [
+        2,
+        3,
+        4,
+        5,
+        6
+      ],
+      "required_state": 2,
+      "new_state": 4,
+      "source_must_match_selected_tracker": true,
+      "transport_field_at_12": 0,
+      "endpoint_storage": "0x4891f4"
+    },
+    {
+      "name": "receive-dispatch",
+      "addresses": [
+        "0xf911c",
+        "0xfdca8",
+        "0x115ac",
+        "0xf9424",
+        "0xff248"
+      ],
+      "result": "Offline actual receive wrapper and dispatch accept the selected branch even with deliberately bad CRC",
+      "scope": "Only tested 76-byte branch under initialized discovery preconditions"
+    },
+    {
+      "name": "crc32-and-builder",
+      "addresses": [
+        "0xee238",
+        "0x100110",
+        "0xfdd10"
+      ],
+      "crc": "Reflected CRC32, init/final xor 0xffffffff, matches zlib.crc32",
+      "example_sent_command": "0x01010901",
+      "example_sent_length": 120,
+      "paired_with_discovery_reply_proven": false
+    },
+    {
+      "name": "token-hex-decoder",
+      "addresses": [
+        "0x10224c",
+        "0xf5098"
+      ],
+      "result": "Two hex characters per byte; tested 32 hex characters become 16 bytes; odd final nibble ignored in selected function"
+    },
+    {
+      "name": "selected-endpoint-getter",
+      "addresses": [
+        "0xf720c",
+        "0xe3ff0",
+        "0xde1d4"
+      ],
+      "result": "State 1 transitions to 2; completion state 4 copies 6-byte endpoint for modes 2-6; entry already at state 4 does not copy it",
+      "internal_queue_command": "0x30c",
+      "internal_command_is_wire_opcode": false
+    },
+    {
+      "name": "rtmp-url",
+      "addresses": [
+        "0xdbd88",
+        "0xdbf08",
+        "0xdbf54",
+        "0xe35e0"
+      ],
+      "shape": "rtmp://<selected-ip>:<selected-port>/live/<CID>_<TokenControl>_<TokenExpire>_<TokenStr>",
+      "get_encrypt_info_fully_analyzed": false,
+      "live_publish_verified": false
+    }
+  ],
+  "production_changes": [],
+  "live_native_publish_verified": false,
+  "unresolved": [
+    "Complete boot/registration and tracker request/reply mapping",
+    "Heartbeat and token lifetime/validation",
+    "Preservation of live device configuration in manufacturer API response",
+    "SDK GetEncryptInfo and real RTMP handshake/publish compatibility",
+    "Wired media arrival, audio and reconnect on actual cameras"
+  ],
+  "privacy": "No live tokens, signatures, device identifiers, MACs or fixed cryptographic seed values included"
+}

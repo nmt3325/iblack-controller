@@ -1,0 +1,12 @@
+__pycache__/
+*.py[cod]
+*.bin
+*.elf
+*.squashfs
+*.tgz
+*.tar*
+*.zip
+*.pcap*
+*.update
+private/
+inputs/

@@ -1,0 +1,23 @@
+{
+  "scope": "Offline research validation only; does not authorize deployment",
+  "new_unit_tests": {
+    "discovered": 25,
+    "skipped": 0,
+    "failures": 0
+  },
+  "existing_offline_tests": {
+    "discovered": 110,
+    "skipped": 0,
+    "failures": 0
+  },
+  "fullsize_emulation_cases": 6,
+  "public_artifact_fingerprints_checked": 6,
+  "single_images_match_combined_image": true,
+  "legacy_update_guards_unchanged": true,
+  "oversize_firmware_safety_issue_observed": true,
+  "original_main_head_unchanged_since_start": true,
+  "camera_connections_in_this_stage": 0,
+  "real_device_writes": 0,
+  "real_reboots": 0,
+  "flash_write_allowed": false
+}

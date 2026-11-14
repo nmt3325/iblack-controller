@@ -1,0 +1,76 @@
+{
+  "scope": "Previous read-only investigation; no new camera operations in this Git update",
+  "complete_bakfs_readbacks": 7,
+  "crc_valid": 3,
+  "crc_invalid": 4,
+  "corruption_in_incoming_checksum_valid_packet": true,
+  "enlarged_buffer_read_only_proof_passed": true,
+  "real_bakfs_offline_four_reads_unchanged": true,
+  "incomplete_native_attempts_excluded": 1,
+  "camera_writes_sent": 0,
+  "camera_reboots_sent": 0,
+  "active_capture_processes": 0,
+  "flash_write_allowed": false,
+  "firmware_component_failure_not_established": true,
+  "existing_camera_rtmp_connection_present_at_previous_readback_stage": true,
+  "tracked_git_diff_empty_at_previous_readback_stage": true,
+  "snapshots": [
+    {
+      "completed_read_number": 1,
+      "crc_ok": true,
+      "differing_bytes": 0,
+      "differing_bits": 0,
+      "first_offsets": []
+    },
+    {
+      "completed_read_number": 2,
+      "crc_ok": false,
+      "differing_bytes": 1,
+      "differing_bits": 1,
+      "first_offsets": [
+        1330984
+      ]
+    },
+    {
+      "completed_read_number": 3,
+      "crc_ok": true,
+      "differing_bytes": 0,
+      "differing_bits": 0,
+      "first_offsets": []
+    },
+    {
+      "completed_read_number": 4,
+      "crc_ok": false,
+      "differing_bytes": 1,
+      "differing_bits": 1,
+      "first_offsets": [
+        1330984
+      ]
+    },
+    {
+      "completed_read_number": 5,
+      "crc_ok": false,
+      "differing_bytes": 1,
+      "differing_bits": 1,
+      "first_offsets": [
+        1330984
+      ]
+    },
+    {
+      "completed_read_number": 6,
+      "crc_ok": true,
+      "differing_bytes": 0,
+      "differing_bits": 0,
+      "first_offsets": []
+    },
+    {
+      "completed_read_number": 7,
+      "crc_ok": false,
+      "differing_bytes": 1,
+      "differing_bits": 1,
+      "first_offsets": [
+        1330984
+      ]
+    }
+  ]
+}

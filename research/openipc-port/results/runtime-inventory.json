@@ -1,0 +1,91 @@
+{
+  "mode": "OFFLINE_PUBLIC_IMAGE_INVENTORY",
+  "kernel_sha256": "fa79e044bc61556c39f4e50f278674077fbb9c89c4c0b2a3ce6cd68da6f38c3c",
+  "rootfs_sha256": "d0c146e7cbee11cc15475675e49c9fc11322778bd591c7f618680cb78ab9226e",
+  "kernel": {
+    "arm_zimage_magic_valid": true,
+    "gzip_offset_within_zimage": 15723,
+    "decompressed_kernel_bytes": 3763236,
+    "decompressed_kernel_sha256": "df976aaf506ba2800bf77dd491b0101cdbe40495acc8ceeb7d430798d34dcffc",
+    "linux_version": "3.0.8",
+    "split_markers": {
+      "mtd_split_layout_register": true,
+      "split NOR layout: root on mtdblock": true,
+      "rootfs_data": true
+    },
+    "markers_do_not_prove_actual_boot": true
+  },
+  "runtime": {
+    "wireless_profiles": {
+      "mt7601u-generic": {
+        "modules": [
+          "mt7601u"
+        ],
+        "block_sha256": "a0de612e4ab5e791a9c02732ea234248a9b15658f4268874c41ff244bca434b3"
+      },
+      "mt7601u-hi3518ev100-camhi": {
+        "modules": [
+          "mt7601sta"
+        ],
+        "block_sha256": "0deb703c467f24bc518986564c304dbe3a41ca429820fecbc3bf5c454adee3e2"
+      }
+    },
+    "mt7601sta_module_in_pinned_rootfs": true,
+    "network_reads_wlandev_from_environment": true,
+    "network_credentials_are_environment_fields_not_exported": true,
+    "network_uses_wlan0": true,
+    "supplicant_nl80211_wext_fallback": true,
+    "updater_contains_version_1_0_84": true,
+    "updater_ramroot": {
+      "enter_ramfs()": true,
+      "pivot_root . mnt": true,
+      "chroot \"$RAM_ROOT\" /bin/busybox true": true,
+      "release_old_root()": true,
+      "check_flash_ram()": true
+    },
+    "updater_watchdog": {
+      "watchdog_owner()": true,
+      "watchdog_keep()": true,
+      "printf 1 >&9": true,
+      "sleep 3": true
+    },
+    "sensor_ar0141_24mhz_case": true,
+    "file_fingerprints": {
+      "etc/wireless/usb": {
+        "bytes": 5906,
+        "sha256": "20bbdd619622e5fc17fa4a5cd8e423382c7df9e76e269529133f007832c587af"
+      },
+      "etc/init.d/S40network": {
+        "bytes": 4851,
+        "sha256": "cc52bdf473385a4ed69e375ac6fc05e3351b26deed5ff778a8a2f9e43f50a1a1"
+      },
+      "etc/network/interfaces.d/wlan0": {
+        "bytes": 250,
+        "sha256": "6857450cca7f383bfc1e26d140e268bba5deb757565ac22252c043762ce886ba"
+      },
+      "usr/sbin/wlan_conf": {
+        "bytes": 656,
+        "sha256": "4810635902b3872d44310beddcd930f0d504e0ce6df95f7cb63773ad7d2d909a"
+      },
+      "usr/sbin/sysupgrade": {
+        "bytes": 80322,
+        "sha256": "edb94da5bd27890389b8f7492f6ad0cb1ca4eafefa088db51f5d32a42829094d"
+      },
+      "usr/bin/load_hisilicon": {
+        "bytes": 10471,
+        "sha256": "708b2aea042ffa19ce430e0541851046a5ea2b797c06014271d285898c405831"
+      },
+      "lib/modules/3.0.8/extra/mt7601sta.ko": {
+        "bytes": 1286012,
+        "sha256": "7a4ddf34645ba55f90110b70606bb4fede7e02466edeca7bf3d38235d3e501eb"
+      }
+    },
+    "private_network_values_read_or_exported": false,
+    "driver_load_association_sensor_output_not_tested": true
+  },
+  "host_unsquashfs_commands": 7,
+  "network_connections": 0,
+  "real_device_writes": 0,
+  "real_reboots": 0,
+  "flash_write_allowed": false
+}

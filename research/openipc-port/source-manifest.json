@@ -1,0 +1,60 @@
+{
+  "scope": "Fingerprint-only record; no binary or private configuration is committed",
+  "base_harness_commit": "4d7a5cff36045cfeffb823570ae0a9813f7c5d20",
+  "latest_release_is_mutable": true,
+  "release_target_commitish_is_not_a_build_source_pin": true,
+  "public_artifacts": [
+    {
+      "name": "openipc.hi3518ev100-nor-lite-split.tgz",
+      "bytes": 6954729,
+      "sha256": "d6498af41ee1122c71b57cea1f6bcfffdaa154c7df9e5b14fc1ff1f13eb8783e",
+      "url": "https://github.com/OpenIPC/firmware/releases/download/latest/openipc.hi3518ev100-nor-lite-split.tgz"
+    },
+    {
+      "name": "firmware.bin.hi3518ev100",
+      "bytes": 7012352,
+      "sha256": "2e268c99608c4dcd4867eda8c35f9393dd4832cf8da05cc31af571bbd3457926",
+      "container": "openipc.hi3518ev100-nor-lite-split.tgz"
+    },
+    {
+      "name": "openipc.hi3518ev100-nor-lite.tgz",
+      "bytes": 6954699,
+      "sha256": "e2aae6d624cd405d3602b724f7ed8df3d87b86ef6f0513ab355e7ac83e21705a",
+      "url": "https://github.com/OpenIPC/firmware/releases/download/latest/openipc.hi3518ev100-nor-lite.tgz"
+    },
+    {
+      "name": "uImage.hi3518ev100",
+      "bytes": 1864732,
+      "sha256": "fa79e044bc61556c39f4e50f278674077fbb9c89c4c0b2a3ce6cd68da6f38c3c",
+      "container": "openipc.hi3518ev100-nor-lite.tgz"
+    },
+    {
+      "name": "rootfs.squashfs.hi3518ev100",
+      "bytes": 5103616,
+      "sha256": "d0c146e7cbee11cc15475675e49c9fc11322778bd591c7f618680cb78ab9226e",
+      "container": "openipc.hi3518ev100-nor-lite.tgz"
+    },
+    {
+      "name": "u-boot-hi3518ev100-universal.bin",
+      "bytes": 182580,
+      "sha256": "abc0948bcf6e7b5c9089188d5d9098b5a7e87713fa6cf4a7a65c3eaf0ad271f0",
+      "url": null,
+      "provenance_limit": "Historical exact download URL is not present in the current evidence record; re-establish trusted upstream provenance before deployment."
+    }
+  ],
+  "private_input_fingerprints_only": [
+    {
+      "role": "stock SysUpdate ELF",
+      "sha256": "c76e218d9dffde035ca5ed28cae89fa2dd679c539f647f6329f8dcf083e0c6d9"
+    },
+    {
+      "role": "existing private diagnostic appfs",
+      "bytes": 2609152,
+      "sha256": "a75982a0c1e1f61fe3e3c305df8afdd9c12eda52f7fc148a2a7567b1f040531f"
+    }
+  ],
+  "authoritative_layout_reference": "https://github.com/OpenIPC/wiki/blob/master/en/nor-split-layout.md",
+  "physical_soc_marking_confirmed": false,
+  "board_boot_tested": false,
+  "flash_write_allowed": false
+}

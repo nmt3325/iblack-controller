@@ -1,0 +1,158 @@
+{
+  "mode": "OFFLINE_DRY_RUN_ONLY",
+  "flash_bytes": 8388608,
+  "assumed_erase_bytes": 65536,
+  "physical_erase_geometry_measured": false,
+  "target_soc": "hi3518ev100",
+  "physical_soc_marking_confirmed": false,
+  "image": {
+    "firmware_bytes": 7012352,
+    "firmware_sha256": "2e268c99608c4dcd4867eda8c35f9393dd4832cf8da05cc31af571bbd3457926",
+    "kernel_uimage_bytes": 1864732,
+    "kernel_compression_id": 0,
+    "kernel_load_address": 2147516416,
+    "kernel_entry_address": 2147516416,
+    "uimage_header_crc_valid": true,
+    "uimage_data_crc_valid": true,
+    "rootfs_offset_within_firmware": 1900544,
+    "rootfs_squashfs_bytes_used": 5100346,
+    "rootfs_block_bytes": 131072,
+    "rootfs_compression_id": 4,
+    "kernel_flash_start": 327680,
+    "rootfs_flash_start": 2228224,
+    "rootfs_data_flash_start": 7340032,
+    "overlay_bytes": 1048576
+  },
+  "bootloader": {
+    "bootloader_bytes": 182580,
+    "padded_boot_area_bytes": 262144,
+    "bootloader_sha256": "abc0948bcf6e7b5c9089188d5d9098b5a7e87713fa6cf4a7a65c3eaf0ad271f0",
+    "kernel_read_offset": 327680,
+    "kernel_read_bytes": 3145728,
+    "public_default_bootcmd": "setenv setargs setenv bootargs ${bootargs}; run setargs; sf probe 0; sf read ${baseaddr} 0x50000 0x300000; bootm ${baseaddr}; reset",
+    "public_default_bootargs": "mem=${osmem} console=ttyAMA0,115200 panic=20 root=/dev/mtdblock3 rootfstype=squashfs init=/init mtdparts=${mtdparts} ${extras}",
+    "public_default_mtdparts": "hi_sfc:256k(boot),64k(env),2048k(kernel),5120k(rootfs),-(rootfs_data)",
+    "public_default_osmem": "32M",
+    "fixed_root_argument_alone_is_not_a_split_boot_failure": true,
+    "reason": "The split-capable kernel discovers partitions/root itself; see upstream documentation.",
+    "source": "https://github.com/OpenIPC/wiki/blob/master/en/nor-split-layout.md",
+    "this_tool_does_not_emulate_kernel_partition_registration": true
+  },
+  "vendor_environment": {
+    "start": 262144,
+    "bytes": 131072,
+    "overlap_with_new_firmware_bytes": 65536
+  },
+  "openipc_environment": {
+    "start": 262144,
+    "bytes": 65536
+  },
+  "firmware_program_map": [
+    {
+      "vendor_mtd_index": 0,
+      "vendor_name": "boot",
+      "flash_offset": 327680,
+      "mtd_local_offset": 327680,
+      "payload_offset": 0,
+      "bytes": 1769472
+    },
+    {
+      "vendor_mtd_index": 1,
+      "vendor_name": "rootfs",
+      "flash_offset": 2097152,
+      "mtd_local_offset": 0,
+      "payload_offset": 1769472,
+      "bytes": 786432
+    },
+    {
+      "vendor_mtd_index": 2,
+      "vendor_name": "appfs",
+      "flash_offset": 2883584,
+      "mtd_local_offset": 0,
+      "payload_offset": 2555904,
+      "bytes": 2621440
+    },
+    {
+      "vendor_mtd_index": 3,
+      "vendor_name": "mdat1",
+      "flash_offset": 5505024,
+      "mtd_local_offset": 0,
+      "payload_offset": 5177344,
+      "bytes": 131072
+    },
+    {
+      "vendor_mtd_index": 4,
+      "vendor_name": "mdat2",
+      "flash_offset": 5636096,
+      "mtd_local_offset": 0,
+      "payload_offset": 5308416,
+      "bytes": 131072
+    },
+    {
+      "vendor_mtd_index": 5,
+      "vendor_name": "bakfs",
+      "flash_offset": 5767168,
+      "mtd_local_offset": 0,
+      "payload_offset": 5439488,
+      "bytes": 1572864
+    }
+  ],
+  "overlay_initialization_map": [
+    {
+      "vendor_mtd_index": 5,
+      "vendor_name": "bakfs",
+      "flash_offset": 7340032,
+      "mtd_local_offset": 1572864,
+      "payload_offset": 0,
+      "bytes": 1048576
+    }
+  ],
+  "environment_program_map": [
+    {
+      "vendor_mtd_index": 0,
+      "vendor_name": "boot",
+      "flash_offset": 262144,
+      "mtd_local_offset": 262144,
+      "payload_offset": 0,
+      "bytes": 65536
+    }
+  ],
+  "bootloader_program_map": [
+    {
+      "vendor_mtd_index": 0,
+      "vendor_name": "boot",
+      "flash_offset": 0,
+      "mtd_local_offset": 0,
+      "payload_offset": 0,
+      "bytes": 262144
+    }
+  ],
+  "vendor_private_partitions_overwritten": [
+    "mdat1",
+    "mdat2"
+  ],
+  "all_copies_must_be_staged_before_destructive_work": true,
+  "minimum_binary_staging_bytes_excluding_ramroot_and_runtime": 7340032,
+  "conceptual_order_not_an_atomic_upgrade": [
+    "stage/hash all inputs in RAM and protect off-camera backups",
+    "enter verified RAM-root runtime with watchdog ownership",
+    "program/verify firmware across vendor MTD boundaries",
+    "initialize/configure overlay without factory leftovers",
+    "provision/verify 64 KiB OpenIPC environment privately",
+    "program/verify compatible bootloader LAST",
+    "reboot only after every check and explicit authorization"
+  ],
+  "unresolved_deployment_gates": [
+    "repeated real bakfs readback inconsistency",
+    "physical SoC identification and new bootloader board test",
+    "measured MTD erase size/write protection",
+    "measured available RAM and complete RAM-root transition",
+    "watchdog owner handoff/power-fail recovery",
+    "AR0141 sensor ini and MT7601 private network configuration",
+    "independent verified backup/recovery path"
+  ],
+  "network_connections": 0,
+  "real_device_writes": 0,
+  "real_reboots": 0,
+  "flash_write_allowed": false
+}

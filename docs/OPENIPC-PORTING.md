@@ -2,29 +2,31 @@
 
 ## 判断
 
-**Telnetログインなしでも、純正TCP3508更新サービスの `0x96` → 移行用appfs → RAM上の移行処理、という導入経路は成立する見込みがある。そのうちLAN上のホストから進めるオンライン移行処理は実装し、x86とqemu-armでのオフライン検証まで終えた。ただし、実機移行を許可できる状態ではない。**
+**Telnetログインなしでも、純正TCP3508更新サービスの `0x96` → 移行用appfs → RAM上の移行処理、という導入経路は成立する見込みがある。そのうちLAN上のホストから進めるオンライン移行処理を、純正U-Bootを残す方式で実装し、x86とqemu-armでのオフライン検証まで終えた。ただし、実機移行を許可できる状態ではない。**
+
+この個体はWi-Fiしか使えない（UARTもEthernetもない）。SPIでの読み書きはでき、8 MiB全体のダンプがある。そのため、この基板で起動したことのないOpenIPC U-Bootは書かない。純正U-Bootと純正envを残し、OpenIPCはその後ろへずらして置く。本番の前に、読取り専用のdiagnose、純正U-Bootがこちらのenvを実行できるかを見るprobe、自動で純正へ戻る1回だけの試験起動を挟む。
 
 この段階で確認したのは、純正ARMコードを使った実サイズのオフライン更新試験、取得済みOpenIPCイメージの構造・配置・実装、そして移行処理一式（[`research/openipc-migrate`](../research/openipc-migrate/README.md)）の動作である。カメラへ新しいイメージを送っていない。フラッシュ書込み・再起動も行っていない。移行appfsを `0x96` で届ける送信部は、意図して実装していない。
 
-中止条件は現在も **`flash_write_allowed: false`**。主な理由は、既存bakfsの読出し不一致、新U-Bootの実基板未検証、RAM-root／watchdog引継ぎの未検証である。
+中止条件は現在も **`flash_write_allowed: false`**。主な理由は、既存bakfsの読出し不一致、純正U-Bootがこちらのenvを実行できるかとOpenIPC kernelがこの基板で起動するかの未確認（それぞれprobeと試験起動で確かめる）、RAM-root／watchdog引継ぎの未検証である。
 
 調査資料・再現コード・機密除去済みの結果はこのGitリポジトリを正本とする。Notionへのファイル添付は行わない。元ダンプ・個体設定・秘密値・PCAP・送信用更新データはGitに入れない。
 
 ## オンライン移行の実装
 
-実装と再実行の手順は [`research/openipc-migrate`](../research/openipc-migrate/README.md) にある。確認はすべてオフライン（x86ホストと、qemu-armのユーザーモードでの10検査）で、実機では動かしていない。
+実装と再実行の手順は [`research/openipc-migrate`](../research/openipc-migrate/README.md) にある。確認はすべてオフライン（x86ホストと、qemu-armのユーザーモードでの7検査）で、実機では動かしていない。以前の、OpenIPC U-Bootを含めて8 MiB全体を書き換える実装（コミット `b66cf56`）は、UARTのないこの個体には向かないので削除した。
 
 | 項目 | 結果 | 限界 |
 | --- | --- | --- |
-| 移行appfs（純正appfs＋`stage2.sh`＋`migrate.conf`＋起動行） | 実入力で2,613,248 B。`0x96` 経路の上限2,621,432 Bに対して余裕は8,184 B。純正の既存58項目のうち変更は `runapp.sh` だけ | 送信部は未実装。`0x96` はbakfsも書き換える |
-| phase1（純正BusyBox 1.18.4のsh） | qemu上で実物の純正shとアプレットが、ポーリング、GO受信、runtimeの取得とSHA-1／MD5照合、phase2への受け渡しまで通った | x86ではARMバイナリをラッパー経由で起動した |
-| phase2・installer・hook（OpenIPC BusyBox 1.36.1、musl） | qemu上で、配布物のSHA-256照合、純正アプリの停止、読出しの安定性確認、mdat退避のbase64送信と照合、4領域の書込みと最終照合を通した。書込み先はシミュレーション用のファイル | 実MTDドライバ、実フラッシュの消去・書込み、電源断は未検証 |
-| x86のユニット・E2E | 103件と、インストーラーのシミュレーション26件が成功 | BusyBoxはDebian版で代用 |
+| 配置 | 純正U-Boot（`0x000000`）と純正env（`0x040000`、128 KiB）は残す。OpenIPCのenvは `0x060000`、公開firmwareは加工せずに `0x070000`、overlayは896 KiB。kernelの余裕は35,812 B、rootfsの余裕は11,462 B | 標準と違う配置なので、移行後も `sysupgrade -u` は使えない |
+| 移行appfs | 2,613,248 B。`0x96` 経路の上限2,621,432 Bに対して余裕は8,184 B。純正の既存58項目のうち変更は `runapp.sh` だけ（起動行と試験起動の分岐） | 送信部は未実装。`0x96` はbakfsも書き換える |
+| 段階 | diagnose（読取りのみ）→ probe（純正U-Bootがenvを実行して `saveenv` できるか）→ 試験起動（bakfs領域からOpenIPC kernelを1回だけ起動し、次は純正）→ final。前の段階が通っていなければ、ホストは次の段階を作らない | 各段階に個別の承認が要る |
+| 純正U-Bootのモデル | 純正U-Boot 2010.06のコマンド解釈（`CONFIG_SYS_CBSIZE` 1024、引数16個まで）と `_do_setenv`、Linux 3.0.8の `cmdlinepart` を、バイナリとソースから読み取ってモデル化した。試験用 `bootcmd` は417文字（上限1,023文字） | モデルであり、実機では動かしていない |
+| 試験起動 | 試験用SquashFS（Wi-Fiモジュール、設定、tlの雛形、スクリプト）は520,192 B（枠704 KiB）。runapp.shの分岐、900秒タイマー、ペイロードがなければすぐ再起動することを、qemu上の純正shでも確かめた | 実kernel、実Wi-Fi、実フラッシュは未検証 |
+| phase1・phase2・installer（qemu） | 純正BusyBox 1.18.4とOpenIPC BusyBox 1.36.1の実物で、ポーリング、取得と照合、各段階の書込みと照合を通した。書込み先は模擬フラッシュ | 実MTDドライバ、電源断は未検証 |
+| x86のユニット・E2E | 135件が成功 | BusyBoxはDebian版で代用 |
 
-検証で見つけて直した不具合が2つある。
-
-- OpenIPCの `wget --post-file` は最初のNULで送信を止める。mdatの退避をそのまま送るとホストには先頭しか届かない。base64で送り、ホストが返す復号後のSHA-256を手元と照合してから書込みに進むようにした。
-- 純正shは `$((...))` なしでビルドされており、最後の分岐に着く前にファイル内の関数をすべて解析する。phase2側の `$((...))` のせいで、phase1が始まる前に構文エラーで終わっていた。x86のE2Eでは見えず、qemuで実物の純正shを動かして見つかった。
+検証で見つけて直した不具合：純正U-Bootの `_do_setenv` は、envの終端より後ろを消さない。試験起動の後のenvに残る古い `bootcmd` を読んで「試験用のまま」と誤判定していたので、終端で読むのをやめた。純正BusyBox 1.18.4の `dd` は `conv=` などを、`grep` は `-x` を受け付けず、`wget --post-data` は本文を%XX形式にして送る。`trial.sh` のログ書込みと `saveenv` 失敗時の純正envの書き戻しが失敗し、ホストへの到達も必ず失敗と報告し、届いた試験ログもホストで読めないところだった（qemu上の実物で発見）。3件とも直し、ビルド時の検査とE2Eの `dd`・`grep`・`wget` も純正と同じ動作に揃えた。以前の方式で直した2件（OpenIPCの `wget --post-file` が最初のNULで止まる、純正shが `$((...))` なしでビルドされている）も引き継いだ。ほかに、検証側の誤りと、検証を止めたときの後始末を直した。
 
 ## 配置・純正更新経路の検証（前段）
 
@@ -45,6 +47,7 @@
 - RAM：64 MiB、NOR：8 MiBという前段調査を前提とする。Linuxが使えるRAMと空き容量は別であり、移行時の実測が必要。
 - センサー：AR0141。前段調査では純正初期化表とOpenIPC `libsns_ar0140.so` の表が一致。実画像は未確認で、センサーiniは未作成。
 - Wi-Fi：純正はMT7601系列。対象OpenIPC rootfsには `lib/modules/3.0.8/extra/mt7601sta.ko` がある。
+- 外部接続：Wi-Fiだけ（UARTもEthernetもない）。SPIでの読み書きはでき、8 MiB全体のダンプがある（所有者が保管し、Gitには入れない）。
 
 ## 2. 純正アップデートを入口にする場合
 
@@ -74,7 +77,7 @@
 - uImageの圧縮IDは0だが、中身は自己展開zImageであり、その中にgzip圧縮カーネルがある。「Linux本体が無圧縮」という意味ではない。
 - SquashFSはfirmware内 `0x1d0000` に始まる。公開単体rootfsと同じ内容。
 
-### OpenIPC側の物理配置
+### OpenIPCの標準配置（この方式では使わない）
 
 | 領域 | 開始 | 終了（含まない） | サイズ |
 | --- | --- | --- | --- |
@@ -86,28 +89,43 @@
 
 `firmware` 仮想パーティションは `0x50000` からフラッシュ末尾までを覆い、overlayも含む。7,012,352 Bは今回の配布画像の長さであり、仮想パーティション全体の長さではない。
 
-### 純正MTDから見たfirmware配置
+### この方式の配置
 
-| 純正MTD | そのMTD内のオフセット | 書込み対象の長さ |
-| --- | --- | --- |
-| mtd0 / boot | `0x050000` | `0x1b0000` |
-| mtd1 / rootfs | `0x000000` | `0x0c0000` |
-| mtd2 / appfs | `0x000000` | `0x280000` |
-| mtd3 / mdat1 | `0x000000` | `0x020000` |
-| mtd4 / mdat2 | `0x000000` | `0x020000` |
-| mtd5 / bakfs | `0x000000` | `0x180000` |
+公開firmwareは加工せず、標準より `0x20000` 後ろの `0x070000` に書く。純正U-Bootと純正envの384 KiBは、読取り専用の `boot` 区画として残す。
 
-これは配置検証用の表であり、実行用書込みコマンドではない。個体設定のmdat領域も上書き対象になる。移行前の私的な退避が必須で、内容はGitにもログにも出さない。
+| 領域 | 開始 | 終了（含まない） | サイズ |
+| --- | --- | --- | --- |
+| boot（純正U-Boot＋純正env、読取り専用） | `0x000000` | `0x060000` | 384 KiB |
+| env（OpenIPCの `fw_printenv` 用） | `0x060000` | `0x070000` | 64 KiB |
+| kernel | `0x070000` | `0x240000` | 1,856 KiB枠（使用1,864,732 B） |
+| rootfs | `0x240000` | `0x720000` | 4,992 KiB枠（使用5,100,346 B） |
+| rootfs_data / overlay | `0x720000` | `0x800000` | 896 KiB |
 
-前段で読出し不一致があったフラッシュ位置 `0x6c4f28` は、新配置ではrootfs領域内に入る。**split化しても当該位置を使わなくなるわけではない。** ただし部品レベルの原因は未確定なので、異常がその物理アドレスに追従すると証明したものではない。
+### 純正MTDから見た書込み範囲
+
+| 純正MTD | そのMTD内のオフセット | 長さ | 内容 |
+| --- | --- | --- | --- |
+| mtd0 / boot | `0x040000` | `0x020000` | 純正env（finalの最後に書く） |
+| mtd0 / boot | `0x060000` | `0x010000` | OpenIPC env |
+| mtd0 / boot | `0x070000` | `0x190000` | firmware（kernelの前半） |
+| mtd1 / rootfs | `0x000000` | `0x0c0000` | firmware |
+| mtd2 / appfs | `0x000000` | `0x280000` | firmware |
+| mtd3 / mdat1 | `0x000000` | `0x020000` | firmware |
+| mtd4 / mdat2 | `0x000000` | `0x020000` | firmware |
+| mtd5 / bakfs | `0x000000` | `0x1a0000` | firmware |
+| mtd5 / bakfs | `0x1a0000` | `0x0e0000` | overlay（消去） |
+
+純正U-Boot（mtd0の `0x000000`–`0x03FFFF`）は書かない。これは配置の説明であり、実行用の書込みコマンドではない。個体設定のmdat領域も上書き対象になる。移行前の私的な退避が必須で、内容はGitにもログにも出さない。
+
+前段で読出し不一致があったフラッシュ位置 `0x6c4f28` は、試験起動ではOpenIPC kernel（tk+`0x144f28`）、移行後はrootfs+`0x484f28`（使用中のSquashFSデータ内）に当たる。**配置をずらしても当該位置を使わなくなるわけではない。** diagnoseはこのブロックを16回読み、1回でも違えば先へ進まない。試験起動は `verify=y` で起動するので、kernelをこの位置で読み違えればCRC不良で純正へ戻る。ただし部品レベルの原因は未確定なので、異常がその物理アドレスに追従すると証明したものではない。
 
 ### U-Boot／環境領域
 
-純正envは `0x40000..0x60000` の128 KiBで、新firmwareと64 KiB重なる。したがって、純正envをそのまま使って将来も `saveenv` する設計は不可。互換ブートローダと64 KiB envへの移行が必要になる。
+純正envは `0x40000..0x60000` の128 KiBで、OpenIPCの標準配置（kernelが `0x50000`）とは64 KiB重なる。標準配置にするには互換ブートローダと64 KiB envへの移行が要るが、この個体では起動実績のないブートローダを書けない。そこで純正U-Bootと純正envを残し、OpenIPC用の64 KiB envを `0x60000`、firmwareを `0x70000` に置く。どちらも純正の配置では使われていない領域から始まる。純正U-Bootは自分のenvの `bootcmd` でkernelを `0x70000` から読み、`bootargs` で `mtdparts=` と `root=/dev/mtdblock3` を渡す。OpenIPC側の `fw_setenv` は `0x60000` のenvだけを書くので、純正U-Bootの起動設定は変わらない。
 
-取得済みEV100 universal U-Bootは `0x50000` から3 MiBを読むため、今回のkernelは読出し範囲内に収まる。ただしDDR表の一致だけでこの基板で起動するとは保証できない。公開デフォルトは `osmem=32M` であり、物理64 MiB全部をLinuxに渡せばよいわけでもない。MMZ等の予約も含めた確認が必要。
+OpenIPCのkernelは、`0x50000` にuImageヘッダ（続いてSquashFS）があるとsplit配置とみなし、`mtdparts=` とMTDを指す `root=` を無視して自分の表を使う。kernel本体の文字列（`mtd_split_layout_register`、`split NOR layout: root on mtdblock%d`）と、対応するOpenIPCのkernelパッチで確認した。この方式では `0x50000` は純正envの中にあり、そこは印字可能な文字列とゼロ埋めだけなので、uImageヘッダは入り得ない（SPIダンプでもゼロ）。したがって、こちらが渡す `mtdparts=` と `root=` が使われる。書くenvごとにこの点も検査する。実機での起動試験ではない。[^https://github.com/OpenIPC/wiki/blob/master/en/nor-split-layout.md]
 
-**split対応kernelが検出できれば、固定配置用の `root=/dev/mtdblock3` や `mtdparts=` を見ただけで起動不可とは判断しない。** Hi3518EV100の対応kernelはsplit配置を検出し、自分でrootを選ぶ。公式仕様に加え、今回のkernel本体にも `mtd_split_layout_register`、`split NOR layout: root on mtdblock%d` 等を確認した。実機起動試験ではない。[^https://github.com/OpenIPC/wiki/blob/master/en/nor-split-layout.md]
+公開デフォルトは `osmem=32M` であり、物理64 MiB全部をLinuxに渡せばよいわけでもない。移行後の `bootargs` は `mem=32M` とした。MMZ等の予約も含めた確認が必要。
 
 ## 4. Wi-Fi・センサー・更新用ランタイム
 
@@ -130,19 +148,22 @@
 
 これを純正上でそのまま起動してよいという意味ではない。純正BusyBoxのアプレット不足・uClibc ABI・PID1・マウント構成・watchdog設定に合わせた、検証済み移行ランタイムが別途必要。単に `/tmp` にスクリプトを置くだけでは、実行中のシェル／共有ライブラリが消去対象に残り得る。
 
-実装した移行処理では、OpenIPCのBusyBoxとmuslローダーを `/dev/om`（RAM）に置き、BusyBoxのPT_INTERPを `/dev/om/ld-musl.so` に書き換えて、純正rootfsの隣で動かす。書込み後は終了せず、純正initへ戻らない。watchdogデバイスがある場合、今の実装は純正アプリの停止を拒否する。実機にwatchdogがあれば、引継ぎを別に設計する必要がある。
+実装した移行処理では、OpenIPCのBusyBoxとmuslローダーを `/dev/om`（RAM）に置き、BusyBoxのPT_INTERPを `/dev/om/ld-musl.so` に書き換えて、純正rootfsの隣で動かす。finalで後戻りできない点を越えた後は終了せず、finalの再試行とcollectだけを受け付ける。watchdogデバイスがある場合、今の実装は純正アプリの停止を拒否する。実機にwatchdogがあれば、引継ぎを別に設計する必要がある。
 
-今回のfirmware＋boot領域＋envだけで最低7,340,032 Bを保持する。これはバイナリの最低ステージ量であり、RAM-root、復号バッファ、プロセス、ページキャッシュ等を含むピーク必要RAMではない。「空き約22 MBなら十分」とはまだ結論しない。移行処理は、空きRAMの推定が12 MiB未満か、`/dev/om` の空きが10 MiB未満なら始めない。このしきい値は実測前の仮の値である。
+finalでは、firmwareと2つのenv画像（64 KiB＋128 KiB）の7,208,960 BをRAMに置く。これはバイナリの最低ステージ量であり、RAM-root、復号バッファ、プロセス、ページキャッシュ等を含むピーク必要RAMではない。「空き約22 MBなら十分」とはまだ結論しない。移行処理は、空きRAMの推定が12 MiB未満か、`/dev/om` の空きが10 MiB未満なら始めない。このしきい値は実測前の仮の値である。
 
 ## 5. 未解決事項と次の順序
 
 1. **既存読出し不一致を優先**：独立した実機読出し経路でSPI/MTD、RAM/DMA、ドライバを切り分ける。7回の詳細は [bakfs調査](BAKFS-READBACK-INVESTIGATION.md)。フラッシュ素子の故障を確定したわけではない。
-2. **所有者の確認を経た診断段階**：SoC刻印、実際のeraseサイズ・保護属性、利用可能RAM、watchdog所有者、USB認識を収集する。診断appfs自体も両アプリ領域の書換えと再起動を伴うため、無断で投入しない。
-3. **RAM上だけのリハーサル**：全資材を先に取得・ハッシュ確認し、旧rootに依存しない実行環境、watchdog引継ぎ、設定の私的退避を確かめる。
-4. **電源・復旧手段と新U-Bootの確認**：初号機はSPI等の独立復旧手段を用意するのが安全。TFTP/U-Boot復旧も、そのコード自体が起動しなければ使えない。
-5. **個別の明示承認後だけ移行**：実装した書込み順はbootloader→env→firmware→overlay。純正U-Bootはsplit配置を起動できないが、OpenIPCのnor U-BootはカーネルのCRC不良を検出するとTFTP（`fwupd`）での復旧に入るので、先に書く。ただし、iBlackにEthernetがあるかは未確認で、TFTPの宛先も公開U-Bootの既定アドレスのままである。bootloaderを最後に書く順序は比較用に計画へ残した（[`migrate-plan.json`](../research/openipc-migrate/results/migrate-plan.json)）。どちらの順序でも原子的な更新ではなく、途中で電源が切れると起動できない期間がある。新U-Bootがこの基板で起動しなければ、復旧手段はSPIだけになる。rehearsal（読取り専用）を通してから電源を入れ直し、書込みへ進む。
+2. **`0x96` で移行appfsを届ける（要承認。送信部は未実装）**：appfsとbakfsを両方書き換えて再起動する。bakfsは無傷の復旧先として残らない。
+3. **diagnose（読取りのみ）**：全128ブロックを3回ずつ読み、`0x6c0000` のブロックは16回読む。SPIダンプとの照合（純正U-Boot、純正env）、MTD表、MT7601（`148f:7601`）、watchdogデバイスの有無、空きRAMを確かめる。
+4. **probe（要承認）**：純正envをprobe用のenvに替えて再起動し、純正U-Bootがそれを実行して `saveenv` し、純正で起動することを確かめる。途中で電源が切れてenvのCRCが壊れても、純正U-Bootの既定env（純正配置）で純正が起動する。
+5. **試験起動（要承認）**：bakfs領域に試験イメージ（OpenIPC kernel＋試験用SquashFS）を書き、最後に試験用envを書いて再起動する。純正U-Bootは純正の `bootcmd` を書き戻して `saveenv` してから、OpenIPC kernelを1回だけ起動する。純正ユーザーランドのまま、OpenIPCのWi-Fiドライバで接続してホストへ報告し、再起動で純正へ戻る。kernelがユーザーランドに着く前に止まったときは900秒のタイマーが動かないので、手で電源を入れ直す（純正に戻る）。この後はbakfsに純正appfsの控えが残らない。
+6. **final（要承認）**：OpenIPC env → firmware → overlay消去 → 最後に純正env。firmwareの `0x080000` 以降を書き始めてから純正envを書き終えるまで（数分の見込み、未実測）は後戻りできず、ここで電源が切れたらSPIで復旧する。
 
-移行後の通常更新はOpenIPCの対応 `sysupgrade -k -r` またはWeb UIを候補とし、設定はoverlayへ置き、意図しない `-n` を避ける。これは初回の純正→OpenIPC移行とは別工程である。[^https://github.com/OpenIPC/wiki/blob/master/en/nor-split-layout.md]
+final前なら、diagnose時に読んだ純正envへいつでも戻せる（`restore-env`）。どの段階でも、最後の復旧手段はSPIとダンプである。
+
+移行後は、OpenIPCの `sysupgrade -u`（U-Boot更新）を使わない。`boot` 区画は読取り専用にしてあるが、ここには純正U-Bootと純正envがあり、書くと起動しなくなる。kernelとrootfsの更新は `sysupgrade -k -r`（区画を名前で探す）を候補とするが、この配置では未検証で、上の枠（kernel 1,856 KiB、rootfs 4,992 KiB）に収まるものに限る。設定はoverlayへ置き、意図しない `-n` を避ける。これは初回の純正→OpenIPC移行とは別工程である。
 
 ## 関連資料
 

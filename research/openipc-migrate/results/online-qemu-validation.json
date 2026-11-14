@@ -1,129 +1,109 @@
 {
   "camera_contacted": false,
   "checks": {
-    "full_chain_write": {
-      "backups_confirmed": true,
-      "flash_matches_expected": true,
-      "installer_events": [
-        "writing-start",
-        "region-begin-bootloader",
-        "region-done-bootloader",
-        "region-begin-env",
-        "region-done-env",
-        "region-begin-firmware",
-        "region-done-firmware",
-        "region-begin-overlay",
-        "region-done-overlay",
-        "verified"
-      ],
-      "log_reports": 1,
-      "note": "phase1 ran under the stock sh/applets, phase2, installer and hook under the OpenIPC sh",
-      "phase1_events": [
-        "go-received",
-        "runtime-ready"
-      ],
-      "phase2_events": [
-        "phase2-start",
-        "payloads-verified",
-        "installer-start-write",
-        "installer-rc-0",
-        "migrated"
-      ],
-      "rc": 0,
-      "refused": 0,
+    "e2e_real_binaries": {
+      "note": "phase1 and trial.sh under the stock BusyBox 1.18.4, phase2/om_stockboot.sh/hook under the patched OpenIPC BusyBox (both qemu-arm); flash = simulated partitions",
       "result": "PASS",
-      "seconds": 30.8,
-      "served": {
-        "payload/env.img": 1,
-        "payload/firmware.bin": 1,
-        "payload/uboot.bin": 1,
-        "runtime/busybox": 1,
-        "runtime/ld-musl.so": 1,
-        "runtime/migrate_hook.sh": 1,
-        "runtime/openipc_migrate.sh": 1
-      },
-      "stock_app_state_after": "T"
-    },
-    "installer_rehearsal": {
-      "backups_confirmed": true,
-      "flash_unchanged": true,
-      "installer_events": [],
-      "rc": 0,
-      "result": "PASS",
-      "seconds": 41.9,
-      "stock_app_state_after": "S"
-    },
-    "installer_write_sim": {
-      "backups_confirmed": true,
-      "backups_contain_nul": true,
-      "flash_matches_expected": true,
-      "installer_events": [
-        "writing-start",
-        "region-begin-bootloader",
-        "region-done-bootloader",
-        "region-begin-env",
-        "region-done-env",
-        "region-begin-firmware",
-        "region-done-firmware",
-        "region-begin-overlay",
-        "region-done-overlay",
-        "verified"
-      ],
-      "log_tail": [
-        "[migrate] final sweep: re-verifying all four regions",
-        "[migrate] all regions written and verified in order: bootloader env firmware overlay",
-        "[migrate] DONE. Reboot withheld (needs real-write mode, --allow-reboot and the reboot confirm phrase)."
-      ],
-      "rc": 0,
-      "result": "PASS",
-      "seconds": 31.2,
-      "stock_app_state_after": "T"
-    },
-    "phase1_go_stock": {
-      "events": [
-        "go-received",
-        "runtime-exec-failed"
-      ],
-      "installed_executable": true,
-      "installed_identical": {
-        "busybox": true,
-        "ld-musl.so": true,
-        "migrate_hook.sh": true,
-        "openipc_migrate.sh": true
-      },
-      "note": "the ARM runtime cannot be exec'd on this x86 host without binfmt_misc",
-      "rc": 0,
-      "result": "PASS",
-      "seconds": 14.8,
-      "served": {
-        "runtime/busybox": 1,
-        "runtime/ld-musl.so": 1,
-        "runtime/migrate_hook.sh": 1,
-        "runtime/openipc_migrate.sh": 1
+      "seconds": 226.7,
+      "tests": {
+        "test_abort": {
+          "result": "PASS",
+          "seconds": 0.7
+        },
+        "test_backup_export_failure_keeps_stock": {
+          "result": "PASS",
+          "seconds": 16.4
+        },
+        "test_dirty_state_only_accepts_final_or_collect": {
+          "result": "PASS",
+          "seconds": 4.4
+        },
+        "test_final_refuses_a_firmware_that_differs_from_its_pin": {
+          "result": "PASS",
+          "seconds": 8.1
+        },
+        "test_foreign_run_id_gets_nothing_even_from_a_final_server": {
+          "result": "PASS",
+          "seconds": 2.9
+        },
+        "test_full_migration_over_the_network": {
+          "result": "PASS",
+          "seconds": 161.4
+        },
+        "test_go_without_the_phrase_is_ignored": {
+          "result": "PASS",
+          "seconds": 3.4
+        },
+        "test_low_memory_stops_before_any_download": {
+          "result": "PASS",
+          "seconds": 0.8
+        },
+        "test_runtime_pin_mismatch_stops_phase1": {
+          "result": "PASS",
+          "seconds": 2.6
+        },
+        "test_standby_times_out_and_the_lock_blocks_a_second_start": {
+          "result": "PASS",
+          "seconds": 3.3
+        },
+        "test_watchdog_device_refuses_to_quiesce": {
+          "result": "PASS",
+          "seconds": 6.8
+        },
+        "test_write_and_reboot_phrases_gate_the_installer": {
+          "result": "PASS",
+          "seconds": 15.8
+        }
       }
     },
-    "phase1_standby_stock": {
-      "events": [
-        "standby",
-        "standby",
-        "standby-timeout"
-      ],
+    "etc_overlay_mount": {
+      "dat_visible_through_bind": true,
+      "listed": true,
+      "note": "unprivileged user+mount namespace (unshare -rm); host /etc untouched",
       "rc": 0,
       "result": "PASS",
-      "seconds": 2.8
+      "stock_files_hidden": true,
+      "symlink_kept": true
     },
-    "raw_post_truncates": {
-      "file_bytes": 131072,
-      "rc": 0,
-      "received_bytes": 1000,
-      "result": "PASS"
+    "runapp_trial_branch": {
+      "result": "PASS",
+      "seconds": 17.3,
+      "shells": [
+        "host sh",
+        "host BusyBox sh",
+        "stock BusyBox 1.18.4 sh (qemu)"
+      ],
+      "tests": {
+        "test_normal_boot_runs_the_stock_app_and_starts_the_agent_later": {
+          "result": "PASS",
+          "seconds": 3.1
+        },
+        "test_trial_boot_execs_the_trial_script_from_the_payload": {
+          "result": "PASS",
+          "seconds": 4.1
+        },
+        "test_trial_boot_without_the_payload_reboots_at_once": {
+          "result": "PASS",
+          "seconds": 9.3
+        },
+        "test_trial_branch_and_launcher_are_the_only_additions": {
+          "result": "PASS",
+          "seconds": 0.0
+        }
+      }
     },
     "runtime_on_stock_root": {
+      "applet_results_match": {
+        "base64_binary": true,
+        "crc32_file": true,
+        "crc32_tail_pipe": true,
+        "od_tx4": true,
+        "sha256sum": true
+      },
       "arithmetic": "42",
       "required_applets_missing": [],
       "result": "PASS",
       "runtime_applets": 227,
-      "sha256sum_matches": true,
       "stock_rootfs_has_musl_loader": false,
       "true_rc": 0,
       "unpatched_rc": 255
@@ -141,28 +121,54 @@
       "openipc_sh_n_stage2": 0,
       "result": "PASS",
       "runapp_ends_with_launcher": true,
+      "runapp_trial_branch_before_stock_app": true,
       "stock_sh_n_conf": 0,
       "stock_sh_n_runapp": 0,
       "stock_sh_n_stage2": 0,
+      "stock_sh_n_trial": 0,
+      "stock_sh_n_trial_dhcp": 0,
       "stock_sh_sources_conf": true
     },
     "stock_applets": {
       "equals_e2e_list": true,
+      "namespace_probes": "empty user+net namespace (udhcpc, wget), user+mount namespace (mount)",
       "non_stock_words_present": [],
       "result": "PASS",
-      "stock_applets": 79
+      "stock_applets": 79,
+      "stock_options": {
+        "control_udhcpc_Z_is_rejected": true,
+        "dd_overlay_keeps_template_long_log": true,
+        "dd_overlay_keeps_template_short_log": true,
+        "dd_rejects_conv_fsync": true,
+        "dd_rejects_conv_notrunc": true,
+        "dd_rejects_conv_sync": true,
+        "dd_rejects_ibs_512": true,
+        "dd_rejects_iflag_fullblock": true,
+        "dd_rejects_obs_512": true,
+        "dd_rejects_oflag_sync": true,
+        "dd_takes_if_of_bs_count_skip_seek": true,
+        "grep_anchored_pattern_matches_the_line_only": true,
+        "grep_rejects_x": true,
+        "options_parse_mount_t_o": true,
+        "options_parse_udhcpc": true,
+        "options_parse_wget_post_data": true,
+        "serve_migration_decodes_the_stock_post_data": true,
+        "wget_post_data_is_form_escaped_as_om_testlib_models_it": true,
+        "wget_post_data_sent": true
+      }
     }
   },
-  "date_utc": "2026-11-14T05:54:37Z",
+  "date_utc": "2026-11-14T17:40:08Z",
   "emulator": "qemu-arm user mode, -cpu arm926",
   "inputs": {
-    "env_mode": "image",
-    "hook_sha256": "520b8f2ffffc73256a5c80500dbb7d038ce01cd21efca47fb25eec5047b82242",
-    "installer_sha256": "cc3be46979a82f1289cd63133f8e6748574347cb8d1fbd881407caef23862252",
-    "stage2_sha256": "ea1be72c5ab2e96baef7422ad384e28e78436ac8c7ebf183210c98e3c491aa8a"
+    "hook_sha256": "a457fb1eb7855f348f86a850b3685e713caac5c505260bfb27c481afc3c01a93",
+    "installer_sha256": "5dd468b41ada04a6a803ac5991051675c59977f5af9f5a9e445547877884de4e",
+    "stage2_sha256": "ee98e3bc48f592af3d8c7aae13c00b5dce18fc0ed9ae09f1072dfe267866e444",
+    "trial_dhcp_sha256": "0480a05022a5df6b67c6ae2bac25640bdccf1d4c0f90d6b97db4c9befa033b6f",
+    "trial_sha256": "648f5664465f4a38895ac56cc524b809e05d362f9cdeac90860ddad290b0baeb"
   },
   "mtd_devices_opened": false,
   "network": "127.0.0.1 only",
   "result": "PASS",
-  "schema": "iblack-openipc-migrate-online-qemu/1"
+  "schema": "iblack-openipc-migrate-online-qemu/2"
 }

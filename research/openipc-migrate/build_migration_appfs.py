@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Build the private migration appfs and LAN bundle for the online stock iBlack -> OpenIPC migration.
+"""Build the private migration appfs and LAN bundle for the stock-U-Boot OpenIPC migration.
 
 Offline only: reads pinned local inputs, never contacts a camera, writes no
 update envelope and sends nothing. Delivering the appfs to a camera (the
@@ -7,9 +7,10 @@ vendor 0x96 update path) is deliberately NOT part of this repository.
 
 Inputs (all pinned by size + SHA-256):
   --firmware     OpenIPC hi3518ev100 nor-lite-split image (kernel + rootfs)
-  --uboot        OpenIPC nor U-Boot
+  --oenv-image   private 64 KiB OpenIPC userland env from make_env.py
+                 --layout stockboot (0600; carries the Wi-Fi settings)
   --stock-appfs  the camera's stock appfs (partition dump or trimmed SquashFS)
-  --env-image    private U-Boot env image from make_env.py (0600)  | --env-erase
+No U-Boot is bundled: the vendor U-Boot is never written (stock_layout.py).
 The OpenIPC BusyBox and musl libc are taken from the firmware's own rootfs.
 The BusyBox PT_INTERP is re-pointed from /lib/ld-musl-arm.so.1 to
 /dev/om/ld-musl.so so that this runtime can run from RAM next to the stock
@@ -17,12 +18,13 @@ uClibc rootfs (phase 2 of camera/stage2.sh).
 
 Output: a NEW private directory OUTSIDE the Git repository (0700 dirs, 0600 files):
   appfs/migration-appfs.squashfs  stock appfs + openipc-migrate/{stage2.sh,migrate.conf}
-                                  + a background launcher before the final `exit 0`
-                                  of runapp.sh; vendor xz/BCJ profile, owners 500/500
-  serve/runtime/                  busybox (interp-patched), ld-musl.so, installer, hook
-  serve/payload/                  firmware.bin, uboot.bin [, env.img]
+                                  + in runapp.sh: the one-shot trial branch (before the
+                                  stock app starts) and a background launcher before
+                                  the final `exit 0`; vendor xz/BCJ profile, owners 500/500
+  serve/runtime/                  busybox (interp-patched), ld-musl.so, om_stockboot.sh, hook
+  serve/payload/                  firmware.bin, env-openipc.img
   conf/migrate.conf               copy of the baked config (serve_migration.py checks it)
-  bundle.json                     schema, run id, host, port, env mode, sizes + sha256
+  bundle.json                     schema, run id, host, port, sizes + sha256
 The run id (a capability token), digests and env contents are never printed.
 """
 from __future__ import annotations
@@ -46,19 +48,18 @@ from pathlib import Path
 HERE = Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE))
 import make_env  # noqa: E402
-from serve_migration import (BUNDLE_SCHEMA, CONF_LINE_RE, CONF_PINS, ENV_FILE, GO_PHRASE,  # noqa: E402
-                             PAYLOAD_FILES, REBOOT_PHRASE, RUN_ID_RE, RUNTIME_FILES, WRITE_PHRASE,
-                             BundleError, digests, inside_repo, load_bundle, parse_conf)
+import stock_layout as sl  # noqa: E402
+from serve_migration import (ACTIONS, BUNDLE_SCHEMA, CONF_LINE_RE, CONF_PINS, GO_PHRASE,  # noqa: E402
+                             PAYLOAD_FILES, RUN_ID_RE, RUNTIME_FILES, BundleError, check_oenv, digests,
+                             inside_repo, load_bundle, parse_conf)
 
 STAGE2 = HERE / "camera" / "stage2.sh"
 HOOK = HERE / "camera" / "migrate_hook.sh"
-INSTALLER = HERE / "installer" / "openipc_migrate.sh"
+INSTALLER = HERE / "installer" / "om_stockboot.sh"
 
 FIRMWARE_SHA256 = "2e268c99608c4dcd4867eda8c35f9393dd4832cf8da05cc31af571bbd3457926"
 FIRMWARE_SIZE = 7012352
 ROOTFS_OFFSET = 0x1D0000                 # SquashFS inside the pinned nor-lite-split image
-UBOOT_SHA256 = make_env.PINNED_UBOOT_SHA256
-UBOOT_SIZE = 122972
 RUNTIME_BUSYBOX_SHA256 = "9894f631a3f64477904eaa03eadaf218feeb1920d23e881021295a88d7255699"
 RUNTIME_LIBC_SHA256 = "35bc5d14c48da902cdfac568e7b574d532ac7a67b11a9462ac6535f042a2f16d"
 STOCK_APPFS_SHA256 = "72881a9695bdf46b8ae0e9eb8c63ef49e16ac8d9c78983ec3070109740652366"  # first bytes_used bytes
@@ -76,14 +77,34 @@ MKSQUASHFS_OPTIONS = ("-noappend", "-comp", "xz", "-b", "1048576", "-processors"
 CHANGED_PATHS = [APP_DIR_NAME, APP_DIR_NAME + "/migrate.conf", APP_DIR_NAME + "/stage2.sh", "runapp.sh"]
 # Applets phase2, the installer and the hook call through the RAM BusyBox
 # (ash builtins such as echo/printf/test/kill use the same implementations).
-RUNTIME_APPLETS = ("awk", "base64", "cat", "chmod", "cmp", "dd", "echo", "grep", "head", "kill", "mkdir",
-                   "pidof", "printf", "reboot", "rm", "rmdir", "sh", "sha256sum", "sleep", "sync", "tail",
-                   "test", "timeout", "tr", "true", "wc", "wget")
+RUNTIME_APPLETS = ("awk", "base64", "cat", "cmp", "cp", "crc32", "dd", "df", "dmesg", "echo", "flash_eraseall",
+                   "grep", "head", "kill", "ls", "mkdir", "mknod", "mv", "od", "pidof", "ps", "readlink", "reboot",
+                   "rm", "sh", "sha256sum", "sleep", "sync", "tail", "test", "timeout", "tr", "true", "uname", "wc",
+                   "wget")
 # Commands the stock BusyBox 1.18.4 lacks; phase1 (and the header it sources) must not use them.
 NON_STOCK_WORDS = ("base64", "chmod", "head", "pidof", "printf", "sed", "seq", "sha256sum", "timeout",
                    "tr", "wc", "xargs")
+# The only operands the stock BusyBox 1.18.4 dd accepts (qemu run of the real binary: conv=, ibs=, obs=,
+# iflag= and oflag= all fail with rc 1).
+STOCK_DD_OPERANDS = ("if", "of", "bs", "count", "skip", "seek")
+# Short options the stock applets reject ("grep: invalid option -- x" from the real binary).
+STOCK_MISSING_OPTIONS = {"grep": "x"}
 PHASE1_END = "# --- phase1 end ---"
 RUNAPP_NEEDLE = b"\nexit 0\n"
+TRIAL_NEEDLE = b"\necho 0 > /proc/sys/net/ipv4/tcp_slow_start_after_idle\n"
+TP_MTD_LINE = 'mtd6: %08x %08x "tp"' % (sl.TP_LEN, sl.ERASE)
+# Runs (stock sh) before the stock app starts, only when the vendor U-Boot booted the armed trial env:
+# the trial kernel's cmdline ends with " omtrial=1" and its layout exposes the trial payload as mtd6.
+TRIAL_BRANCH = ("\n# OpenIPC one-shot kernel trial: only when the vendor U-Boot booted the armed trial env\n"
+                "# (it already saved the stock bootcmd, so the next boot is stock whatever happens).\n"
+                "if grep -q ' " + sl.TRIAL_MARK + "' /proc/cmdline; then\n"
+                "    ( /bin/busybox sleep 900; /bin/busybox reboot -f ) </dev/null >/dev/null 2>&1 &\n"
+                "    if grep -q '^" + TP_MTD_LINE + "$' /proc/mtd && mkdir -p /dev/omt/p && \\\n"
+                "       mknod /dev/omt/b6 b 31 6 && mount -t squashfs -o ro /dev/omt/b6 /dev/omt/p; then\n"
+                "        exec /bin/sh /dev/omt/p/trial.sh\n"
+                "    fi\n"
+                "    /bin/busybox reboot -f\n"
+                "fi\n")
 LAUNCHER = ("\n# OpenIPC online migration agent: inert unless the LAN host answers with GO.\n"
             "(\n"
             "    /bin/busybox sleep {delay}\n"
@@ -94,13 +115,14 @@ LAUNCHER = ("\n# OpenIPC online migration agent: inert unless the LAN host answe
 CONF_DEFAULTS = {
     "OM_DIR": OM_DIR, "OM_LOCK": "/dev/openipc-migrate.lock", "OM_APP_DIR": OM_APP_DIR,
     "OM_POLL_INTERVAL": "20", "OM_POLL_MAX": "90", "OM_MIN_AVAIL_KB": "12288", "OM_MIN_DIRFREE_KB": "10240",
-    "OM_RETRY_SLEEP": "5", "OM_HOLD_MAX": "0", "OM_STOCK_BB": "/bin/busybox",
+    "OM_RETRY_SLEEP": "5", "OM_HOLD_MAX": "0", "OM_STOCK_BB": "/bin/busybox", "OM_IDLE_MAX": "180",
 }
-CONF_KEYS = ("OM_HOST", "OM_PORT", "OM_RUN_ID", *CONF_DEFAULTS, *CONF_PINS,
-             "OM_STAGE2_SHA256", "OM_ENV_MODE", "OM_ENV_SHA256")
-TEST_ONLY_KEYS = ("OM_SIM_DIR", "OM_SIM_MTD_PROC", "OM_QUIESCE_PROCS", "OM_WATCHDOG_DEV")
+CONF_KEYS = ("OM_HOST", "OM_PORT", "OM_RUN_ID", *CONF_DEFAULTS, *CONF_PINS, "OM_STAGE2_SHA256")
+TEST_ONLY_KEYS = ("OM_SIM_DIR", "OM_SIM_MTD_PROC", "OM_SIM_FAULT", "OM_QUIESCE_PROCS", "OM_WATCHDOG_DEV")
 NUMERIC_KEYS = ("OM_PORT", "OM_POLL_INTERVAL", "OM_POLL_MAX", "OM_MIN_AVAIL_KB", "OM_MIN_DIRFREE_KB",
-                "OM_RETRY_SLEEP", "OM_HOLD_MAX")
+                "OM_RETRY_SLEEP", "OM_HOLD_MAX", "OM_IDLE_MAX")
+INSTALLER_PHRASES = {"probe-arm": ("PROBE_PHRASE", "PROBE_REBOOT"), "trial-arm": ("TRIAL_PHRASE", "TRIAL_REBOOT"),
+                     "restore-env": ("RESTORE_PHRASE", None), "final": ("FINAL_PHRASE", "FINAL_REBOOT")}
 PATH_KEYS = ("OM_DIR", "OM_LOCK", "OM_APP_DIR", "OM_STOCK_BB")
 HEX_LEN = {"sha1": 40, "md5": 32, "sha256": 64}
 
@@ -227,20 +249,15 @@ def read_pinned(path, size: int, digest: str, label: str) -> bytes:
     return data
 
 
-def load_env_image(path) -> bytes:
+def load_oenv_image(path) -> bytes:
     st = os.stat(path)
     if not stat.S_ISREG(st.st_mode) or st.st_mode & 0o077:
-        raise BuildError("env image must be a private regular file (mode 0600): it carries Wi-Fi secrets")
+        raise BuildError("OpenIPC env image must be a private regular file (mode 0600): it carries Wi-Fi secrets")
     data = read_input(path, make_env.ENV_SIZE)
     try:
-        env = make_env.parse_env_image(data)
-    except make_env.EnvError as exc:
-        raise BuildError(f"env image rejected: {exc}") from None
-    for key in ("bootcmd", "mtdparts", "wlandev"):
-        if not env.get(key):
-            raise BuildError(f"env image lacks {key}")
-    if "7168k@0x50000(firmware)" not in env["mtdparts"]:
-        raise BuildError("env image mtdparts does not describe the 7168k@0x50000 firmware partition")
+        check_oenv(data)
+    except BundleError as exc:
+        raise BuildError(str(exc)) from None
     return data
 
 
@@ -276,42 +293,56 @@ def validate_host(host: str) -> str:
     return str(ip)
 
 
+def check_stock_sh(text: str, label: str, upto: str = None) -> None:
+    """Scripts run by the stock BusyBox 1.18.4 sh: no $((...)) anywhere (that sh cannot even parse it) and,
+    up to `upto` (default: the whole script), none of the applets the stock BusyBox lacks, no dd operand
+    beyond STOCK_DD_OPERANDS and none of the STOCK_MISSING_OPTIONS."""
+    code_lines = [line for line in text.splitlines() if not line.lstrip().startswith("#")]
+    if "$((" in "\n".join(code_lines):
+        raise BuildError(f"{label} uses $((...)); the stock shell cannot even parse it")
+    part = text.split(upto, 1)[0] if upto else text
+    code = "\n".join(line for line in part.splitlines() if not line.lstrip().startswith("#"))
+    hit = re.search(r"(?<![\w./$-])(%s)(?![\w./-])" % "|".join(NON_STOCK_WORDS), code)
+    if hit:
+        raise BuildError(f"{label} uses '{hit.group(1)}', which the stock BusyBox lacks")
+    for cmd in re.finditer(r"(?<![\w./$-])dd(?=[ \t])([^|;&)\n]*)", code):
+        for op in re.findall(r"(?<=[ \t])([A-Za-z_]\w*)=", cmd.group(1)):
+            if op not in STOCK_DD_OPERANDS:
+                raise BuildError(f"{label} passes '{op}=' to dd; the stock BusyBox dd only takes "
+                                 + "/".join(STOCK_DD_OPERANDS))
+    for applet, letters in STOCK_MISSING_OPTIONS.items():
+        for cmd in re.finditer(r"(?<![\w./$-])%s(?=[ \t])([^|;&)\n]*)" % applet, code):
+            for cluster in re.findall(r"(?<=[ \t])-([A-Za-z]+)", cmd.group(1)):
+                bad = sorted(set(cluster) & set(letters))
+                if bad:
+                    raise BuildError(f"{label} passes -{bad[0]} to {applet}; the stock BusyBox {applet} lacks it")
+
+
 def check_scripts(stage2: bytes, installer: bytes) -> None:
     s2, inst = stage2.decode("ascii"), installer.decode("ascii")
-    for name, want in (("GO_PHRASE", GO_PHRASE), ("WRITE_PHRASE", WRITE_PHRASE), ("REBOOT_PHRASE", REBOOT_PHRASE)):
-        if f'\n{name}="{want}"\n' not in s2:
-            raise BuildError(f"stage2.sh {name} differs from serve_migration.py")
-    for name, want in (("CONFIRM_PHRASE", WRITE_PHRASE), ("REBOOT_PHRASE", REBOOT_PHRASE)):
-        if f'\n{name}="{want}"\n' not in inst:
-            raise BuildError(f"installer {name} differs from serve_migration.py")
+    if f'\nGO_PHRASE="{GO_PHRASE}"\n' not in s2:
+        raise BuildError("stage2.sh GO_PHRASE differs from serve_migration.py")
+    for action, names in INSTALLER_PHRASES.items():
+        for name, want in zip(names, ACTIONS[action][:2]):
+            if name and f'\n{name}="{want}"\n' not in inst:
+                raise BuildError(f"installer {name} differs from serve_migration.py")
     if s2.count(PHASE1_END) != 1:
         raise BuildError("stage2.sh phase1 end marker missing")
     # The stock BusyBox 1.18.4 sh was built without $((...)) support and parses every function of
-    # stage2.sh before it reaches the dispatch, so arithmetic expansion is banned in the whole file
-    # (qemu run of the real stock sh: "you disabled math support for $((arith)) syntax").
-    if "$((" in "\n".join(line for line in s2.splitlines() if not line.lstrip().startswith("#")):
-        raise BuildError("stage2.sh uses $((...)); the stock shell cannot even parse it")
-    # Everything up to the end of phase1 runs under the stock BusyBox 1.18.4 sh.
-    code = "\n".join(line for line in s2.split(PHASE1_END, 1)[0].splitlines()
-                     if not line.lstrip().startswith("#"))
-    hit = re.search(r"(?<![\w./$-])(%s)(?![\w./-])" % "|".join(NON_STOCK_WORDS), code)
-    if hit:
-        raise BuildError(f"stage2.sh phase1 uses '{hit.group(1)}', which the stock BusyBox lacks")
+    # stage2.sh before it reaches the dispatch (qemu run of the real stock sh: "you disabled math
+    # support for $((arith)) syntax"); everything up to the end of phase1 runs under that sh.
+    check_stock_sh(s2, "stage2.sh", upto=PHASE1_END)
 
 
 # ---- migrate.conf -------------------------------------------------------------
-def conf_values(host: str, port: int, run_id: str, files: dict, stage2: bytes, env_mode: str,
-                overrides=None) -> dict:
-    if env_mode not in ("image", "erase"):
-        raise BuildError("env mode must be image or erase")
-    expected = set(RUNTIME_FILES + PAYLOAD_FILES) | ({ENV_FILE} if env_mode == "image" else set())
+def conf_values(host: str, port: int, run_id: str, files: dict, stage2: bytes, overrides=None) -> dict:
+    expected = set(RUNTIME_FILES + PAYLOAD_FILES)
     if set(files) != expected:
         raise BuildError("served file set differs from the protocol")
     dig = {rel: digests(data) for rel, data in files.items()}
     values = {"OM_HOST": host, "OM_PORT": str(port), "OM_RUN_ID": run_id, **CONF_DEFAULTS}
     values.update({key: dig[rel][kind] for key, (rel, kind) in CONF_PINS.items()})
-    values.update({"OM_STAGE2_SHA256": sha256(stage2), "OM_ENV_MODE": env_mode,
-                   "OM_ENV_SHA256": dig[ENV_FILE]["sha256"] if env_mode == "image" else ""})
+    values["OM_STAGE2_SHA256"] = sha256(stage2)
     values.update({k: str(v) for k, v in (overrides or {}).items()})
     return values
 
@@ -336,10 +367,6 @@ def render_conf(values: dict, allow_test_keys: bool = False) -> str:
             raise BuildError(f"{key} is not a {kind} digest")
     if not re.fullmatch("[0-9a-f]{64}", values["OM_STAGE2_SHA256"]):
         raise BuildError("OM_STAGE2_SHA256 is not a sha256 digest")
-    env_ok = {"image": re.fullmatch("[0-9a-f]{64}", values["OM_ENV_SHA256"]),
-              "erase": values["OM_ENV_SHA256"] == ""}.get(values["OM_ENV_MODE"])
-    if not env_ok:
-        raise BuildError("OM_ENV_MODE/OM_ENV_SHA256 are inconsistent")
     if not allow_test_keys and (values["OM_DIR"] != OM_DIR or values["OM_APP_DIR"] != OM_APP_DIR):
         raise BuildError(f"OM_DIR/OM_APP_DIR are fixed to {OM_DIR} and {OM_APP_DIR} "
                          "(the runtime PT_INTERP and the runapp.sh launcher point there)")
@@ -363,9 +390,14 @@ def patch_runapp(data: bytes, delay: int) -> bytes:
         raise BuildError("runapp.sh differs from the pinned stock script")
     if data.count(RUNAPP_NEEDLE) != 1 or not data.endswith(RUNAPP_NEEDLE):
         raise BuildError("runapp.sh must end with its only `exit 0`")
+    if data.count(TRIAL_NEEDLE) != 1:
+        raise BuildError("runapp.sh lacks its single tcp_slow_start_after_idle line (trial branch anchor)")
     if not 0 <= int(delay) <= 3600:
         raise BuildError("start delay must be 0..3600 s")
-    return data[:-len(RUNAPP_NEEDLE)] + LAUNCHER.format(delay=int(delay)).encode()
+    data = data.replace(TRIAL_NEEDLE, TRIAL_BRANCH.encode() + TRIAL_NEEDLE)
+    out = data[:-len(RUNAPP_NEEDLE)] + LAUNCHER.format(delay=int(delay)).encode()
+    check_stock_sh(out.decode("ascii"), "patched runapp.sh")
+    return out
 
 
 def snapshot(tree: Path) -> dict:
@@ -527,7 +559,7 @@ def _write_private(path: Path, data: bytes) -> None:
         os.fsync(fh.fileno())
 
 
-def assemble_bundle(out, files: dict, conf_text: str, *, host: str, port: int, run_id: str, env_mode: str,
+def assemble_bundle(out, files: dict, conf_text: str, *, host: str, port: int, run_id: str,
                     stage2: bytes, appfs: bytes, extra=None) -> Path:
     out = Path(out).absolute()
     if inside_repo(out):
@@ -544,7 +576,7 @@ def assemble_bundle(out, files: dict, conf_text: str, *, host: str, port: int, r
             _write_private(partial / "serve" / rel, data)
         _write_private(partial / "conf" / "migrate.conf", conf_text.encode("ascii"))
         _write_private(partial / "appfs" / "migration-appfs.squashfs", appfs)
-        meta = {"schema": BUNDLE_SCHEMA, "run_id": run_id, "host": host, "port": port, "env_mode": env_mode,
+        meta = {"schema": BUNDLE_SCHEMA, "run_id": run_id, "host": host, "port": port,
                 "stage2_sha256": sha256(stage2),
                 "files": {rel: {"size": len(d), "sha256": sha256(d)} for rel, d in sorted(files.items())},
                 "appfs": {"file": "appfs/migration-appfs.squashfs", "size": len(appfs), "sha256": sha256(appfs),
@@ -580,9 +612,8 @@ def build(args) -> dict:
         tools.append(path)
     mksquashfs, unsquashfs = tools
     firmware = read_pinned(args.firmware, FIRMWARE_SIZE, FIRMWARE_SHA256, "OpenIPC firmware")
-    uboot = read_pinned(args.uboot, UBOOT_SIZE, UBOOT_SHA256, "OpenIPC U-Boot")
-    env_mode = "image" if args.env_image else "erase"
-    env_img = load_env_image(args.env_image) if args.env_image else None
+    oenv = load_oenv_image(args.oenv_image)
+    fw_plan = sl.plan(firmware)["firmware"]
     stock = load_stock_appfs(args.stock_appfs)
     stage2, hook, installer = STAGE2.read_bytes(), HOOK.read_bytes(), INSTALLER.read_bytes()
     check_scripts(stage2, installer)
@@ -591,18 +622,18 @@ def build(args) -> dict:
         busybox_raw, libc = extract_runtime(firmware, unsquashfs, work)
         runtime = check_runtime(busybox_raw, libc)
         files = {"runtime/busybox": patch_interp(busybox_raw), "runtime/ld-musl.so": libc,
-                 "runtime/openipc_migrate.sh": installer, "runtime/migrate_hook.sh": hook,
-                 "payload/firmware.bin": firmware, "payload/uboot.bin": uboot}
-        if env_img is not None:
-            files[ENV_FILE] = env_img
+                 "runtime/om_stockboot.sh": installer, "runtime/migrate_hook.sh": hook,
+                 "payload/firmware.bin": firmware, "payload/env-openipc.img": oenv}
         overrides = {"OM_POLL_INTERVAL": args.poll_interval, "OM_POLL_MAX": args.poll_max}
-        conf_text = render_conf(conf_values(host, args.port, run_id, files, stage2, env_mode, overrides))
+        conf_text = render_conf(conf_values(host, args.port, run_id, files, stage2, overrides))
         appfs, tree = build_appfs(stock, stage2, conf_text.encode("ascii"), args.start_delay,
                                   mksquashfs, unsquashfs, work)
-    out = assemble_bundle(out, files, conf_text, host=host, port=args.port, run_id=run_id, env_mode=env_mode,
-                          stage2=stage2, appfs=appfs, extra={"runtime": runtime, "appfs_tree": tree})
+    out = assemble_bundle(out, files, conf_text, host=host, port=args.port, run_id=run_id,
+                          stage2=stage2, appfs=appfs, extra={"runtime": runtime, "appfs_tree": tree,
+                                                             "firmware_plan": fw_plan})
     load_bundle(out)  # the server must accept exactly what was written
-    return {"result": "PASS", "out": str(out), "env_mode": env_mode, "camera_calls": f"{host}:{args.port}",
+    return {"result": "PASS", "out": str(out), "camera_calls": f"{host}:{args.port}",
+            "kernel_slot_margin_bytes": fw_plan["kernel_slot_margin_bytes"],
             "start_delay_s": args.start_delay, "poll_window_s": args.poll_interval * args.poll_max,
             "appfs_bytes": len(appfs), "appfs_limit_bytes": APPFS_LIMIT, "appfs_margin_bytes": APPFS_LIMIT - len(appfs),
             "changed_paths": tree["changed_paths"], "served_bytes": {rel: len(d) for rel, d in sorted(files.items())},
@@ -613,10 +644,8 @@ def build(args) -> dict:
 def main(argv=None) -> int:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--firmware", type=Path, required=True)
-    ap.add_argument("--uboot", type=Path, required=True)
-    env = ap.add_mutually_exclusive_group(required=True)
-    env.add_argument("--env-image", type=Path, help="private env.img from make_env.py (keeps Wi-Fi settings)")
-    env.add_argument("--env-erase", action="store_true", help="erase the env sector (U-Boot defaults, no wlandev)")
+    ap.add_argument("--oenv-image", type=Path, required=True,
+                    help="private env-openipc.img from make_env.py --layout stockboot (Wi-Fi settings)")
     ap.add_argument("--stock-appfs", type=Path, required=True)
     ap.add_argument("--host", required=True, help="IPv4 address of the LAN host running serve_migration.py")
     ap.add_argument("--port", type=int, default=8608)
@@ -633,7 +662,7 @@ def main(argv=None) -> int:
         if not 0 <= args.start_delay <= 3600 or not 1 <= args.poll_interval <= 3600 or not 1 <= args.poll_max <= 10000:
             raise BuildError("--start-delay 0..3600, --poll-interval 1..3600, --poll-max 1..10000")
         summary = build(args)
-    except (BuildError, BundleError, OSError, UnicodeDecodeError) as exc:
+    except (BuildError, BundleError, sl.LayoutError, OSError, UnicodeDecodeError) as exc:
         print(f"build_migration_appfs: {exc}", file=sys.stderr)
         return 2
     print(json.dumps(summary, indent=2, sort_keys=True))

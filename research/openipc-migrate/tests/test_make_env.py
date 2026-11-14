@@ -15,6 +15,8 @@ from pathlib import Path
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, os.path.dirname(HERE))
 import make_env as me  # noqa: E402
+import serve_migration as sm  # noqa: E402
+import stock_layout as sl  # noqa: E402
 
 DEFAULTS_RAW = ["bootcmd=run bootflash", "bootdelay=1", "baudrate=115200",
                 "ipaddr=192.0.2.20", "serverip=192.0.2.107", "mtdids=nor0=old",
@@ -80,6 +82,23 @@ class TestImage(unittest.TestCase):
         with self.assertRaises(me.EnvError):
             me.build_env_image(DEFAULTS, {"wlandev": "x" * 0x10000})
 
+    def test_stockboot_layout_replaces_layout_keys(self):
+        img = me.build_env_image(DEFAULTS, {"wlandev": "x", "wlanssid": SSID, "wlanpass": PSK,
+                                            "mtdparts": "hi_sfc:8m(all)"}, "stockboot")
+        env = me.parse_env_image(img)
+        for key, want in me.STOCKBOOT_OVERRIDES.items():
+            self.assertEqual(env[key], want, key)
+        self.assertEqual((env["kernaddr"], env["rootaddr"], env["osmem"]), ("0x70000", "0x240000", "32M"))
+        self.assertEqual(env["bootcmd"], sl.FINAL_BOOTCMD)
+        self.assertEqual(env["wlanssid"], SSID)
+        self.assertEqual(env["soc"], "hi3518ev100")             # non-layout defaults are kept
+        self.assertEqual(sm.check_oenv(img)["mtdparts"], sl.OIPC_ENV_LAYOUT["mtdparts"])
+        legacy = me.build_env_image(DEFAULTS, {"wlandev": "x", "wlanssid": SSID, "wlanpass": PSK})
+        with self.assertRaises(sm.BundleError):                 # the server refuses the legacy env
+            sm.check_oenv(legacy)
+        with self.assertRaises(me.EnvError):
+            me.build_env_image(DEFAULTS, {}, "other")
+
     def test_bad_crc_detected(self):
         img = bytearray(me.build_env_image(DEFAULTS, {}))
         img[10] ^= 1
@@ -131,17 +150,29 @@ class TestCli(unittest.TestCase):
         rc, out, err = self.run_main(["--uboot", str(self.ub), "--uboot-sha256", self.sha,
                                       "--private-vars", str(self.vars), "--output-dir", str(self.out)])
         self.assertEqual(rc, 0, err)
-        img = (self.out / "env.img").read_bytes()
-        self.assertEqual(me.parse_env_image(img)["wlandev"], me.DEFAULT_WLANDEV)
-        self.assertEqual(os.stat(self.out / "env.img").st_mode & 0o777, 0o600)
-        summary = (self.out / "env-summary.json").read_text()
+        img = (self.out / "env-openipc.img").read_bytes()              # default: --layout stockboot
+        env = me.parse_env_image(img)
+        self.assertEqual(env["wlandev"], me.DEFAULT_WLANDEV)
+        self.assertEqual((env["mtdparts"], env["bootargs"]), (sl.OIPC_ENV_LAYOUT["mtdparts"], sl.FINAL_BOOTARGS))
+        self.assertEqual(os.stat(self.out / "env-openipc.img").st_mode & 0o777, 0o600)
+        summary = (self.out / "env-openipc-summary.json").read_text()
         for secret in (SSID, PSK):
             self.assertNotIn(secret, out + err + summary)
         self.assertIn('"wlanpass": true', summary)
+        self.assertIn('"layout": "stockboot"', summary)
+        self.assertFalse((self.out / "env.img").exists())
         rc2, _, err2 = self.run_main(["--uboot", str(self.ub), "--uboot-sha256", self.sha,
                                       "--private-vars", str(self.vars), "--output-dir", str(self.out)])
         self.assertEqual(rc2, 1)
         self.assertIn("overwrite", err2)
+
+    def test_legacy_layout_keeps_its_names_and_values(self):
+        rc, _, err = self.run_main(["--uboot", str(self.ub), "--uboot-sha256", self.sha, "--layout", "openipc-uboot",
+                                    "--private-vars", str(self.vars), "--output-dir", str(self.out)])
+        self.assertEqual(rc, 0, err)
+        env = me.parse_env_image((self.out / "env.img").read_bytes())
+        self.assertEqual((env["mtdparts"], env["bootcmd"]), ("hi_sfc:256k(boot),64k(env)", "run bootflash"))
+        self.assertIn('"layout": "openipc-uboot"', (self.out / "env-summary.json").read_text())
 
     def test_pin_mismatch_refused(self):
         rc, _, err = self.run_main(["--uboot", str(self.ub), "--private-vars", str(self.vars),

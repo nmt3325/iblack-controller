@@ -1,0 +1,261 @@
+{
+  "camera_contacted": false,
+  "final_env": {
+    "bootargs_chars": 174,
+    "bootcmd_chars": 69,
+    "bootcmd_margin_chars": 954,
+    "changed_keys": [
+      "bootargs",
+      "bootcmd",
+      "verify"
+    ],
+    "final_partitions": [
+      "boot",
+      "env",
+      "kernel",
+      "rootfs",
+      "rootfs_data"
+    ],
+    "split_probe_0x50000": "vendor env, no uImage header"
+  },
+  "layout": {
+    "cbsize": 1024,
+    "erase_bytes": 65536,
+    "final_bootargs": "mem=32M console=ttyAMA0,115200 panic=20 root=/dev/mtdblock3 rootfstype=squashfs init=/init mtdparts=hi_sfc:384k(boot)ro,64k(env),1856k(kernel),4992k(rootfs),896k(rootfs_data)",
+    "final_bootcmd": "sf probe 0;sf read 0x82000000 0x70000 0x1d0000;bootm 0x82000000;reset",
+    "final_bootcmd_chars": 69,
+    "final_layout": [
+      {
+        "kib": 384,
+        "name": "boot",
+        "offset": "0x0",
+        "ro": true
+      },
+      {
+        "kib": 64,
+        "name": "env",
+        "offset": "0x60000",
+        "ro": false
+      },
+      {
+        "kib": 1856,
+        "name": "kernel",
+        "offset": "0x70000",
+        "ro": false
+      },
+      {
+        "kib": 4992,
+        "name": "rootfs",
+        "offset": "0x240000",
+        "ro": false
+      },
+      {
+        "kib": 896,
+        "name": "rootfs_data",
+        "offset": "0x720000",
+        "ro": false
+      }
+    ],
+    "final_mtdparts": "hi_sfc:384k(boot)ro,64k(env),1856k(kernel),4992k(rootfs),896k(rootfs_data)",
+    "firmware": {
+      "kernel_comp": 0,
+      "kernel_slot_margin_bytes": 35812,
+      "kernel_uimage_bytes": 1864732,
+      "rootfs_bytes_used": 5100346,
+      "rootfs_slot_bytes": 5111808,
+      "rootfs_slot_margin_bytes": 11462,
+      "sha256": "2e268c99608c4dcd4867eda8c35f9393dd4832cf8da05cc31af571bbd3457926",
+      "weak_bit_in_firmware_rootfs_offset": "0x484f28"
+    },
+    "flash_bytes": 8388608,
+    "kernel_split_probe": {
+      "effect": "no uImage header there, so the kernel takes mtdparts= and root=",
+      "holds": "vendor env (printable text, zero padded)",
+      "offset": "0x50000"
+    },
+    "maxargs": 16,
+    "never_written": {
+      "vendor_uboot": [
+        "0x0",
+        "0x40000"
+      ]
+    },
+    "overlay_kib": 896,
+    "power_fail": [
+      {
+        "if_interrupted": "env CRC bad -> vendor default env (mem=40M, stock layout) -> stock boots",
+        "step": "probe-arm: env write (2 x 64 KiB)"
+      },
+      {
+        "if_interrupted": "env CRC bad -> vendor default env -> stock boots",
+        "step": "probe boot: U-Boot saveenv"
+      },
+      {
+        "if_interrupted": "stock boots (bakfs only holds the trial image)",
+        "step": "trial-arm: bakfs write"
+      },
+      {
+        "if_interrupted": "env CRC bad -> vendor default env (mem=40M, stock layout) -> stock boots",
+        "step": "trial-arm: env write (2 x 64 KiB)"
+      },
+      {
+        "if_interrupted": "env CRC bad -> vendor default env -> stock boots",
+        "step": "trial boot: U-Boot saveenv"
+      },
+      {
+        "if_interrupted": "stock bootcmd already saved -> stock boots",
+        "step": "trial kernel bad CRC / panic / hang + power cycle"
+      },
+      {
+        "if_interrupted": "stock intact (area unused by the stock layout)",
+        "step": "final: OpenIPC env 0x60000 + first firmware block 0x70000"
+      },
+      {
+        "if_interrupted": "stock kernel gone, env still stock -> U-Boot stops (bad magic) -> SPI recovery",
+        "step": "final: firmware from 0x80000 + overlay erase"
+      },
+      {
+        "if_interrupted": "env CRC bad -> default env -> stock bootcmd on OpenIPC data -> SPI recovery",
+        "step": "final: vendor env write (last)"
+      },
+      {
+        "if_interrupted": "boots OpenIPC (verify=y; bad CRC -> reset loop -> SPI recovery)",
+        "step": "final: done"
+      }
+    ],
+    "probe_bootcmd_chars": 158,
+    "probe_bootcmd_template": "setenv bootcmd '<stock bootcmd>';saveenv;<stock bootcmd>;reset",
+    "trial_bootargs": "mem=42M console=ttyAMA0,115200 panic=10 root=1f01 rootfstype=squashfs mtdparts=hi_sfc:2048k(boot)ro,768k(rootfs)ro,2560k(appfs)ro,128k(mdat1)ro,128k(mdat2)ro,1856k(tk)ro,704k(tp)ro,64k@0x70000(tl),128k@0x40000(senv) omtrial=1",
+    "trial_bootcmd_chars": 417,
+    "trial_bootcmd_template": "setenv bootcmd '<stock bootcmd>';saveenv;setenv bootargs mem=42M console=ttyAMA0,115200 panic=10 root=1f01 rootfstype=squashfs mtdparts=hi_sfc:2048k(boot)ro,768k(rootfs)ro,2560k(appfs)ro,128k(mdat1)ro,128k(mdat2)ro,1856k(tk)ro,704k(tp)ro,64k@0x70000(tl),128k@0x40000(senv) omtrial=1;setenv verify y;sf probe 0;sf read 0x82000000 0x580000 0x1d0000;bootm 0x82000000;reset",
+    "trial_kernel_slot_bytes": 1900544,
+    "trial_layout": [
+      {
+        "kib": 2048,
+        "name": "boot",
+        "offset": "0x0",
+        "ro": true
+      },
+      {
+        "kib": 768,
+        "name": "rootfs",
+        "offset": "0x200000",
+        "ro": true
+      },
+      {
+        "kib": 2560,
+        "name": "appfs",
+        "offset": "0x2c0000",
+        "ro": true
+      },
+      {
+        "kib": 128,
+        "name": "mdat1",
+        "offset": "0x540000",
+        "ro": true
+      },
+      {
+        "kib": 128,
+        "name": "mdat2",
+        "offset": "0x560000",
+        "ro": true
+      },
+      {
+        "kib": 1856,
+        "name": "tk",
+        "offset": "0x580000",
+        "ro": true
+      },
+      {
+        "kib": 704,
+        "name": "tp",
+        "offset": "0x750000",
+        "ro": true
+      },
+      {
+        "kib": 64,
+        "name": "tl",
+        "offset": "0x70000",
+        "ro": false
+      },
+      {
+        "kib": 128,
+        "name": "senv",
+        "offset": "0x40000",
+        "ro": false
+      }
+    ],
+    "trial_payload_limit_bytes": 720896,
+    "weak_bit": {
+      "abs": "0x6c4f28",
+      "final": "rootfs+0x484f28",
+      "stock": "bakfs+0x144f28",
+      "trial": "tk+0x144f28"
+    }
+  },
+  "migration_appfs": {
+    "limit_bytes": 2621432,
+    "margin_bytes": 8184,
+    "size": 2613248
+  },
+  "probe_env": {
+    "bootcmd_chars": 158,
+    "bootcmd_margin_chars": 865,
+    "changed_keys": [
+      "bootcmd"
+    ],
+    "commands": 6,
+    "saved_bootcmd_position": "last",
+    "saved_env_equals_stock": true
+  },
+  "trial_env": {
+    "bootcmd_chars": 417,
+    "bootcmd_margin_chars": 606,
+    "cbsize": 1024,
+    "changed_keys": [
+      "bootcmd"
+    ],
+    "commands": 8,
+    "env_bytes_used": 789,
+    "max_argc": 10,
+    "maxargs": 16,
+    "saved_env_equals_stock": true,
+    "trial_partitions": [
+      "boot",
+      "rootfs",
+      "appfs",
+      "mdat1",
+      "mdat2",
+      "tk",
+      "tp",
+      "tl",
+      "senv"
+    ],
+    "writable_partitions": [
+      "tl",
+      "senv"
+    ]
+  },
+  "trial_kernel": {
+    "bytes": 1864732,
+    "margin_bytes": 35812,
+    "slot_bytes": 1900544
+  },
+  "trial_payload": {
+    "bytes": 520192,
+    "file_bytes": {
+      "cfg80211.ko": 163668,
+      "env-armed.md5": 33,
+      "env-base.img": 131072,
+      "env-base.md5": 33,
+      "mt7601sta.ko": 1286012,
+      "nonce": 33,
+      "tl-blank.img": 65536,
+      "trial.sh": 7010,
+      "trial_dhcp.sh": 586
+    },
+    "limit_bytes": 720896,
+    "margin_bytes": 200704,
+    "wifi": "placeholder of maximal length (32-char SSID, 63-char PSK)"
+  }
+}

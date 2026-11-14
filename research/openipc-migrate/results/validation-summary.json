@@ -1,49 +1,117 @@
 {
   "scope": "Offline research validation only; does not authorize deployment",
-  "implemented": "LAN-driven stock iBlack to OpenIPC hi3518ev100-nor-lite-split migration: host server, camera stage2 (phase1/phase2), hook and installer",
+  "implemented": "LAN-driven stock iBlack to OpenIPC hi3518ev100-nor-lite-split migration that keeps the stock U-Boot 2010.06 and its env: host state machine (diagnose, probe, trial, final, restore), server, camera stage2 (phase1/phase2), hook, installer, one-shot self-reverting trial boot",
+  "replaces": {
+    "commit": "b66cf56",
+    "reason": "Wi-Fi-only camera without UART: an OpenIPC U-Boot that never booted on this board is not written",
+    "removed": [
+      "installer/openipc_migrate.sh",
+      "migrate_plan.py",
+      "tests/simulate_install.py",
+      "tests/test_migrate_plan.py",
+      "results/migrate-plan.json"
+    ]
+  },
   "unit_tests": {
-    "discovered": 103,
+    "discovered": 135,
     "skipped": 0,
     "failures": 0,
-    "errors": 0
+    "errors": 0,
+    "per_module": {
+      "test_build_migration_appfs": 37,
+      "test_build_stockboot": 14,
+      "test_e2e_online": 12,
+      "test_make_env": 16,
+      "test_om_stockboot": 12,
+      "test_serve_migration": 23,
+      "test_stock_layout": 21
+    }
   },
-  "installer_simulation_cases": 26,
   "qemu_arm_checks": {
-    "total": 10,
-    "passed": 10,
-    "full_chain_write": "PASS",
+    "total": 7,
+    "passed": 7,
+    "e2e_real_binaries_tests": 12,
+    "e2e_real_binaries_passed": 12,
+    "stock_options": {
+      "control_udhcpc_Z_is_rejected": true,
+      "dd_overlay_keeps_template_long_log": true,
+      "dd_overlay_keeps_template_short_log": true,
+      "dd_rejects_conv_fsync": true,
+      "dd_rejects_conv_notrunc": true,
+      "dd_rejects_conv_sync": true,
+      "dd_rejects_ibs_512": true,
+      "dd_rejects_iflag_fullblock": true,
+      "dd_rejects_obs_512": true,
+      "dd_rejects_oflag_sync": true,
+      "dd_takes_if_of_bs_count_skip_seek": true,
+      "grep_anchored_pattern_matches_the_line_only": true,
+      "grep_rejects_x": true,
+      "options_parse_mount_t_o": true,
+      "options_parse_udhcpc": true,
+      "options_parse_wget_post_data": true,
+      "serve_migration_decodes_the_stock_post_data": true,
+      "wget_post_data_is_form_escaped_as_om_testlib_models_it": true,
+      "wget_post_data_sent": true
+    },
     "emulator": "qemu-arm user mode, -cpu arm926",
     "network": "127.0.0.1 only",
     "mtd_devices_opened": false
   },
+  "capacity": {
+    "kernel": {
+      "bytes": 1864732,
+      "limit_bytes": 1900544,
+      "margin_bytes": 35812
+    },
+    "rootfs": {
+      "bytes": 5100346,
+      "limit_bytes": 5111808,
+      "margin_bytes": 11462
+    },
+    "trial_payload": {
+      "bytes": 520192,
+      "limit_bytes": 720896,
+      "margin_bytes": 200704
+    },
+    "migration_appfs": {
+      "bytes": 2613248,
+      "limit_bytes": 2621432,
+      "margin_bytes": 8184
+    },
+    "trial_bootcmd_chars": 417,
+    "probe_bootcmd_chars": 158,
+    "bootcmd_limit_chars": 1023,
+    "nothing_at_split_probe_0x050000": true
+  },
   "private_build": {
     "appfs_bytes": 2613248,
-    "proven_0x96_limit_bytes": 2621432,
-    "margin_bytes": 8184,
-    "stock_entries": 58,
     "changed_paths": [
       "openipc-migrate",
       "openipc-migrate/migrate.conf",
       "openipc-migrate/stage2.sh",
       "runapp.sh"
     ],
-    "profile_matches_vendor": true,
     "committed": false
   },
-  "default_write_order": [
-    "bootloader",
-    "env",
-    "firmware",
-    "overlay"
-  ],
   "bugs_found_and_fixed": [
-    "OpenIPC wget --post-file stops at the first NUL; mdat backups are sent base64 and confirmed by SHA-256",
-    "stock BusyBox 1.18.4 sh has no $((...)) and parses every function first; stage2.sh no longer uses arithmetic and the builder rejects it"
+    "stock U-Boot 2010.06 _do_setenv leaves bytes behind the env terminator; om_stockboot.sh read them as live variables and took a restored env for the trial env. Parsing now stops at the terminator",
+    "stock BusyBox 1.18.4 dd accepts only if/of/bs/count/skip/seek (conv=, ibs=, obs=, iflag=, oflag= exit 1): trial.sh never wrote its tl log and could not restore the stock env after a failed saveenv. Fixed with a host-built tl template overlaid via 1<> and whole-partition writes",
+    "stock BusyBox 1.18.4 grep has no -x: trial.sh's manifest check always reported host=fail, which blocks final. Fixed with an anchored grep -q",
+    "stock BusyBox 1.18.4 wget sends --post-data form-escaped (%XX for every byte outside A-Za-z0-9 and !&'()*-.=_~): serve_migration.py stored the trial log as received and build_stockboot.py collect could not read a single flag, which blocks final. serve_migration.py now decodes that form. The builder and the x86 E2E dd/grep/wget behave like the stock applets; the qemu run probes the stock dd, grep and wget --post-data and the option parsing of the stubbed or blocked udhcpc, wget and mount",
+    "serve_migration.py replied to a refused upload without reading its body; the reset connection could hide the status (a flaky x86 test). Refused bodies are now read and dropped up to 1 MiB first",
+    "validator children (tests, server, qemu-arm) and temp dirs survived SIGTERM",
+    "three validator-side mistakes (runapp match string, missing stock readlink, host timing threshold)",
+    "inherited: OpenIPC wget --post-file stops at the first NUL (mdat sent base64); stock sh has no $((...))"
+  ],
+  "hardening": [
+    "diagnose refuses when 16 reads of the weak block (0x6c4f28) differ",
+    "trial and final envs must not carry a uImage magic at 0x050000 (OpenIPC split-layout probe)",
+    "trial.sh reboots at once when migrate.conf is missing instead of ending its shell"
   ],
   "delivery_sender_implemented": false,
   "update_envelope_created": false,
   "legacy_update_guards_unchanged": true,
-  "original_main_head_unchanged_since_start": true,
+  "vendor_uboot_written": false,
   "camera_connections_in_this_stage": 0,
   "real_device_writes": 0,
   "real_reboots": 0,

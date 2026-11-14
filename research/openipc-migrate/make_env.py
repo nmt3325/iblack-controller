@@ -1,5 +1,14 @@
 #!/usr/bin/env python3
-"""Build the 64 KiB U-Boot environment image written at 0x40000 by the migration.
+"""Build the 64 KiB OpenIPC environment image for the migration.
+
+--layout stockboot (default, the Wi-Fi-only iBlack plan of stock_layout.py):
+the image is written at 0x60000, the "env" partition of the final layout. The
+vendor U-Boot never reads it (it keeps its own env at 0x40000); the OpenIPC
+userland does (fw_printenv: wlandev/wlanssid/wlanpass, osmem, ...), so the
+layout keys (mtdparts, kernaddr/kernsize, rootaddr/rootsize, osmem) and
+bootcmd/bootargs are replaced by the values the vendor env really boots with.
+--layout openipc-uboot (legacy plan, NOT for a unit without UART): the image
+is the env of the OpenIPC U-Boot at 0x40000 with its own default layout.
 
 Offline only. Reads the pinned OpenIPC nor U-Boot, decompresses its LZMA
 payload, extracts the built-in default environment (later duplicates win, as
@@ -29,9 +38,15 @@ import sys
 import zlib
 from pathlib import Path
 
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+import stock_layout  # noqa: E402
+
 PINNED_UBOOT_SHA256 = "1e76dac4f843ba1f20767a3b9b0e2d4a6b553bca0550e4baf091c4a147ca1cd3"
 LZMA_OFFSET = 0x3264          # LZMA-alone payload inside the pinned nor U-Boot
-ENV_SIZE = 0x10000            # 64 KiB env sector at 0x40000 (non-redundant)
+ENV_SIZE = 0x10000            # 64 KiB env sector (non-redundant)
+LAYOUTS = ("stockboot", "openipc-uboot")
+STOCKBOOT_OVERRIDES = {**stock_layout.OIPC_ENV_LAYOUT, "bootcmd": stock_layout.FINAL_BOOTCMD,
+                       "bootargs": stock_layout.FINAL_BOOTARGS}
 DEFAULT_WLANDEV = "mt7601u-hi3518ev100-camhi"
 ALLOWED_KEYS = ("wlandev", "wlanssid", "wlanpass", "wlanmac", "ethaddr", "netaddr_fallback")
 SECRET_KEYS = ("wlanssid", "wlanpass")
@@ -136,8 +151,12 @@ def parse_private_vars(path: Path) -> dict:
     return out
 
 
-def build_env_image(entries: list, additions: dict) -> bytes:
+def build_env_image(entries: list, additions: dict, layout: str = "openipc-uboot") -> bytes:
+    if layout not in LAYOUTS:
+        raise EnvError(f"unknown layout {layout!r}")
     merged, _, _ = effective(list(entries) + sorted(additions.items()))
+    if layout == "stockboot":
+        merged = stock_layout.replace_values(merged, STOCKBOOT_OVERRIDES)
     data = b"".join(f"{k}={v}".encode() + b"\0" for k, v in merged) + b"\0"
     if len(data) > ENV_SIZE - 4:
         raise EnvError("environment does not fit into 64 KiB")
@@ -164,6 +183,8 @@ def main(argv=None) -> int:
     ap.add_argument("--private-vars", type=Path, help="key=value file (0600) with wlanssid/wlanpass etc.")
     ap.add_argument("--wlandev", default=DEFAULT_WLANDEV)
     ap.add_argument("--allow-no-wifi", action="store_true", help="permit an image without wlanssid/wlanpass")
+    ap.add_argument("--layout", choices=LAYOUTS, default="stockboot",
+                    help="stockboot: env partition 0x60000 of the stock-U-Boot plan (default)")
     ap.add_argument("--output-dir", type=Path, required=True)
     args = ap.parse_args(argv)
     try:
@@ -182,17 +203,19 @@ def main(argv=None) -> int:
                            "(pass --allow-no-wifi only if Ethernet is available)")
         defaults = extract_default_env(decompress_uboot(raw))
         base, dups, deletions = effective(defaults)
-        img = build_env_image(defaults, additions)
+        img = build_env_image(defaults, additions, args.layout)
         parsed = parse_env_image(img)
         out.mkdir(mode=0o700, parents=True, exist_ok=True)
-        img_path, sum_path = out / "env.img", out / "env-summary.json"
+        stem = "env-openipc" if args.layout == "stockboot" else "env"
+        img_path, sum_path = out / f"{stem}.img", out / f"{stem}-summary.json"
         if img_path.exists() or sum_path.exists():
             raise EnvError("refusing to overwrite an existing env image/summary")
         fd = os.open(img_path, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
         with os.fdopen(fd, "wb") as f:
             f.write(img)
         summary = {
-            "uboot_sha256": args.uboot_sha256, "env_bytes": len(img),
+            "uboot_sha256": args.uboot_sha256, "layout": args.layout, "env_bytes": len(img),
+            "layout_keys_replaced": sorted(STOCKBOOT_OVERRIDES) if args.layout == "stockboot" else [],
             "env_sha256": hashlib.sha256(img).hexdigest(), "crc_ok": True,
             "default_keys": len(base), "default_duplicates_resolved": dups,
             "default_deletion_entries": deletions,

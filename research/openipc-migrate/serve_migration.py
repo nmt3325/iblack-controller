@@ -1,24 +1,28 @@
 #!/usr/bin/env python3
-"""LAN-side server for the online stock iBlack -> OpenIPC migration.
+"""LAN-side server for the stock-U-Boot OpenIPC migration of the Wi-Fi-only iBlack.
 
-It only answers requests from camera/stage2.sh and camera/migrate_hook.sh and
-never opens a connection to a camera. Everything it serves comes from a bundle
-written by build_migration_appfs.py. At start-up each file is re-hashed against
-bundle.json AND against the pins in the bundled copy of migrate.conf (the values
-baked into the camera's appfs), then held in memory, so later on-disk changes
-are never served.
+It only answers requests from camera/stage2.sh, camera/migrate_hook.sh and the
+one-shot camera/trial.sh and never opens a connection to a camera. Runtime and
+payload files come from a bundle written by build_migration_appfs.py; per-action
+files (env images, trial image) from an --action-dir written by
+build_stockboot.py. At start-up every file is re-hashed against its metadata,
+the bundle against the pins baked into the camera's migrate.conf, and every
+action file is re-validated with stock_layout.py; everything is then held in
+memory, so later on-disk changes are never served.
 
-Modes are fixed for the lifetime of the process:
-  standby   manifest mode=standby: the camera keeps polling on stock firmware.
-            Runtime, payload and upload endpoints stay closed.
-  abort     manifest mode=abort: phase1 stops polling; stock firmware continues.
-  rehearse  GO phrase only: the camera fetches the RAM runtime and payloads and
-            runs the installer read-only (stability check, private backup,
-            export to --backup-dir, write plan), then resumes the stock app.
-  write     GO + write phrase (needs --write-confirm): the camera rewrites its
-            flash. --reboot-confirm also lets it reboot into OpenIPC once every
-            region verified; otherwise it holds and reports until power-cycled.
-Run ids, hashes, backup bytes and request URLs are never printed.
+One mode per process (= one camera action; it is offered once under a random
+seq and withdrawn as soon as the camera reports that it started it):
+  standby / abort   the camera keeps polling / stops polling on stock firmware
+  diagnose          read-only: device info, per-block hashes, vendor env
+  collect           read-only: trial-log mailbox, vendor env, block hashes
+  probe-arm         vendor env <- saveenv probe (needs --write-confirm)
+  trial-arm         bakfs <- trial image, vendor env <- armed env (one-shot
+                    OpenIPC kernel trial); also receives the trial's reports
+  restore-env       vendor env <- the env read by diagnose
+  final             OpenIPC env + firmware + overlay, vendor env last
+--reboot-confirm additionally lets probe-arm/trial-arm/final reboot the camera.
+Uploads are stored 0600 in --backup-dir. Run ids, hashes, file contents and
+request URLs are never printed.
 """
 from __future__ import annotations
 
@@ -31,23 +35,34 @@ import http.server
 import json
 import os
 import re
+import secrets
 import stat
+import struct
 import sys
 import threading
 import time
 from dataclasses import dataclass
 from pathlib import Path
-from urllib.parse import parse_qs, urlsplit
+from urllib.parse import parse_qs, unquote_to_bytes, urlsplit
+
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+import stock_layout as sl  # noqa: E402
 
 GO_PHRASE = "yes-stage-openipc-migration"
-WRITE_PHRASE = "yes-migrate-this-camera-to-openipc"
-REBOOT_PHRASE = "yes-reboot-into-openipc"
-MODES = ("standby", "abort", "rehearse", "write")
-BUNDLE_SCHEMA = "iblack-openipc-migrate-bundle/1"
-RUNTIME_FILES = ("runtime/busybox", "runtime/ld-musl.so",
-                 "runtime/openipc_migrate.sh", "runtime/migrate_hook.sh")
-PAYLOAD_FILES = ("payload/firmware.bin", "payload/uboot.bin")
-ENV_FILE = "payload/env.img"
+# action -> (write phrase, reboot phrase, files fetched by the camera)
+ACTIONS = {
+    "diagnose": (None, None, ()),
+    "collect": (None, None, ()),
+    "probe-arm": ("yes-arm-saveenv-probe", "yes-reboot-for-saveenv-probe", ("env-probe.img",)),
+    "trial-arm": ("yes-arm-one-shot-openipc-trial", "yes-reboot-into-openipc-trial", ("trial.img", "env-armed.img")),
+    "restore-env": ("yes-restore-stock-uboot-env", None, ("env-base.img",)),
+    "final": ("yes-migrate-this-camera-to-openipc", "yes-reboot-into-openipc", ("env-final.img",)),
+}
+MODES = ("standby", "abort", *ACTIONS)
+BUNDLE_SCHEMA = "iblack-openipc-migrate-bundle/2"
+ACTION_SCHEMA = "iblack-openipc-stockboot-action/1"
+RUNTIME_FILES = ("runtime/busybox", "runtime/ld-musl.so", "runtime/om_stockboot.sh", "runtime/migrate_hook.sh")
+PAYLOAD_FILES = ("payload/firmware.bin", "payload/env-openipc.img")
 # migrate.conf key -> (served file, digest) that the camera checks it against.
 CONF_PINS = {
     "OM_RT_BB_SHA1": ("runtime/busybox", "sha1"),
@@ -56,31 +71,54 @@ CONF_PINS = {
     "OM_RT_LD_SHA1": ("runtime/ld-musl.so", "sha1"),
     "OM_RT_LD_MD5": ("runtime/ld-musl.so", "md5"),
     "OM_RT_LD_SHA256": ("runtime/ld-musl.so", "sha256"),
-    "OM_INSTALLER_SHA1": ("runtime/openipc_migrate.sh", "sha1"),
-    "OM_INSTALLER_MD5": ("runtime/openipc_migrate.sh", "md5"),
-    "OM_INSTALLER_SHA256": ("runtime/openipc_migrate.sh", "sha256"),
+    "OM_INSTALLER_SHA1": ("runtime/om_stockboot.sh", "sha1"),
+    "OM_INSTALLER_MD5": ("runtime/om_stockboot.sh", "md5"),
+    "OM_INSTALLER_SHA256": ("runtime/om_stockboot.sh", "sha256"),
     "OM_HOOK_SHA1": ("runtime/migrate_hook.sh", "sha1"),
     "OM_HOOK_MD5": ("runtime/migrate_hook.sh", "md5"),
     "OM_HOOK_SHA256": ("runtime/migrate_hook.sh", "sha256"),
     "OM_FW_SHA256": ("payload/firmware.bin", "sha256"),
-    "OM_UBOOT_SHA256": ("payload/uboot.bin", "sha256"),
+    "OM_OENV_SHA256": ("payload/env-openipc.img", "sha256"),
 }
 MAX_FILE_BYTES = 8 * 1024 * 1024
-MDAT_BYTES = 0x20000
-MAX_UPLOAD_BYTES = 256 * 1024
-MAX_REPORT_BYTES = 256 * 1024
+DRAIN_MAX = 1024 * 1024  # a refused upload body is read (and dropped) up to this before the reply
+# upload name -> (mode that accepts it, exact size or None, max decoded bytes, encoding: b64 or form)
+UPLOADS = {
+    "diag-info": ("diagnose", None, 512 * 1024, "b64"), "diag-blocks": ("diagnose", None, 64 * 1024, "b64"),
+    "diag-env": ("diagnose", sl.SENV_LEN, sl.SENV_LEN, "b64"),
+    "collect-info": ("collect", None, 16 * 1024, "b64"), "collect-tl": ("collect", sl.TL_LEN, sl.TL_LEN, "b64"),
+    "collect-env": ("collect", sl.SENV_LEN, sl.SENV_LEN, "b64"),
+    "mdat1": ("final", 0x20000, 0x20000, "b64"), "mdat2": ("final", 0x20000, 0x20000, "b64"),
+    "trial-log": ("trial-arm", None, sl.TL_TEXT_LEN, "form"),
+    **{f"log-{a}": (a, None, 256 * 1024, "b64") for a in ACTIONS},
+}
+# trial.sh has only the stock BusyBox 1.18.4 wget, which sends --post-data as application/x-www-form-urlencoded
+# with every byte outside [A-Za-z0-9] and !&'()*-.=_~ as %XX (qemu run of the real applet). A log always holds
+# spaces and newlines, so a body of only those characters and %XX is that form; any other body is taken as is.
+FORM_BODY_RE = re.compile(rb"(?:[A-Za-z0-9!&'()*.=_~-]|%[0-9A-F]{2})+")
 RUN_ID_RE = re.compile(r"[0-9a-f]{16,64}")
+HEX64_RE = re.compile(r"[0-9a-f]{64}")
 EVENT_RE = re.compile(r"[A-Za-z0-9._-]{1,96}")
-PHASES = ("1", "2", "installer")
+PHASES = ("1", "2", "installer", "trial")
 CONF_LINE_RE = re.compile(r"([A-Z][A-Z0-9_]*)='([A-Za-z0-9_.:/ -]*)'")
 REPO_ROOT = Path(__file__).resolve().parents[2]
 NOTES = {
     "standby-timeout": "camera stopped polling; stock firmware continues",
     "aborted": "camera acknowledged abort; stock firmware continues",
-    "rehearsal-ok": "rehearsal finished, stock app resumed, nothing was written",
-    "migrated-reboot-withheld": "all regions written and verified; power-cycle the camera to boot OpenIPC",
-    "migrated-reboot-failed": "verified but the reboot failed; power-cycle the camera",
-    "partial-state": "PARTIAL STATE: flash partly rewritten; keep power on, prepare UART/SPI recovery",
+    "idle-exit": "camera stopped polling (no new action); stock firmware continues",
+    "diagnose-done": "read-only diagnose finished; next: build_stockboot.py diag",
+    "collect-done": "read-only collect finished; next: build_stockboot.py collect",
+    "rebooting-probe-arm": "camera reboots into the saveenv probe (stock comes back); then run collect",
+    "rebooting-trial-arm": "camera reboots into the one-shot OpenIPC trial; wait for trial reports, then collect",
+    "trial-network-up": "trial kernel reached the LAN host over Wi-Fi",
+    "trial-completed": "trial finished; the camera reboots into stock",
+    "env-restored": "vendor env restored and verified",
+    "ponr": "FINAL PASSED ITS POINT OF NO RETURN: keep the camera powered",
+    "final-verified": "all regions written and verified; the vendor env now boots OpenIPC",
+    "stopped-dirty": "FLASH PARTLY REWRITTEN: keep power on; run final again or recover over SPI",
+    "stopped-env-unverified": "vendor env unverified: the vendor default env boots stock; run collect",
+    "hold-dirty-retry-final": "camera holds in a partial state: restart this server in final mode to retry",
+    "hold-final-verified-power-cycle": "migration verified; power-cycle the camera to boot OpenIPC",
 }
 
 
@@ -100,9 +138,16 @@ class Bundle:
     run_id: str
     host: str
     port: int
-    env_mode: str
     files: dict
     conf: dict
+
+
+@dataclass(frozen=True)
+class ActionSet:
+    action: str
+    files: dict      # name -> bytes
+    envlive: str
+    uboot: str
 
 
 def digests(data: bytes) -> dict:
@@ -139,6 +184,27 @@ def parse_conf(text: str) -> dict:
     return out
 
 
+def check_oenv(img: bytes) -> dict:
+    """The OpenIPC userland env (0x60000) must describe the final layout and carry the Wi-Fi keys."""
+    try:
+        env = dict(sl.parse_env(img, sl.OIPC_ENV_LEN))
+    except sl.LayoutError as exc:
+        raise BundleError(f"env-openipc.img: {exc}") from None
+    if env.get("mtdparts") != sl.OIPC_ENV_LAYOUT["mtdparts"] or env.get("bootcmd") != sl.FINAL_BOOTCMD:
+        raise BundleError("env-openipc.img does not describe the stock-U-Boot final layout "
+                          "(make_env.py --layout stockboot)")
+    if not all(env.get(k) for k in ("wlandev", "wlanssid", "wlanpass")):
+        raise BundleError("env-openipc.img lacks wlandev/wlanssid/wlanpass (the unit is Wi-Fi only)")
+    return env
+
+
+def check_firmware(fw: bytes) -> dict:
+    try:
+        return sl.plan(fw)["firmware"]
+    except sl.LayoutError as exc:
+        raise BundleError(f"firmware.bin: {exc}") from None
+
+
 def load_bundle(root) -> Bundle:
     root = Path(root)
     if inside_repo(root):
@@ -150,14 +216,12 @@ def load_bundle(root) -> Bundle:
         raise BundleError(f"unreadable bundle metadata ({exc.__class__.__name__})") from None
     if not isinstance(meta, dict) or meta.get("schema") != BUNDLE_SCHEMA:
         raise BundleError("unknown bundle schema")
-    run_id, env_mode, port, host = meta.get("run_id"), meta.get("env_mode"), meta.get("port"), meta.get("host")
+    run_id, port, host = meta.get("run_id"), meta.get("port"), meta.get("host")
     if not isinstance(run_id, str) or not RUN_ID_RE.fullmatch(run_id):
         raise BundleError("bundle run_id must be 16-64 lowercase hex characters")
-    if env_mode not in ("image", "erase"):
-        raise BundleError("bundle env_mode must be image or erase")
     if not isinstance(port, int) or not 0 < port < 65536 or not isinstance(host, str):
         raise BundleError("bundle host/port are invalid")
-    expected = list(RUNTIME_FILES + PAYLOAD_FILES) + ([ENV_FILE] if env_mode == "image" else [])
+    expected = list(RUNTIME_FILES + PAYLOAD_FILES)
     listed = meta.get("files")
     if not isinstance(listed, dict) or sorted(listed) != sorted(expected):
         raise BundleError("bundle file list differs from the protocol")
@@ -171,14 +235,70 @@ def load_bundle(root) -> Bundle:
         if d["size"] != listed[rel].get("size") or d["sha256"] != listed[rel].get("sha256"):
             raise BundleError(f"{rel}: differs from bundle.json")
         files[rel] = BundleFile(data, d)
+    check_firmware(files["payload/firmware.bin"].data)
+    check_oenv(files["payload/env-openipc.img"].data)
     checks = {key: files[rel].digests[kind] for key, (rel, kind) in CONF_PINS.items()}
-    checks.update({"OM_RUN_ID": run_id, "OM_ENV_MODE": env_mode, "OM_PORT": str(port), "OM_HOST": host,
-                   "OM_ENV_SHA256": files[ENV_FILE].digests["sha256"] if env_mode == "image" else "",
+    checks.update({"OM_RUN_ID": run_id, "OM_PORT": str(port), "OM_HOST": host,
                    "OM_STAGE2_SHA256": meta.get("stage2_sha256")})
     for key, want in checks.items():
         if conf.get(key) != want:
             raise BundleError(f"migrate.conf {key} does not match the served bundle")
-    return Bundle(root.resolve(), run_id, host, port, env_mode, files, conf)
+    return Bundle(root.resolve(), run_id, host, port, files, conf)
+
+
+def validate_action_file(name: str, data: bytes) -> None:
+    try:
+        if name == "trial.img":
+            if len(data) != sl.TRIAL_LEN:
+                raise sl.LayoutError("trial.img must be exactly the bakfs size")
+            k = sl.uimage_info(data)
+            if k["total"] > sl.TK_LEN or data[sl.TK_LEN:sl.TK_LEN + 4] != b"hsqs":
+                raise sl.LayoutError("trial.img: kernel too large or no SquashFS payload at 0x1d0000")
+            if struct.unpack_from("<Q", data, sl.TK_LEN + 40)[0] > sl.TP_LEN:
+                raise sl.LayoutError("trial payload exceeds the tp partition")
+            return
+        env = dict(sl.parse_env(data))
+        want = {"env-probe.img": sl.probe_bootcmd(sl.STOCK_BOOTCMD),
+                "env-armed.img": sl.trial_bootcmd(sl.STOCK_BOOTCMD),
+                "env-base.img": sl.STOCK_BOOTCMD, "env-final.img": sl.FINAL_BOOTCMD}[name]
+        if env.get("bootcmd") != want:
+            raise sl.LayoutError(f"{name} does not carry the planned bootcmd")
+        if name == "env-final.img" and (env.get("bootargs") != sl.FINAL_BOOTARGS or env.get("verify") != "y"):
+            raise sl.LayoutError("env-final.img lacks the final bootargs or verify=y")
+        if name != "env-armed.img" and any(sl.TRIAL_MARK in f"{k}={v}" for k, v in env.items()):
+            raise sl.LayoutError(f"{name} carries the trial marker")
+    except sl.LayoutError as exc:
+        raise BundleError(f"action file {name}: {exc}") from None
+
+
+def load_action_dir(path, action: str) -> ActionSet:
+    path = Path(path)
+    if inside_repo(path):
+        raise BundleError("refusing an action directory inside the Git repository")
+    try:
+        meta = json.loads(read_regular(path / "action.json", 1 << 16))
+    except (OSError, UnicodeDecodeError, json.JSONDecodeError) as exc:
+        raise BundleError(f"unreadable action.json ({exc.__class__.__name__})") from None
+    if not isinstance(meta, dict) or meta.get("schema") != ACTION_SCHEMA or meta.get("action") != action:
+        raise BundleError(f"action directory is not a {action} set from build_stockboot.py")
+    listed = meta.get("files")
+    if not isinstance(listed, dict) or sorted(listed) != sorted(ACTIONS[action][2]):
+        raise BundleError("action file list differs from the protocol")
+    for key in ("envlive", "uboot"):
+        if not isinstance(meta.get(key), str) or not HEX64_RE.fullmatch(meta[key]):
+            raise BundleError(f"action.json {key} must be a sha256 digest")
+    files = {}
+    for name, want in listed.items():
+        try:
+            data = read_regular(path / name)
+        except OSError as exc:
+            raise BundleError(f"{name}: {exc.__class__.__name__}") from None
+        if (not isinstance(want, dict) or len(data) != want.get("size")
+                or hashlib.sha256(data).hexdigest() != want.get("sha256")):
+            raise BundleError(f"{name}: differs from action.json")
+        validate_action_file(name, data)
+        files[name] = data
+    return ActionSet(action, files, meta["envlive"], meta["uboot"])
 
 
 def private_dir(path) -> Path:
@@ -195,6 +315,11 @@ def private_dir(path) -> Path:
 class _HTTPServer(http.server.ThreadingHTTPServer):
     daemon_threads = True
     allow_reuse_address = True
+
+
+def decode_post_data(body: bytes) -> bytes:
+    """A wget --post-data body as the camera script had it (see FORM_BODY_RE)."""
+    return unquote_to_bytes(body) if FORM_BODY_RE.fullmatch(body) else body
 
 
 class _Handler(http.server.BaseHTTPRequestHandler):
@@ -214,6 +339,20 @@ class _Handler(http.server.BaseHTTPRequestHandler):
         self.end_headers()
         if body:
             self.wfile.write(body)
+
+    def _refuse(self, code: int, body: bytes) -> None:
+        """Replies to a POST whose body was not read yet: closing on unread data resets the connection, and the
+        client may then never see the status, so up to DRAIN_MAX of the body is read and dropped first."""
+        try:
+            left = min(max(int(self.headers.get("Content-Length", "0")), 0), DRAIN_MAX)
+        except ValueError:
+            left = 0
+        while left > 0:
+            chunk = self.rfile.read(min(left, 65536))
+            if not chunk:
+                break
+            left -= len(chunk)
+        self._send(code, body)
 
     def _authorized(self):
         parts = urlsplit(self.path)
@@ -241,14 +380,13 @@ class _Handler(http.server.BaseHTTPRequestHandler):
                 return
             app.record(phase, event)
             self._send(200, b"ok\n")
-        elif path[1:] in app.bundle.files:
-            if not app.serving:
-                self._send(403, b"no GO in this mode\n")
-                return
-            app.count_served(path[1:])
-            self._send(200, app.bundle.files[path[1:]].data, "application/octet-stream")
         else:
-            self._send(404, b"not found\n")
+            data = app.servable(path[1:])
+            if data is None:
+                self._send(404 if not app.go else 403, b"not served in this mode\n")
+                return
+            app.count_served(path[1:], len(data))
+            self._send(200, data, "application/octet-stream")
 
     def do_POST(self):
         got = self._authorized()
@@ -256,72 +394,87 @@ class _Handler(http.server.BaseHTTPRequestHandler):
             return
         path, _ = got
         app = self.server.app
-        if path not in ("/upload/mdat1", "/upload/mdat2", "/report"):
-            self._send(404, b"not found\n")
+        name = path[len("/upload/"):] if path.startswith("/upload/") else None
+        spec = UPLOADS.get(name)
+        if spec is None:
+            self._refuse(404, b"not found\n")
             return
-        if not app.serving:
-            self._send(403, b"no GO in this mode\n")
+        mode, exact, limit, enc = spec
+        if mode != app.mode:
+            self._refuse(403, b"upload not accepted in this mode\n")
             return
         try:
             length = int(self.headers.get("Content-Length", ""))
         except ValueError:
             self._send(411, b"length required\n")
             return
-        if not 0 < length <= (MAX_REPORT_BYTES if path == "/report" else MAX_UPLOAD_BYTES):
-            self._send(413, b"bad length\n")
+        if not 0 < length <= (3 * limit if enc == "form" else limit * 4 // 3 + 4096):
+            self._refuse(413, b"bad length\n")
             return
         body = self.rfile.read(length)
         if len(body) != length:
             self._send(400, b"short body\n")
             return
-        if path == "/report":
-            app.save_report(body)
-            self._send(200, b"ok\n")
-            return
         if app.fail_uploads:  # offline fault injection only
             self._send(500, b"upload rejected\n")
             return
-        try:
-            data = base64.b64decode(b"".join(body.split()), validate=True)
-        except (binascii.Error, ValueError):
-            self._send(400, b"bad base64\n")
+        if enc == "form":
+            data = decode_post_data(body)
+        else:
+            try:
+                data = base64.b64decode(b"".join(body.split()), validate=True)
+            except (binascii.Error, ValueError):
+                self._send(400, b"bad base64\n")
+                return
+        if (exact is not None and len(data) != exact) or len(data) > limit or not data:
+            self._send(422, b"unexpected size\n")
             return
-        if len(data) != MDAT_BYTES:
-            self._send(422, b"backup must be exactly 128 KiB\n")
-            return
-        digest = app.save_backup(path.rsplit("/", 1)[1], data)
-        self._send(200, (digest + "\n").encode())
+        digest = app.save_upload(name, data)
+        self._send(200, (digest + "\n").encode() if enc == "b64" else b"ok\n")
 
 
 class MigrationServer:
-    """One migration run: fixed mode, in-memory bundle, private backup dir."""
+    """One camera action per process: fixed mode, in-memory files, private upload dir."""
 
-    def __init__(self, bundle: Bundle, mode: str, *, backup_dir=None, write_confirm=None,
-                 reboot_confirm=None, bind: str = "127.0.0.1", port: int = 0, out=None):
+    def __init__(self, bundle: Bundle, mode: str, *, action_set: ActionSet = None, backup_dir=None,
+                 write_confirm=None, reboot_confirm=None, bind: str = "127.0.0.1", port: int = 0, out=None):
         if mode not in MODES:
             raise ValueError(f"unknown mode {mode!r}")
-        if (mode == "write") != (write_confirm is not None) or write_confirm not in (None, WRITE_PHRASE):
-            raise ValueError(f"write mode needs --write-confirm {WRITE_PHRASE} (and only write mode takes it)")
-        if reboot_confirm is not None and (mode != "write" or reboot_confirm != REBOOT_PHRASE):
-            raise ValueError(f"--reboot-confirm {REBOOT_PHRASE} is only valid in write mode")
-        self.bundle, self.mode, self.reboot = bundle, mode, reboot_confirm is not None
+        wphrase, rphrase, needed = ACTIONS.get(mode, (None, None, ()))
+        if write_confirm is not None and write_confirm != wphrase:
+            raise ValueError(f"--write-confirm does not match mode {mode}"
+                             + (f" (expected {wphrase})" if wphrase else ""))
+        if wphrase and write_confirm is None:
+            raise ValueError(f"mode {mode} writes flash: pass --write-confirm {wphrase}")
+        if reboot_confirm is not None and (rphrase is None or reboot_confirm != rphrase):
+            raise ValueError(f"--reboot-confirm does not match mode {mode}"
+                             + (f" (expected {rphrase})" if rphrase else ""))
+        if needed and (action_set is None or action_set.action != mode):
+            raise ValueError(f"mode {mode} needs --action-dir from build_stockboot.py {mode}")
+        if not needed and action_set is not None:
+            raise ValueError(f"mode {mode} takes no --action-dir")
+        self.bundle, self.mode, self.action_set = bundle, mode, action_set
+        self.write, self.reboot = write_confirm is not None, reboot_confirm is not None
+        self.seq = secrets.token_hex(8)
+        self.consumed = False
         self.backup_dir = None
-        if mode in ("rehearse", "write"):
+        if self.go:
             if backup_dir is None:
-                raise ValueError("--backup-dir is required in rehearse and write modes")
+                raise ValueError("--backup-dir is required in every action mode")
             self.backup_dir = private_dir(backup_dir)
         self.out = out or sys.stdout
         self.lock = threading.Lock()
-        self.events, self.served, self.backups, self.reports = [], {}, {}, []
+        self.events, self.served, self.uploads = [], {}, {}
         self.refused = self.saved = 0
+        self.action_rc = None
         self.fail_uploads = False
         self.httpd = _HTTPServer((bind, port), _Handler)
         self.httpd.app = self
         self._thread = None
 
     @property
-    def serving(self) -> bool:
-        return self.mode in ("rehearse", "write")
+    def go(self) -> bool:
+        return self.mode in ACTIONS
 
     @property
     def address(self):
@@ -332,15 +485,30 @@ class MigrationServer:
 
     def manifest(self) -> bytes:
         lines = [f"run={self.bundle.run_id}"]
-        if self.mode in ("standby", "abort"):
-            lines.append(f"mode={self.mode}")
+        with self.lock:
+            consumed = self.consumed
+        if not self.go or consumed:
+            lines.append(f"mode={'abort' if self.mode == 'abort' else 'standby'}")
         else:
-            lines += ["mode=go", f"go={GO_PHRASE}"]
-            if self.mode == "write":
-                lines.append(f"write={WRITE_PHRASE}")
+            lines += ["mode=go", f"go={GO_PHRASE}", f"action={self.mode}", f"seq={self.seq}"]
+            if self.action_set is not None:
+                lines += [f"uboot={self.action_set.uboot}", f"envlive={self.action_set.envlive}"]
+                lines += [f"f.{n}={hashlib.sha256(d).hexdigest()}" for n, d in sorted(self.action_set.files.items())]
+            wphrase, rphrase, _ = ACTIONS[self.mode]
+            if self.write:
+                lines.append(f"write={wphrase}")
                 if self.reboot:
-                    lines.append(f"reboot={REBOOT_PHRASE}")
+                    lines.append(f"reboot={rphrase}")
         return ("\n".join(lines) + "\n").encode()
+
+    def servable(self, rel: str):
+        if not self.go:
+            return None
+        if rel in RUNTIME_FILES or (self.mode == "final" and rel in PAYLOAD_FILES):
+            return self.bundle.files[rel].data
+        if rel.startswith("action/") and self.action_set is not None:
+            return self.action_set.files.get(rel[len("action/"):])
+        return None
 
     def note_refused(self) -> None:
         with self.lock:
@@ -350,38 +518,48 @@ class MigrationServer:
     def record(self, phase: str, event: str) -> None:
         with self.lock:
             self.events.append((time.time(), phase, event))
-        note = NOTES.get(event)
+            if phase == "2" and event == f"action-start-{self.mode}" and not self.consumed:
+                self.consumed = True
+                withdrawn = True
+            else:
+                withdrawn = False
+            m = re.fullmatch(r"action-rc-(.+)-(\d+)", event)
+            if phase == "2" and m and m.group(1) == self.mode:
+                self.action_rc = int(m.group(2))
+        note = NOTES.get(event) or ("FINAL INCOMPLETE: keep power on; run final again or recover over SPI"
+                                    if event.startswith("final-degraded") else None)
         self.say(f"phase={phase} event={event}" + (f" -- {note}" if note else ""))
+        if withdrawn:
+            self.say(f"{self.mode} started on the camera; action withdrawn (one-shot)")
+        if self.backup_dir is not None:
+            self._append_event(f"{time.strftime('%Y-%m-%dT%H:%M:%S')} {phase} {event}\n")
 
-    def count_served(self, rel: str) -> None:
+    def _append_event(self, line: str) -> None:
+        with self.lock:
+            fd = os.open(self.backup_dir / "events.log", os.O_WRONLY | os.O_CREAT | os.O_APPEND |
+                         getattr(os, "O_NOFOLLOW", 0), 0o600)
+            with os.fdopen(fd, "a") as fh:
+                fh.write(line)
+
+    def count_served(self, rel: str, size: int) -> None:
         with self.lock:
             self.served[rel] = self.served.get(rel, 0) + 1
-        self.say(f"served {rel} ({len(self.bundle.files[rel].data)} B)")
+        self.say(f"served {rel} ({size} B)")
 
-    def _save(self, stem: str, suffix: str, data: bytes) -> None:
+    def save_upload(self, name: str, data: bytes) -> str:
+        digest = hashlib.sha256(data).hexdigest()
         with self.lock:
             self.saved += 1
-            name = f"{stem}-{time.strftime('%Y%m%dT%H%M%S')}-{self.saved:03d}{suffix}"
+            fname = f"{name}-{time.strftime('%Y%m%dT%H%M%S')}-{self.saved:03d}.bin"
             flags = os.O_WRONLY | os.O_CREAT | os.O_EXCL | getattr(os, "O_NOFOLLOW", 0)
-            fd = os.open(self.backup_dir / name, flags, 0o600)
-            with os.fdopen(fd, "wb") as fh:
+            fd = os.open(self.backup_dir / fname, flags, 0o600)
+            with os.fdopen(fd, "wb") as fh:  # durable before the camera is told to go on
                 fh.write(data)
                 fh.flush()
                 os.fsync(fh.fileno())
-
-    def save_backup(self, name: str, data: bytes) -> str:
-        digest = hashlib.sha256(data).hexdigest()
-        self._save(name, ".bin", data)  # durable before the camera is told to go on
-        with self.lock:
-            self.backups[name] = digest
-        self.say(f"backup {name}: {len(data)} B stored privately (0600); confirming to the camera")
+            self.uploads.setdefault(name, []).append(digest)
+        self.say(f"upload {name}: {len(data)} B stored privately (0600)")
         return digest
-
-    def save_report(self, data: bytes) -> None:
-        self._save("migrate", ".log", data)
-        with self.lock:
-            self.reports.append(data)
-        self.say(f"installer log received ({len(data)} B), stored privately")
 
     def start(self):
         self._thread = threading.Thread(target=self.httpd.serve_forever, kwargs={"poll_interval": 0.2}, daemon=True)
@@ -399,29 +577,31 @@ def main(argv=None) -> int:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--bundle", type=Path, required=True, help="output directory of build_migration_appfs.py")
     ap.add_argument("--mode", choices=MODES, default="standby")
+    ap.add_argument("--action-dir", type=Path, help="output of build_stockboot.py for this mode")
     ap.add_argument("--bind", help="listen address (default: the OM_HOST baked into the appfs)")
     ap.add_argument("--port", type=int, help="listen port (default: the OM_PORT baked into the appfs)")
-    ap.add_argument("--backup-dir", type=Path, help="private directory for mdat backups and installer logs")
+    ap.add_argument("--backup-dir", type=Path, help="private directory for uploads (diag, collect, mdat, logs)")
     ap.add_argument("--write-confirm", metavar="PHRASE")
     ap.add_argument("--reboot-confirm", metavar="PHRASE")
     args = ap.parse_args(argv)
     os.umask(0o077)
     try:
         bundle = load_bundle(args.bundle)
+        action_set = load_action_dir(args.action_dir, args.mode) if args.action_dir else None
         bind = args.bind or bundle.host
         port = bundle.port if args.port is None else args.port
-        srv = MigrationServer(bundle, args.mode, backup_dir=args.backup_dir, write_confirm=args.write_confirm,
-                              reboot_confirm=args.reboot_confirm, bind=bind, port=port)
+        srv = MigrationServer(bundle, args.mode, action_set=action_set, backup_dir=args.backup_dir,
+                              write_confirm=args.write_confirm, reboot_confirm=args.reboot_confirm,
+                              bind=bind, port=port)
     except (BundleError, ValueError, OSError) as exc:
         print(f"serve_migration: {exc}", file=sys.stderr)
         return 2
     host, port = srv.address
-    srv.say(f"mode={args.mode} env={bundle.env_mode} listening on {host}:{port}; Ctrl-C stops")
+    srv.say(f"mode={args.mode} listening on {host}:{port}; Ctrl-C stops")
     if (host, port) != (bundle.host, bundle.port):
         srv.say(f"note: the camera calls {bundle.host}:{bundle.port} (baked into its appfs)")
-    if args.mode == "write":
-        srv.say("WRITE MODE: a camera reaching phase2 rewrites its whole 8 MiB flash"
-                + (" and reboots" if srv.reboot else ""))
+    if srv.write:
+        srv.say(f"WRITE MODE {args.mode}: the camera will modify its flash" + (" and reboot" if srv.reboot else ""))
     try:
         srv.httpd.serve_forever(poll_interval=0.5)
     except KeyboardInterrupt:

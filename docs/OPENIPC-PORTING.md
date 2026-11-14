@@ -2,15 +2,31 @@
 
 ## 判断
 
-**Telnetログインなしでも、純正TCP3508更新サービスの `0x96` → 診断用appfs → RAM上の移行処理、という導入経路は成立する見込みがある。ただし、実機移行を許可できる状態ではない。**
+**Telnetログインなしでも、純正TCP3508更新サービスの `0x96` → 移行用appfs → RAM上の移行処理、という導入経路は成立する見込みがある。そのうちLAN上のホストから進めるオンライン移行処理は実装し、x86とqemu-armでのオフライン検証まで終えた。ただし、実機移行を許可できる状態ではない。**
 
-この段階で確認したのは、純正ARMコードを使った実サイズのオフライン更新試験と、取得済みOpenIPCイメージの構造・配置・実装である。カメラへ新しいイメージを送っていない。フラッシュ書込み・再起動も行っていない。
+この段階で確認したのは、純正ARMコードを使った実サイズのオフライン更新試験、取得済みOpenIPCイメージの構造・配置・実装、そして移行処理一式（[`research/openipc-migrate`](../research/openipc-migrate/README.md)）の動作である。カメラへ新しいイメージを送っていない。フラッシュ書込み・再起動も行っていない。移行appfsを `0x96` で届ける送信部は、意図して実装していない。
 
 中止条件は現在も **`flash_write_allowed: false`**。主な理由は、既存bakfsの読出し不一致、新U-Bootの実基板未検証、RAM-root／watchdog引継ぎの未検証である。
 
 調査資料・再現コード・機密除去済みの結果はこのGitリポジトリを正本とする。Notionへのファイル添付は行わない。元ダンプ・個体設定・秘密値・PCAP・送信用更新データはGitに入れない。
 
-## 今回進んだ点
+## オンライン移行の実装
+
+実装と再実行の手順は [`research/openipc-migrate`](../research/openipc-migrate/README.md) にある。確認はすべてオフライン（x86ホストと、qemu-armのユーザーモードでの10検査）で、実機では動かしていない。
+
+| 項目 | 結果 | 限界 |
+| --- | --- | --- |
+| 移行appfs（純正appfs＋`stage2.sh`＋`migrate.conf`＋起動行） | 実入力で2,613,248 B。`0x96` 経路の上限2,621,432 Bに対して余裕は8,184 B。純正の既存58項目のうち変更は `runapp.sh` だけ | 送信部は未実装。`0x96` はbakfsも書き換える |
+| phase1（純正BusyBox 1.18.4のsh） | qemu上で実物の純正shとアプレットが、ポーリング、GO受信、runtimeの取得とSHA-1／MD5照合、phase2への受け渡しまで通った | x86ではARMバイナリをラッパー経由で起動した |
+| phase2・installer・hook（OpenIPC BusyBox 1.36.1、musl） | qemu上で、配布物のSHA-256照合、純正アプリの停止、読出しの安定性確認、mdat退避のbase64送信と照合、4領域の書込みと最終照合を通した。書込み先はシミュレーション用のファイル | 実MTDドライバ、実フラッシュの消去・書込み、電源断は未検証 |
+| x86のユニット・E2E | 103件と、インストーラーのシミュレーション26件が成功 | BusyBoxはDebian版で代用 |
+
+検証で見つけて直した不具合が2つある。
+
+- OpenIPCの `wget --post-file` は最初のNULで送信を止める。mdatの退避をそのまま送るとホストには先頭しか届かない。base64で送り、ホストが返す復号後のSHA-256を手元と照合してから書込みに進むようにした。
+- 純正shは `$((...))` なしでビルドされており、最後の分岐に着く前にファイル内の関数をすべて解析する。phase2側の `$((...))` のせいで、phase1が始まる前に構文エラーで終わっていた。x86のE2Eでは見えず、qemuで実物の純正shを動かして見つかった。
+
+## 配置・純正更新経路の検証（前段）
 
 | 調査 | 結果 | 限界 |
 | --- | --- | --- |
@@ -114,7 +130,9 @@
 
 これを純正上でそのまま起動してよいという意味ではない。純正BusyBoxのアプレット不足・uClibc ABI・PID1・マウント構成・watchdog設定に合わせた、検証済み移行ランタイムが別途必要。単に `/tmp` にスクリプトを置くだけでは、実行中のシェル／共有ライブラリが消去対象に残り得る。
 
-今回のfirmware＋boot領域＋envだけで最低7,340,032 Bを保持する。これはバイナリの最低ステージ量であり、RAM-root、復号バッファ、プロセス、ページキャッシュ等を含むピーク必要RAMではない。「空き約22 MBなら十分」とはまだ結論しない。
+実装した移行処理では、OpenIPCのBusyBoxとmuslローダーを `/dev/om`（RAM）に置き、BusyBoxのPT_INTERPを `/dev/om/ld-musl.so` に書き換えて、純正rootfsの隣で動かす。書込み後は終了せず、純正initへ戻らない。watchdogデバイスがある場合、今の実装は純正アプリの停止を拒否する。実機にwatchdogがあれば、引継ぎを別に設計する必要がある。
+
+今回のfirmware＋boot領域＋envだけで最低7,340,032 Bを保持する。これはバイナリの最低ステージ量であり、RAM-root、復号バッファ、プロセス、ページキャッシュ等を含むピーク必要RAMではない。「空き約22 MBなら十分」とはまだ結論しない。移行処理は、空きRAMの推定が12 MiB未満か、`/dev/om` の空きが10 MiB未満なら始めない。このしきい値は実測前の仮の値である。
 
 ## 5. 未解決事項と次の順序
 
@@ -122,13 +140,14 @@
 2. **所有者の確認を経た診断段階**：SoC刻印、実際のeraseサイズ・保護属性、利用可能RAM、watchdog所有者、USB認識を収集する。診断appfs自体も両アプリ領域の書換えと再起動を伴うため、無断で投入しない。
 3. **RAM上だけのリハーサル**：全資材を先に取得・ハッシュ確認し、旧rootに依存しない実行環境、watchdog引継ぎ、設定の私的退避を確かめる。
 4. **電源・復旧手段と新U-Bootの確認**：初号機はSPI等の独立復旧手段を用意するのが安全。TFTP/U-Boot復旧も、そのコード自体が起動しなければ使えない。
-5. **個別の明示承認後だけ移行**：firmware→overlay初期化／設定→env→bootloaderを最後、という順序候補で検討する。最後にbootを書くことは原子的な更新を意味しない。途中で電源が切れると、旧firmwareも新firmwareも起動できない期間がある。
+5. **個別の明示承認後だけ移行**：実装した書込み順はbootloader→env→firmware→overlay。純正U-Bootはsplit配置を起動できないが、OpenIPCのnor U-BootはカーネルのCRC不良を検出するとTFTP（`fwupd`）での復旧に入るので、先に書く。ただし、iBlackにEthernetがあるかは未確認で、TFTPの宛先も公開U-Bootの既定アドレスのままである。bootloaderを最後に書く順序は比較用に計画へ残した（[`migrate-plan.json`](../research/openipc-migrate/results/migrate-plan.json)）。どちらの順序でも原子的な更新ではなく、途中で電源が切れると起動できない期間がある。新U-Bootがこの基板で起動しなければ、復旧手段はSPIだけになる。rehearsal（読取り専用）を通してから電源を入れ直し、書込みへ進む。
 
 移行後の通常更新はOpenIPCの対応 `sysupgrade -k -r` またはWeb UIを候補とし、設定はoverlayへ置き、意図しない `-n` を避ける。これは初回の純正→OpenIPC移行とは別工程である。[^https://github.com/OpenIPC/wiki/blob/master/en/nor-split-layout.md]
 
 ## 関連資料
 
 - [再現手順と安全範囲](../research/openipc-port/README.md)
+- [オンライン移行の実装と検証](../research/openipc-migrate/README.md)
 - [既存の純正更新形式解析](FIRMWARE-SELF-UPDATE.md)
 - [OpenIPC split NOR仕様](https://github.com/OpenIPC/wiki/blob/master/en/nor-split-layout.md)
 - [EV100 U-Boot関連の既存課題](https://github.com/OpenIPC/firmware/issues/1542)

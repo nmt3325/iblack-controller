@@ -1,0 +1,168 @@
+{
+  "camera_contacted": false,
+  "checks": {
+    "full_chain_write": {
+      "backups_confirmed": true,
+      "flash_matches_expected": true,
+      "installer_events": [
+        "writing-start",
+        "region-begin-bootloader",
+        "region-done-bootloader",
+        "region-begin-env",
+        "region-done-env",
+        "region-begin-firmware",
+        "region-done-firmware",
+        "region-begin-overlay",
+        "region-done-overlay",
+        "verified"
+      ],
+      "log_reports": 1,
+      "note": "phase1 ran under the stock sh/applets, phase2, installer and hook under the OpenIPC sh",
+      "phase1_events": [
+        "go-received",
+        "runtime-ready"
+      ],
+      "phase2_events": [
+        "phase2-start",
+        "payloads-verified",
+        "installer-start-write",
+        "installer-rc-0",
+        "migrated"
+      ],
+      "rc": 0,
+      "refused": 0,
+      "result": "PASS",
+      "seconds": 30.8,
+      "served": {
+        "payload/env.img": 1,
+        "payload/firmware.bin": 1,
+        "payload/uboot.bin": 1,
+        "runtime/busybox": 1,
+        "runtime/ld-musl.so": 1,
+        "runtime/migrate_hook.sh": 1,
+        "runtime/openipc_migrate.sh": 1
+      },
+      "stock_app_state_after": "T"
+    },
+    "installer_rehearsal": {
+      "backups_confirmed": true,
+      "flash_unchanged": true,
+      "installer_events": [],
+      "rc": 0,
+      "result": "PASS",
+      "seconds": 41.9,
+      "stock_app_state_after": "S"
+    },
+    "installer_write_sim": {
+      "backups_confirmed": true,
+      "backups_contain_nul": true,
+      "flash_matches_expected": true,
+      "installer_events": [
+        "writing-start",
+        "region-begin-bootloader",
+        "region-done-bootloader",
+        "region-begin-env",
+        "region-done-env",
+        "region-begin-firmware",
+        "region-done-firmware",
+        "region-begin-overlay",
+        "region-done-overlay",
+        "verified"
+      ],
+      "log_tail": [
+        "[migrate] final sweep: re-verifying all four regions",
+        "[migrate] all regions written and verified in order: bootloader env firmware overlay",
+        "[migrate] DONE. Reboot withheld (needs real-write mode, --allow-reboot and the reboot confirm phrase)."
+      ],
+      "rc": 0,
+      "result": "PASS",
+      "seconds": 31.2,
+      "stock_app_state_after": "T"
+    },
+    "phase1_go_stock": {
+      "events": [
+        "go-received",
+        "runtime-exec-failed"
+      ],
+      "installed_executable": true,
+      "installed_identical": {
+        "busybox": true,
+        "ld-musl.so": true,
+        "migrate_hook.sh": true,
+        "openipc_migrate.sh": true
+      },
+      "note": "the ARM runtime cannot be exec'd on this x86 host without binfmt_misc",
+      "rc": 0,
+      "result": "PASS",
+      "seconds": 14.8,
+      "served": {
+        "runtime/busybox": 1,
+        "runtime/ld-musl.so": 1,
+        "runtime/migrate_hook.sh": 1,
+        "runtime/openipc_migrate.sh": 1
+      }
+    },
+    "phase1_standby_stock": {
+      "events": [
+        "standby",
+        "standby",
+        "standby-timeout"
+      ],
+      "rc": 0,
+      "result": "PASS",
+      "seconds": 2.8
+    },
+    "raw_post_truncates": {
+      "file_bytes": 131072,
+      "rc": 0,
+      "received_bytes": 1000,
+      "result": "PASS"
+    },
+    "runtime_on_stock_root": {
+      "arithmetic": "42",
+      "required_applets_missing": [],
+      "result": "PASS",
+      "runtime_applets": 227,
+      "sha256sum_matches": true,
+      "stock_rootfs_has_musl_loader": false,
+      "true_rc": 0,
+      "unpatched_rc": 255
+    },
+    "runtime_patch": {
+      "bytes_changed": 19,
+      "interp": "/dev/om/ld-musl.so",
+      "patched_runtime_sha256": "fe84570fbdec63f016956bddc4ea9b1f65f48aaf8e224eec23aac37516879f87",
+      "pinned_openipc_busybox_sha256": "9894f631a3f64477904eaa03eadaf218feeb1920d23e881021295a88d7255699",
+      "result": "PASS"
+    },
+    "shells_parse": {
+      "openipc_sh_n_hook": 0,
+      "openipc_sh_n_installer": 0,
+      "openipc_sh_n_stage2": 0,
+      "result": "PASS",
+      "runapp_ends_with_launcher": true,
+      "stock_sh_n_conf": 0,
+      "stock_sh_n_runapp": 0,
+      "stock_sh_n_stage2": 0,
+      "stock_sh_sources_conf": true
+    },
+    "stock_applets": {
+      "equals_e2e_list": true,
+      "non_stock_words_present": [],
+      "result": "PASS",
+      "stock_applets": 79
+    }
+  },
+  "date_utc": "2026-11-14T05:54:37Z",
+  "emulator": "qemu-arm user mode, -cpu arm926",
+  "inputs": {
+    "env_mode": "image",
+    "hook_sha256": "520b8f2ffffc73256a5c80500dbb7d038ce01cd21efca47fb25eec5047b82242",
+    "installer_sha256": "cc3be46979a82f1289cd63133f8e6748574347cb8d1fbd881407caef23862252",
+    "stage2_sha256": "ea1be72c5ab2e96baef7422ad384e28e78436ac8c7ebf183210c98e3c491aa8a"
+  },
+  "mtd_devices_opened": false,
+  "network": "127.0.0.1 only",
+  "result": "PASS",
+  "schema": "iblack-openipc-migrate-online-qemu/1"
+}

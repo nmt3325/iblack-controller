@@ -1,0 +1,233 @@
+{
+  "all_ok": true,
+  "boot_image_sha256": "52776aedbdb1ba849caf5433fff83be24138f4c0194c51249de636ec0fcb6dc0",
+  "env_mode": "image",
+  "erase_bytes": 65536,
+  "erase_bytes_is_assumption": true,
+  "expected_flash_sha256_if_env_erased": "b74f0eeb9b305f1d84d80880892ffdce9111c2ed3587f3775a9fc7fcb2a7c4a7",
+  "final_flash_depends_on_old_contents": false,
+  "firmware": {
+    "all_ok": true,
+    "checks": {
+      "fits_before_chip_end": true,
+      "image_ends_at_overlay": true,
+      "kernel_within_2mib": true,
+      "overlay_base_is_0x700000": true,
+      "soc_matches": true,
+      "squashfs_follows_kernel": true,
+      "uimage_data_crc_ok": true,
+      "uimage_header_crc_ok": true,
+      "uimage_magic_ok": true
+    },
+    "entry": 2147516416,
+    "image_bytes": 7012352,
+    "kernel_blocks": 29,
+    "kernel_bytes": 1864668,
+    "load": 2147516416,
+    "name": "Linux-3.0.8-hi3518ev100",
+    "overlay_abs": 7340032,
+    "soc": "hi3518ev100",
+    "squashfs_bytes_used": 5100346,
+    "squashfs_rel_offset": 1900544
+  },
+  "flash_bytes": 8388608,
+  "flash_write_allowed": false,
+  "inputs": {
+    "firmware_bytes": 7012352,
+    "firmware_sha256": "2e268c99608c4dcd4867eda8c35f9393dd4832cf8da05cc31af571bbd3457926",
+    "uboot_bytes": 122972,
+    "uboot_sha256": "1e76dac4f843ba1f20767a3b9b0e2d4a6b553bca0550e4baf091c4a147ca1cd3"
+  },
+  "invariants": {
+    "env_is_64k": true,
+    "firmware_ends_at_overlay": true,
+    "firmware_starts_0x50000": true,
+    "overlay_to_chip_end": true,
+    "regions_erase_aligned": true,
+    "regions_tile_whole_chip": true,
+    "uboot_fits_boot": true
+  },
+  "ordering_rationale": {
+    "default": "bootloader-first",
+    "independent_recovery_still_required": "UART/SPI for the first unit",
+    "recovery_caveat": "an Ethernet port on the iBlack is unconfirmed (the unit is used over Wi-Fi); without it the firmware window is recoverable only by UART/SPI",
+    "recovery_path": "fwupd = tftpboot firmware.bin.hi3518ev100 over Ethernet from the serverip/ipaddr defaults compiled into the public U-Boot (they must be set for the LAN before relying on it)",
+    "unrecoverable_window": "the 256 KiB bootloader write at 0x0, and any failure of the new U-Boot itself (untested on this board)",
+    "why": "the stock U-Boot cannot boot the OpenIPC split layout, while the new U-Boot detects a bad kernel CRC at 0x50000, sets bootfail and runs fwupd"
+  },
+  "private_backup_required": [
+    "mdat1",
+    "mdat2"
+  ],
+  "regions": [
+    {
+      "abs_bytes": 262144,
+      "abs_end": 262144,
+      "abs_start": 0,
+      "erase_only": false,
+      "name": "bootloader",
+      "source": "u-boot-hi3518ev100-nor.bin + 0xFF padding to 256 KiB",
+      "stock_mtd_map": [
+        {
+          "abs_end": 262144,
+          "abs_start": 0,
+          "dev_block": "/dev/mtdblock0",
+          "dev_char": "/dev/mtd0",
+          "length": 262144,
+          "offset_in_part": 0,
+          "stock_mtd": 0,
+          "stock_name": "boot"
+        }
+      ]
+    },
+    {
+      "abs_bytes": 65536,
+      "abs_end": 327680,
+      "abs_start": 262144,
+      "erase_only": false,
+      "name": "env",
+      "source": "generated 64 KiB env image (make_env.py: built-in defaults + wlandev/Wi-Fi keys from a private file)",
+      "stock_mtd_map": [
+        {
+          "abs_end": 327680,
+          "abs_start": 262144,
+          "dev_block": "/dev/mtdblock0",
+          "dev_char": "/dev/mtd0",
+          "length": 65536,
+          "offset_in_part": 262144,
+          "stock_mtd": 0,
+          "stock_name": "boot"
+        }
+      ]
+    },
+    {
+      "abs_bytes": 7012352,
+      "abs_end": 7340032,
+      "abs_start": 327680,
+      "erase_only": false,
+      "name": "firmware",
+      "source": "firmware.bin.hi3518ev100",
+      "stock_mtd_map": [
+        {
+          "abs_end": 2097152,
+          "abs_start": 327680,
+          "dev_block": "/dev/mtdblock0",
+          "dev_char": "/dev/mtd0",
+          "length": 1769472,
+          "offset_in_part": 327680,
+          "stock_mtd": 0,
+          "stock_name": "boot"
+        },
+        {
+          "abs_end": 2883584,
+          "abs_start": 2097152,
+          "dev_block": "/dev/mtdblock1",
+          "dev_char": "/dev/mtd1",
+          "length": 786432,
+          "offset_in_part": 0,
+          "stock_mtd": 1,
+          "stock_name": "rootfs"
+        },
+        {
+          "abs_end": 5505024,
+          "abs_start": 2883584,
+          "dev_block": "/dev/mtdblock2",
+          "dev_char": "/dev/mtd2",
+          "length": 2621440,
+          "offset_in_part": 0,
+          "stock_mtd": 2,
+          "stock_name": "appfs"
+        },
+        {
+          "abs_end": 5636096,
+          "abs_start": 5505024,
+          "dev_block": "/dev/mtdblock3",
+          "dev_char": "/dev/mtd3",
+          "length": 131072,
+          "offset_in_part": 0,
+          "stock_mtd": 3,
+          "stock_name": "mdat1"
+        },
+        {
+          "abs_end": 5767168,
+          "abs_start": 5636096,
+          "dev_block": "/dev/mtdblock4",
+          "dev_char": "/dev/mtd4",
+          "length": 131072,
+          "offset_in_part": 0,
+          "stock_mtd": 4,
+          "stock_name": "mdat2"
+        },
+        {
+          "abs_end": 7340032,
+          "abs_start": 5767168,
+          "dev_block": "/dev/mtdblock5",
+          "dev_char": "/dev/mtd5",
+          "length": 1572864,
+          "offset_in_part": 0,
+          "stock_mtd": 5,
+          "stock_name": "bakfs"
+        }
+      ]
+    },
+    {
+      "abs_bytes": 1048576,
+      "abs_end": 8388608,
+      "abs_start": 7340032,
+      "erase_only": true,
+      "name": "overlay",
+      "source": "erase->firstboot formats",
+      "stock_mtd_map": [
+        {
+          "abs_end": 8388608,
+          "abs_start": 7340032,
+          "dev_block": "/dev/mtdblock5",
+          "dev_char": "/dev/mtd5",
+          "length": 1048576,
+          "offset_in_part": 1572864,
+          "stock_mtd": 5,
+          "stock_name": "bakfs"
+        }
+      ]
+    }
+  ],
+  "soc": "hi3518ev100",
+  "stock_partitions_touched": [
+    "appfs",
+    "bakfs",
+    "boot",
+    "mdat1",
+    "mdat2",
+    "rootfs"
+  ],
+  "target_layout": [
+    {
+      "name": "boot",
+      "size": 262144,
+      "start": 0
+    },
+    {
+      "name": "env",
+      "size": 65536,
+      "start": 262144
+    },
+    {
+      "name": "firmware",
+      "size": 8060928,
+      "start": 327680
+    }
+  ],
+  "uboot_bytes": 122972,
+  "write_order": [
+    "bootloader",
+    "env",
+    "firmware",
+    "overlay"
+  ],
+  "write_order_alt": [
+    "firmware",
+    "env",
+    "overlay",
+    "bootloader"
+  ]
+}

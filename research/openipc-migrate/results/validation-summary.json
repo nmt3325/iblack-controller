@@ -1,0 +1,51 @@
+{
+  "scope": "Offline research validation only; does not authorize deployment",
+  "implemented": "LAN-driven stock iBlack to OpenIPC hi3518ev100-nor-lite-split migration: host server, camera stage2 (phase1/phase2), hook and installer",
+  "unit_tests": {
+    "discovered": 103,
+    "skipped": 0,
+    "failures": 0,
+    "errors": 0
+  },
+  "installer_simulation_cases": 26,
+  "qemu_arm_checks": {
+    "total": 10,
+    "passed": 10,
+    "full_chain_write": "PASS",
+    "emulator": "qemu-arm user mode, -cpu arm926",
+    "network": "127.0.0.1 only",
+    "mtd_devices_opened": false
+  },
+  "private_build": {
+    "appfs_bytes": 2613248,
+    "proven_0x96_limit_bytes": 2621432,
+    "margin_bytes": 8184,
+    "stock_entries": 58,
+    "changed_paths": [
+      "openipc-migrate",
+      "openipc-migrate/migrate.conf",
+      "openipc-migrate/stage2.sh",
+      "runapp.sh"
+    ],
+    "profile_matches_vendor": true,
+    "committed": false
+  },
+  "default_write_order": [
+    "bootloader",
+    "env",
+    "firmware",
+    "overlay"
+  ],
+  "bugs_found_and_fixed": [
+    "OpenIPC wget --post-file stops at the first NUL; mdat backups are sent base64 and confirmed by SHA-256",
+    "stock BusyBox 1.18.4 sh has no $((...)) and parses every function first; stage2.sh no longer uses arithmetic and the builder rejects it"
+  ],
+  "delivery_sender_implemented": false,
+  "update_envelope_created": false,
+  "legacy_update_guards_unchanged": true,
+  "original_main_head_unchanged_since_start": true,
+  "camera_connections_in_this_stage": 0,
+  "real_device_writes": 0,
+  "real_reboots": 0,
+  "flash_write_allowed": false
+}

@@ -137,6 +137,29 @@ class Authentication(unittest.TestCase):
             with self.assertRaisesRegex(ta.AuthError, "events were stripped"):
                 ta.runtime_files(p)
 
+    def test_runtime_requires_a_call_site_for_each_event(self):
+        # The fourth hardware trial's runtime held the patch's name table but no CONNECTED format string:
+        # upstream compiles that call site out without a control interface, so success was never reported.
+        with tempfile.TemporaryDirectory(prefix="om-auth-") as tmp:
+            p = af.runtime(Path(tmp) / "runtime")
+            data = (p / "wpa_supplicant").read_bytes().replace(b"CTRL-EVENT-CONNECTED \0", b"CTRL-EVENT-CONNECTEDX\0")
+            self.assertIn(b"CTRL-EVENT-CONNECTED\0", data)
+            (p / "wpa_supplicant").write_bytes(data)
+            meta = json.loads((p / "runtime.json").read_text())
+            meta["sha256"] = hashlib.sha256(data).hexdigest()
+            (p / "runtime.json").write_text(json.dumps(meta))
+            with self.assertRaisesRegex(ta.AuthError, "call site compiled out.*: CTRL-EVENT-CONNECTED$"):
+                ta.runtime_files(p)
+
+    def test_event_patch_keeps_the_connected_call_site(self):
+        self.assertIn("CONFIG_NO_STDOUT_DEBUG=y", (ROOT / "auth" / "wpa.config").read_text().splitlines())
+        patch = (ROOT / "auth" / "event-only.patch").read_text()
+        self.assertEqual(patch.count("+++ b/wpa_supplicant/wpa_supplicant.c\n"), 1)
+        hunk = patch.split("+++ b/wpa_supplicant/wpa_supplicant.c\n", 1)[1]
+        self.assertIn("-#if defined(CONFIG_CTRL_IFACE) || !defined(CONFIG_NO_STDOUT_DEBUG)\n", hunk)
+        self.assertIn("+\tdefined(CONFIG_OMT_AUTH_EVENT_ONLY)\n", hunk)
+        self.assertIn(' \t\twpa_msg(wpa_s, MSG_INFO, WPA_EVENT_CONNECTED "- Connection to "\n', hunk)
+
     def test_runtime_rejects_symlinks(self):
         with tempfile.TemporaryDirectory(prefix="om-auth-") as tmp:
             p = af.runtime(Path(tmp) / "runtime")

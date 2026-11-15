@@ -1,0 +1,130 @@
+{
+  "date_utc": "2026-11-15",
+  "final_safety": {
+    "host_standby_verified": true,
+    "management_routes_unchanged": true,
+    "read_only_collect_exit_status": 0,
+    "reads_stable": true,
+    "stock_ap_returned": true,
+    "temporary_host_ap_active": false,
+    "uboot_unchanged": true,
+    "vendor_env_stock_equivalent": true
+  },
+  "fix": {
+    "builder_check": "trial_auth.runtime_files requires each fixed event name followed by a space, the start of an upstream format string; the fourth trial runtime fails this check",
+    "event_patch": "a third hunk in auth/event-only.patch also compiles that call with CONFIG_OMT_AUTH_EVENT_ONLY",
+    "regression_tests_added": [
+      "runtime without a call site for an event is rejected",
+      "event patch keeps the CTRL-EVENT-CONNECTED call site under the trial macro"
+    ],
+    "unchanged": [
+      "704 KiB trial payload boundary",
+      "8 MiB layout and kernel slot",
+      "stock U-Boot",
+      "trial writes limited to tl and senv",
+      "independent 900-second stock-return timer",
+      "nl80211 then wext authentication with 90 and 60 polls",
+      "at most 8 DHCP attempts",
+      "70-second post-host stability window"
+    ]
+  },
+  "hardware_trial": {
+    "checks": {
+      "auth_runtime_verified": true,
+      "dhcp_ok": false,
+      "host_reached": false,
+      "kernel_booted_with_marker": true,
+      "modules_loaded": true,
+      "mtd_table_ok": true,
+      "nonce_matches": true,
+      "reads_stable": true,
+      "stable_window_survived": false,
+      "trial_log_found": true,
+      "uboot_saveenv_ran": true,
+      "uboot_unchanged": true,
+      "vendor_env_stock_equivalent": true,
+      "watchdog_driver_loaded": true,
+      "wifi_authenticated": false,
+      "wifi_interface": true
+    },
+    "checks_passed": 12,
+    "checks_total": 16,
+    "dhcp_stage_reached": false,
+    "host_access_point_log": {
+      "alignment": "host log times aligned to trial boot time by the station disconnect at the end of each attempt",
+      "approximate_seconds_from_attempt_start_to_handshake": {
+        "nl80211_attempt": 4.4,
+        "wext_attempt": 4.0
+      },
+      "dhcp_requests_received": 0,
+      "four_way_handshake_completed": {
+        "nl80211_attempt": true,
+        "wext_attempt": true
+      },
+      "station_disconnected_when_each_attempt_was_stopped": true,
+      "station_listed_as_authorized": true
+    },
+    "image_and_env_write_verified": true,
+    "kernel_release": "3.0.8",
+    "kind": "one-shot OpenIPC kernel with stock userland; not the final OpenIPC rootfs",
+    "log_source": "flash TL mailbox, read after stock return",
+    "network_report_received": false,
+    "passed": false,
+    "reboot_event_seen": true,
+    "result": "wifi-auth-failed",
+    "series_trial_index": 4,
+    "tested_source_revision": "2ed417d601095d0f7f63174a4ed3c47a608e6b56",
+    "trial_log": {
+      "authentication_process_exit_during_wait": false,
+      "exit_status_note": "each process kept running for its whole wait and exited 0 when the trial stopped it",
+      "nl80211_attempt": {
+        "exit_status": 0,
+        "outcome": "wait-expired"
+      },
+      "seconds_after_boot": {
+        "nl80211_attempt_started": 9.36,
+        "nl80211_outcome_checkpoint": 107.78,
+        "trial_end": 174.12,
+        "wext_attempt_started": 107.83,
+        "wext_outcome_checkpoint": 174.1
+      },
+      "wext_attempt": {
+        "exit_status": 0,
+        "outcome": "wait-expired"
+      }
+    }
+  },
+  "limitations": [
+    "This is not a successful OpenIPC migration. The fourth trial failed authentication evidence, DHCP and the stability window.",
+    "No raw logs, configuration, credentials, network identifiers, private hashes or run identifiers are included.",
+    "The owner has since authorized further physical trials and the network migration without per-step approval; fresh read-only checks before writes, never writing U-Boot and abort on mismatch remain in force."
+  ],
+  "offline_event_path_check": {
+    "build": "native build of the same wpa_supplicant 2.11 source, event-only patch and configuration",
+    "environment": "Linux host as root: mac80211_hwsim radios created inside private network namespaces with HWSIM_CMD_NEW_RADIO, hostapd 2.10 WPA2-PSK/CCMP and a scoped dnsmasq",
+    "fixed_patch": {
+      "nl80211": "CTRL-EVENT-CONNECTED after 3 polls; DHCP with BusyBox udhcpc and trial_dhcp.sh, ping and connection recheck passed",
+      "supplicant_output_only_fixed_event_lines": true,
+      "wext": "CTRL-EVENT-CONNECTED after 3 polls; DHCP with BusyBox udhcpc and trial_dhcp.sh, ping and connection recheck passed"
+    },
+    "fourth_trial_patch": {
+      "nl80211": "wait-expired after 40 polls while the access point completed the four-way handshake",
+      "reproduces_fourth_trial": true,
+      "wext": "wait-expired after 40 polls while the access point completed the four-way handshake"
+    },
+    "limits": "Covers the supplicant and the kernel cfg80211/mac80211 paths. The ARM build and the vendor MT7601 driver run only on hardware."
+  },
+  "rebuilt_runtime": {
+    "accepted_by_builder": true,
+    "bytes": 378556,
+    "connected_call_site_present": true,
+    "profile": "armv5-softfloat-static-event-only"
+  },
+  "root_cause": {
+    "confidence": "confirmed offline by reproduction and fix on mac80211_hwsim; consistent with the host access point log",
+    "mechanism": "wpa_supplicant 2.11 reports a completed connection with a single wpa_msg call in wpa_supplicant/wpa_supplicant.c, guarded by #if defined(CONFIG_CTRL_IFACE) || !defined(CONFIG_NO_STDOUT_DEBUG). The trial runtime has no control interface and sets CONFIG_NO_STDOUT_DEBUG, so that call was compiled out. The other four fixed events kept their call sites.",
+    "why_offline_checks_missed_it": "The builder only required each fixed event name to survive in the executable, and the event-only patch keeps the names in its own table. qemu-user cannot associate, so no offline ARM test could reach a connection."
+  },
+  "schema": "iblack-openipc-auth-connected-event-analysis/1",
+  "scope": "Fourth physical trial (one-shot OpenIPC kernel with stock userland and the auth-config fix), then offline analysis and fix of its missing connection event. The analysis and fix used no camera access, flash write or reboot."
+}

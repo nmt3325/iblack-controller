@@ -44,9 +44,17 @@ Pass the private runtime directory to both `build_stockboot.py trial` and
   `CONFIG_NO_STDOUT_DEBUG` and the trial-only macro, `wpa_msg` emits only five
   fixed event names, never format arguments, addresses, SSIDs or keys.
   The header patch explicitly retains these messages despite upstream's
-  `CONFIG_NO_WPA_MSG` optimization. The builder refuses executables in which
-  the fixed events have been stripped, and ARM validation links the logging
-  object from the actual supplicant build, not a differently configured copy.
+  `CONFIG_NO_WPA_MSG` optimization, and a third hunk keeps the one
+  `CTRL-EVENT-CONNECTED` call site that upstream compiles only with a control
+  interface or stdout debugging. Without it the fourth physical trial's
+  supplicant completed WPA2 (the host access point logged a completed
+  four-way handshake about 4 s into the nl80211 attempt and again into the
+  wext attempt) but never reported it, so the trial waited out both attempts
+  and never started DHCP. The builder refuses
+  executables in which the fixed names have been stripped or in which an event
+  has no call site (its name followed by a space, the start of an upstream
+  format string), and ARM validation links the logging object from the actual
+  supplicant build, not a differently configured copy.
   No control socket is compiled in. This patch is inappropriate for a build
   that needs a control interface.
 - The trial checks the pinned executable again with stock `sha1sum`, starts
@@ -81,3 +89,14 @@ hook on ARM, start it on the generated configuration, and run the full
 stock-BusyBox QEMU chain before physical use. qemu-user cannot pass nl80211 or
 wireless-extension requests to a driver, so these are compatibility checks,
 not proof of hardware Wi-Fi interoperability.
+
+The event path itself was checked on a Linux host (root, `mac80211_hwsim`): a
+native build of the same source, patch and configuration against hostapd
+WPA2-PSK/CCMP on two simulated radios created inside private network
+namespaces (`HWSIM_CMD_NEW_RADIO` issued there, so the host's own network
+manager never sees them), then BusyBox `udhcpc` with `trial_dhcp.sh` and a ping
+over the simulated medium. With the fourth trial's patch the access point
+completed the four-way handshake for both backends while the supplicant printed
+no `CTRL-EVENT-CONNECTED`, reproducing that trial; with the current patch both
+backends reported it within seconds and DHCP and ping succeeded. This covers
+the supplicant and the kernel's cfg80211 paths, not the vendor MT7601 driver.

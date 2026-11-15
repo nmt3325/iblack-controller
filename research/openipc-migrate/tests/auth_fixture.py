@@ -19,7 +19,10 @@ def elf(cpu_arch=5) -> bytes:
     struct.pack_into("<8I", data, 52, 1, 0, 0x10000, 0x10000, len(data), len(data), 5, 4096)
     struct.pack_into("<10I", data, 296, 0, 0x70000003, 0, 0, 384, len(arm), 0, 0, 1, 0)
     data[384:384 + len(arm)] = arm
-    markers = b"\0".join(x.encode("ascii") for x in ta.EVENT_NAMES) + b"\0"
+    # The patch's name table, then one call-site format prefix per event (name and a space).
+    markers = b"".join(x.encode("ascii") + b"\0" for x in ta.EVENT_NAMES)
+    markers += b"".join(x.encode("ascii") + b" \0" for x in ta.EVENT_NAMES)
+    assert 512 + len(markers) <= len(data)
     data[512:512 + len(markers)] = markers
     return bytes(data)
 

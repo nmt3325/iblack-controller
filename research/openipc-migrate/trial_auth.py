@@ -18,6 +18,11 @@ PROFILE = "armv5-softfloat-static-event-only"
 CAPABILITIES = ["nl80211", "wext", "wpa2-psk-ccmp", "fixed-events"]
 EVENT_NAMES = ["CTRL-EVENT-CONNECTED", "CTRL-EVENT-DISCONNECTED",
                "CTRL-EVENT-SSID-TEMP-DISABLED", "CTRL-EVENT-ASSOC-REJECT", "CTRL-EVENT-SCAN-FAILED"]
+# Each name also needs a call site: an upstream format string starts with the name and a space. The
+# patch's own name table alone proves nothing. Upstream compiles the CONNECTED call site out of a build
+# without a control interface (CONFIG_NO_STDOUT_DEBUG), so the fourth hardware trial's supplicant
+# completed WPA2 (the AP listed the station as authorized) but never reported it; event-only.patch
+# keeps that one message.
 MAX_BINARY = 1024 * 1024
 
 
@@ -146,6 +151,9 @@ def runtime_files(directory: Path) -> dict:
     validate_elf(binary)
     if any(name.encode("ascii") + b"\0" not in binary for name in EVENT_NAMES):
         raise AuthError("auth runtime: fixed authentication events were stripped from the executable")
+    missing = [name for name in EVENT_NAMES if name.encode("ascii") + b" " not in binary]
+    if missing:
+        raise AuthError("auth runtime: event call site compiled out of the executable: " + ", ".join(missing))
     return {"wpa_supplicant": binary, "auth-runtime.json": raw,
             "auth.sha1": (hashlib.sha1(binary).hexdigest() + "\n").encode("ascii")}
 

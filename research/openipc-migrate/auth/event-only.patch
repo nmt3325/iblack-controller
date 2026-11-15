@@ -54,3 +54,16 @@
  
  #include "wpabuf.h"
  
+--- a/wpa_supplicant/wpa_supplicant.c
++++ b/wpa_supplicant/wpa_supplicant.c
+@@ -1109,7 +1109,9 @@
+ 		    wpa_auth_alg_fils(wpa_s->auth_alg))
+ 			fils_hlp_sent = 1;
+ 
+-#if defined(CONFIG_CTRL_IFACE) || !defined(CONFIG_NO_STDOUT_DEBUG)
++/* The trial event-only profile has no control interface but needs this one event. */
++#if defined(CONFIG_CTRL_IFACE) || !defined(CONFIG_NO_STDOUT_DEBUG) || \
++	defined(CONFIG_OMT_AUTH_EVENT_ONLY)
+ 		wpa_msg(wpa_s, MSG_INFO, WPA_EVENT_CONNECTED "- Connection to "
+ 			MACSTR " completed [id=%d id_str=%s%s]%s",
+ 			MAC2STR(wpa_s->bssid),

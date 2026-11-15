@@ -20,6 +20,7 @@ import sb_fixture as fx  # noqa: E402
 from sb_fixture import sl, sha  # noqa: E402
 
 import build_stockboot as bs  # noqa: E402
+import auth_fixture as af  # noqa: E402
 
 MKSQ = os.environ.get("OM_MKSQUASHFS")
 SSID, PASS = "dummy-ssid-for-test", "dummy-pass-for-test"
@@ -33,7 +34,8 @@ exit 0
 DAT = "Default\nCountryRegion=1\nSSID=\nNetworkType=Infra\nAuthMode=OPEN\nEncrypType=NONE\nWPAPSK=\n"
 TRIAL_OK = {"kernel": "3.0.8", "cmdline_mark": "1", "mtd_table": "ok", "env": "saved-by-uboot",
             "insmod_cfg80211": "0", "insmod_mt7601sta": "0", "iface": "ra0", "dhcp": "ok", "host": "ok",
-            "result": "ok", "insmod_wdt": "0", "stable_window": "ok"}
+            "result": "ok", "insmod_wdt": "0", "stable_window": "ok",
+            "auth_binary": "ok", "auth": "connected"}
 
 
 def tl_block(flags: dict) -> bytes:
@@ -61,6 +63,8 @@ class Flow(unittest.TestCase):
 
     # -- helpers --------------------------------------------------------------------------------------
     def bs(self, *argv, rc=0):
+        if argv and argv[0] in ("trial", "plan") and "--auth-runtime" not in argv:
+            argv = (*argv, "--auth-runtime", str(af.runtime(self.tmp / "auth-runtime")))
         out, err = io.StringIO(), io.StringIO()
         with contextlib.redirect_stdout(out), contextlib.redirect_stderr(err):
             got = bs.main(["--state", str(self.state), *argv])
@@ -285,6 +289,22 @@ class Flow(unittest.TestCase):
                     str(self.tmp / ("blocked-" + missing)), rc=2)
 
     @unittest.skipUnless(MKSQ, "OM_MKSQUASHFS not set")
+    def test_auth_runtime_and_connected_evidence_are_required(self):
+        self.through_probe()
+        self.trial()
+        build = json.loads((self.state / "trial-build.json").read_text())
+        for missing, check in (("auth_binary", "auth_runtime_verified"), ("auth", "wifi_authenticated")):
+            flags = dict(TRIAL_OK, nonce=build["nonce"])
+            flags.pop(missing)
+            self.set_flash(sl.TL_OFF, tl_block(flags))
+            self.camera("collect")
+            result = self.bs("collect", "--uploads", str(self.up), "--stage", "trial")
+            self.assertFalse(result["ok"])
+            self.assertFalse(result["checks"][check])
+            self.bs("final", "--firmware", str(self.tmp / "firmware.bin"), "--out",
+                    str(self.tmp / ("blocked-" + missing)), rc=2)
+
+    @unittest.skipUnless(MKSQ, "OM_MKSQUASHFS not set")
     def test_trial_payload_capacity(self):
         self.through_probe()
         err = self.bs("trial", "--firmware", str(self.tmp / "firmware.bin"), "--oipc-rootfs",
@@ -307,7 +327,8 @@ class Flow(unittest.TestCase):
         out, err = io.StringIO(), io.StringIO()
         with contextlib.redirect_stdout(out), contextlib.redirect_stderr(err):
             got = bs.main(["plan", "--firmware", str(self.tmp / "firmware.bin"), "--oipc-rootfs",
-                           str(self.oipc_rootfs()), "--mksquashfs", MKSQ, "--workdir", str(self.tmp)])
+                           str(self.oipc_rootfs()), "--mksquashfs", MKSQ, "--workdir", str(self.tmp),
+                           "--auth-runtime", str(af.runtime(self.tmp / "auth-runtime"))])
             with self.assertRaises(SystemExit):                # every other step needs the private state
                 bs.main(["status"])
         self.assertEqual(got, 0, err.getvalue())
@@ -318,7 +339,8 @@ class Flow(unittest.TestCase):
         tp, tk = res["trial_payload"], res["trial_kernel"]
         self.assertEqual((tp["limit_bytes"], tp["margin_bytes"]), (sl.TP_LEN, sl.TP_LEN - tp["bytes"]))
         self.assertGreater(tp["margin_bytes"], 0)
-        self.assertNotIn("MT7601USTA.dat", tp["file_bytes"])  # the only file carrying Wi-Fi credentials
+        self.assertNotIn("wpa.conf", tp["file_bytes"])
+        self.assertNotIn("MT7601USTA.dat", tp["file_bytes"])  # private Wi-Fi files are omitted
         self.assertEqual(tp["file_bytes"]["tl-blank.img"], sl.TL_LEN)
         self.assertEqual(tk["margin_bytes"], sl.TK_LEN - 64 - 1_864_668)
         self.assertEqual((res["probe_env"]["bootcmd_chars"], res["trial_env"]["bootcmd_chars"]),

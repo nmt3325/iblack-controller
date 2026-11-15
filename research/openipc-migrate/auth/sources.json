@@ -1,0 +1,16 @@
+{
+  "libnl_tiny": {
+    "commit": "40493a655d8caa2ccf5206dde1e733abe2920432",
+    "url": "https://git.openwrt.org/project/libnl-tiny.git"
+  },
+  "toolchain": {
+    "bytes": 71075968,
+    "sha256": "9825d9a4515a92d2251aab3228ddbb6258440b0f952b95fcaa94653a4b29c71a",
+    "url": "https://toolchains.bootlin.com/downloads/releases/toolchains/armv5-eabi/tarballs/armv5-eabi--musl--stable-2024.05-1.tar.xz"
+  },
+  "wpa_supplicant": {
+    "bytes": 3841433,
+    "sha256": "912ea06f74e30a8e36fbb68064d6cdff218d8d591db0fc5d75dee6c81ac7fc0a",
+    "url": "https://w1.fi/releases/wpa_supplicant-2.11.tar.gz"
+  }
+}

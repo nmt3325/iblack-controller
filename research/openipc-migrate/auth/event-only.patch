@@ -1,0 +1,56 @@
+--- a/src/utils/wpa_debug.c
++++ b/src/utils/wpa_debug.c
+@@ -644,8 +644,36 @@
+ }
+ 
+ 
++#ifdef CONFIG_OMT_AUTH_EVENT_ONLY
++/* Trial-only build: retain fixed event names, never their addresses or credentials. */
++static void omt_auth_event(const char *fmt)
++{
++	static const char * const names[] = {
++		"CTRL-EVENT-CONNECTED", "CTRL-EVENT-DISCONNECTED",
++		"CTRL-EVENT-SSID-TEMP-DISABLED", "CTRL-EVENT-ASSOC-REJECT",
++		"CTRL-EVENT-SCAN-FAILED"
++	};
++	size_t i;
++	for (i = 0; i < ARRAY_SIZE(names); i++) {
++		size_t n = os_strlen(names[i]);
++		if (os_strncmp(fmt, names[i], n) == 0 &&
++		    (fmt[n] == ' ' || fmt[n] == '\0')) {
++			fputs(names[i], stdout);
++			fputc('\n', stdout);
++			fflush(stdout);
++			return;
++		}
++	}
++}
++#endif /* CONFIG_OMT_AUTH_EVENT_ONLY */
++
++
+ void wpa_msg(void *ctx, int level, const char *fmt, ...)
+ {
++#ifdef CONFIG_OMT_AUTH_EVENT_ONLY
++	omt_auth_event(fmt);
++	return;
++#endif
+ 	va_list ap;
+ 	char *buf;
+ 	int buflen;
+--- a/src/utils/wpa_debug.h
++++ b/src/utils/wpa_debug.h
+@@ -8,6 +8,14 @@
+ 
+ #ifndef WPA_DEBUG_H
+ #define WPA_DEBUG_H
++
++/* The trial-only event channel must survive Makefile CONFIG_NO_WPA_MSG. */
++#ifdef CONFIG_OMT_AUTH_EVENT_ONLY
++#ifdef CONFIG_CTRL_IFACE
++#error "trial event-only profile cannot provide a control interface"
++#endif
++#undef CONFIG_NO_WPA_MSG
++#endif
+ 
+ #include "wpabuf.h"
+ 

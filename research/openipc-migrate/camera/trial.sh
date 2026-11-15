@@ -14,9 +14,10 @@
 # Steps: check kernel/partition table, load the pinned OpenIPC watchdog with its kernel
 # feeder enabled (normal OpenIPC load_hisilicon behavior), stop SysUpdate, eth0 down, Wi-Fi from
 # the OpenIPC cfg80211.ko + mt7601sta.ko and the MT7601USTA.dat built by the
-# host, DHCP, report to the LAN host (status + log upload; the stock wget sends --post-data
+# host, explicit WPA2 authentication, DHCP, report to the LAN host (status + log upload; the stock wget sends --post-data
 # form-escaped and serve_migration.py decodes it), reboot -f.
-# Prints/uploads no Wi-Fi credentials (the .dat is never logged).
+# Prints/uploads no Wi-Fi credentials (the .dat, wpa.conf and auth.raw are never logged).
+umask 077
 PATH=${OMT_TEST_PATH:-/sbin:/usr/sbin:/bin:/usr/bin}; export PATH
 P=${OMT_PAYLOAD:-/dev/omt/p}
 W=${OMT_WORK:-/dev/omt}
@@ -47,12 +48,29 @@ checkpoint(){
   rm -f "$W/tl.img"
   [ -n "$want" ] && [ "$want" = "$got" ]; }
 cp_note(){ if checkpoint; then log "checkpoint $1 written to tl"; else log "checkpoint $1 NOT verified"; fi; }
+# Only the foreground process started below is ours to terminate. Match its original
+# /proc start time as well as its PID; never killall a supplicant or touch another service.
+APID=""; ASTART=""
+auth_alive(){
+  case "$APID" in ""|0|1|*[!0-9]*) return 1;; esac
+  [ -n "$ASTART" ] && [ "$ASTART" = "$(awk '{print $22}' "/proc/$APID/stat" 2>/dev/null)" ] && \
+    kill -0 "$APID" 2>/dev/null
+}
+auth_connected(){
+  awk '/^CTRL-EVENT-CONNECTED$/ {s=1} /^CTRL-EVENT-DISCONNECTED$/ {s=0} END {exit (s ? 0 : 1)}' \
+    "$W/auth.raw" 2>/dev/null
+}
+auth_cleanup(){
+  if auth_alive; then kill "$APID" 2>/dev/null; fi
+  APID=""; ASTART=""
+}
 finish(){ log "trial end: $1"; flag result "$1"; cp_note end
   if [ -n "${OM_HOST:-}" ]; then
     wget -q -T 30 -O /dev/null --post-data "$(cat "$LOG")" \
       "http://$OM_HOST:$OM_PORT/upload/trial-log?run=$OM_RUN_ID" >/dev/null 2>&1
     wget -q -T 10 -O /dev/null "http://$OM_HOST:$OM_PORT/status?run=$OM_RUN_ID&phase=trial&event=trial-$1" >/dev/null 2>&1
   fi
+  auth_cleanup
   sync
   if [ -n "${OMT_NO_REBOOT:-}" ]; then exit 0; fi
   reboot -f; sleep 30; exit 0; }
@@ -128,6 +146,40 @@ cp_note wifi
 # ---- DHCP and the LAN host ---------------------------------------------------------------------
 # (sourcing a missing file would end this sh before reboot -f: check first)
 if [ -r "$CONF" ]; then . "$CONF" 2>/dev/null; fi
+
+# ---- authenticated Wi-Fi, before DHCP -----------------------------------------------------------
+# The standalone static ARMv5 runtime is pinned by the host and verified again here with a stock
+# applet. Its trial-only logging patch emits fixed event names; raw output is RAM-only regardless.
+# A carrier bit or a configured .dat is not evidence of WPA authentication.
+auth_want=$(cat "$P/auth.sha1" 2>/dev/null)
+auth_got=$(sha1sum < "$P/wpa_supplicant" 2>/dev/null | awk '{print $1}')
+if [ -n "$auth_want" ] && [ "$auth_want" = "$auth_got" ]; then flag auth_binary ok
+else flag auth_binary bad; finish auth-runtime-invalid; fi
+[ -r "$P/wpa.conf" ] || finish auth-config-missing
+AUTH=${OMT_SUPPLICANT:-$P/wpa_supplicant}
+: > "$W/auth.raw"
+"$AUTH" -i "$IF" -D nl80211,wext -c "$P/wpa.conf" > "$W/auth.raw" 2>&1 &
+APID=$!
+ASTART=$(awk '{print $22}' "/proc/$APID/stat" 2>/dev/null)
+[ -n "$ASTART" ] || { flag auth process-exit; finish wifi-auth-process-exit; }
+log "Wi-Fi authentication started"; cp_note auth-start
+authed=0; n=0
+while [ "$n" -lt 90 ]; do
+  if ! auth_alive; then flag auth process-exit; cp_note auth; finish wifi-auth-process-exit; fi
+  if auth_connected; then authed=1; break; fi
+  sleep 1; n=$(expr $n + 1)
+done
+if [ "$authed" -eq 1 ]; then
+  flag auth connected
+else
+  auth_reason=wait-expired
+  grep -q '^CTRL-EVENT-SCAN-FAILED$' "$W/auth.raw" && auth_reason=scan-failed
+  grep -q '^CTRL-EVENT-ASSOC-REJECT$' "$W/auth.raw" && auth_reason=association-rejected
+  grep -q '^CTRL-EVENT-SSID-TEMP-DISABLED$' "$W/auth.raw" && auth_reason=temporarily-disabled
+  flag auth "$auth_reason"
+fi
+cp_note auth
+[ "$authed" -eq 1 ] || finish wifi-auth-failed
 # No SSID/PSK, iwconfig output, or raw driver trace is copied into diagnostics. The fixed-label
 # health filter records reset/OOM/watchdog symptoms without the driver's authentication chatter.
 net_note(){
@@ -160,6 +212,8 @@ if grep -q "^run=$OM_RUN_ID\$" "$W/manifest" 2>/dev/null; then flag host ok; els
 # its independent 900-second stock-return deadline, and no extra flash region becomes writable.
 log "host reached; starting 70-second stability window"; cp_note host-reached
 sleep 70 || finish stability-wait-failed
+auth_alive || finish wifi-auth-process-exit
+if ! auth_connected; then flag auth lost; finish wifi-auth-lost; fi
 flag stable_window ok; sec uptime_stable cat /proc/uptime
 net_note
 finish completed

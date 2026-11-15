@@ -12,7 +12,19 @@ DHCPは最大8回で、各開始前にSSID・PSKを含まない診断をtlへ保
 
 修正版のオフライン検証（173 tests、ARM実バイナリの9項目）は [`results/trial-watchdog-offline-qa.json`](results/trial-watchdog-offline-qa.json) に記録した。この結果は追加の実機試験を合格とするものではない。
 
-追加実機試験は [`results/trial-watchdog-hardware.json`](results/trial-watchdog-hardware.json) に記録した。OpenIPC kernel・watchdog・Wi-Fiモジュールの読込みとインターフェースupは成功したが、DHCPは8回とも失敗し、`no-dhcp-lease` で終了して純正APへ復帰した（11/14項目合格、ネットワーク到達後の70秒待機は未実行）。通常のOpenIPCは `wpa_supplicant -D nl80211,wext` を起動する一方、今回の試験は.datの設定とモジュール読込みだけで認証プロセスを起動していない。この差とAPへの関連付け・認証を次に切り分ける。単なるDHCPサーバー不調とは断定せず、追加の実機再試行や恒久移行は行っていない。
+追加実機試験は [`results/trial-watchdog-hardware.json`](results/trial-watchdog-hardware.json) に記録した。OpenIPC kernel・watchdog・Wi-Fiモジュールの読込みとインターフェースupは成功したが、DHCPは8回とも失敗し、`no-dhcp-lease` で終了して純正APへ復帰した（11/14項目合格、ネットワーク到達後の70秒待機は未実行）。通常のOpenIPCは `wpa_supplicant -D nl80211,wext` を起動する一方、今回の試験は.datの設定とモジュール読込みだけで認証プロセスを起動していない。この差とAPへの関連付け・認証を次に切り分ける。単なるDHCPサーバー不調とは断定しない。この記録の時点では、それ以上の実機再試行や恒久移行は行っていない。
+
+### 試験起動のWi-Fi認証処理
+
+試験payloadで `wpa_supplicant 2.11` を `-D nl80211,wext` で起動し、固定の認証完了イベントを受け取ってからDHCPへ進む。認証の待機は最大90秒、DHCPは従来どおり最大8回とする。認証プロセスの終了、認証拒否、待機切れ、バイナリ検証失敗は成功扱いにしない。ホスト到達後の70秒待機中もプロセスと接続を再確認し、報告送信後に自分の認証プロセスだけを終了する。
+
+通常のOpenIPCバイナリを追加すると704 KiBの試験領域を超えるため、固定した公開ソースから静的ARMv5 soft-floatのWPA2-PSK/CCMP専用ランタイムを作る。EAP・WPS・P2P・SAE・制御ソケットは含めないが、暗号処理とエントロピー取得は省略しない。ビルド方法と制約は [`auth/README.md`](auth/README.md)。この試験用ランタイムは恒久移行後のOpenIPC内蔵版とは別であり、後者の実機動作を保証しない。
+
+SSIDは16進表現、PSKはホスト側で導出した値を私的な `wpa.conf` に入れる。これは依然として機密情報であり、試験payloadとともにbakfsに残る。生の認証ログはRAMだけに保持し、tl・アップロードには固定した5種類のイベントに由来する状態だけを記録する。上流Makefileによるイベント削除も回帰検査し、実際にランタイムを作ったオブジェクトをARM実行して、引数や認証情報が出ないことを確かめる。
+
+最大長の仮SSID・PSKで、watchdogと認証ランタイムを含む試験用SquashFSは **688,128 / 720,896 B（余裕32,768 B）**。認証ランタイムは378,556 Bで、ARM926での起動・両ドライバー・固定イベントの6項目をオフライン確認した。8 MiBの配置、kernel領域、純正U-Boot、独立した900秒の純正復帰タイマーは変えない。オフライン合格を実機合格とは扱わず、実機操作は所有者が承認した1回ごとの範囲に限る。
+
+認証修正版のオフライン検証は単体・結合189件、純正ARMの9項目、認証ランタイムARM926の6項目、隣接テスト25件がPASSした。リポジトリ検証は110件（既存の6 skip）で終了コード0。記録は [`results/trial-auth-offline-qa.json`](results/trial-auth-offline-qa.json)。実機の接続成功や恒久移行を示す記録ではない。
 
 ## 前提と方式
 
@@ -40,13 +52,13 @@ DHCPは最大8回で、各開始前にSSID・PSKを含まない診断をtlへ保
 
 移行後の `mtdparts` は `hi_sfc:384k(boot)ro,64k(env),1856k(kernel),4992k(rootfs),896k(rootfs_data)` で、合計8 MiB。`0x060000`–`0x07FFFF` は純正の配置では使われていない。
 
-固定した公開firmwareと所有者保管の入力で測った値（[`results/stockboot-plan.json`](results/stockboot-plan.json)）：
+初期実装で固定した公開firmwareと所有者保管の入力から測った値（watchdog・認証追加前の履歴。現在の試験payload容量は上記を参照）（[`results/stockboot-plan.json`](results/stockboot-plan.json)）：
 
 | 項目 | 使用 | 上限 | 余裕 |
 | --- | --- | --- | --- |
 | kernel（試験と本番で同じuImage） | 1,864,732 B | 1,900,544 B（1856 KiB） | 35,812 B |
 | OpenIPC rootfs（SquashFS） | 5,100,346 B | 5,111,808 B（4992 KiB） | 11,462 B |
-| 試験用SquashFS（cfg80211.ko、mt7601sta.ko、`.dat`、env、tlの雛形、スクリプト） | 520,192 B | 720,896 B（704 KiB） | 200,704 B |
+| 初期の試験用SquashFS（watchdog・認証追加前） | 520,192 B | 720,896 B（704 KiB） | 200,704 B |
 | 移行appfs（`0x96` 経路） | 2,613,248 B | 2,621,432 B | 8,184 B |
 | 試験用 `bootcmd`（純正U-Bootの `CONFIG_SYS_CBSIZE` 1024） | 417文字 | 1,023文字 | 606文字 |
 | probe用 `bootcmd` | 158文字 | 1,023文字 | 865文字 |
@@ -105,7 +117,7 @@ python3 serve_migration.py --bundle "$B" --mode probe-arm --action-dir "$A/probe
 python3 serve_migration.py --bundle "$B" --mode collect --backup-dir "$UP"
 python3 build_stockboot.py --state "$ST" collect --uploads "$UP" --stage probe
 python3 build_stockboot.py --state "$ST" trial --firmware "$FW" --oipc-rootfs "$OIPC_ROOTFS" \
-  --wifi-vars "$PRIVATE/wifi.vars" --mksquashfs "$HOST_MKSQUASHFS" --out "$A/trial"
+  --wifi-vars "$PRIVATE/wifi.vars" --auth-runtime "$AUTH_RUNTIME" --mksquashfs "$HOST_MKSQUASHFS" --out "$A/trial"
 python3 serve_migration.py --bundle "$B" --mode trial-arm --action-dir "$A/trial" --backup-dir "$UP" \
   --write-confirm yes-arm-one-shot-openipc-trial --reboot-confirm yes-reboot-into-openipc-trial
 #   （試験起動の報告もこのサーバが受ける。純正へ戻るまで止めない）
@@ -162,7 +174,7 @@ finalの後戻りできない区間は、firmware約6.6 MiBの消去・書込み
 | モジュール | 件数 | 内容 |
 | --- | --- | --- |
 | `test_stock_layout` | 21 | 配置と容量、純正env（128 KiB）の符号化、純正U-Bootのコマンド解釈と `_do_setenv`、`cmdlinepart`、probe／試験／本番／復元env、`0x050000` にuImageヘッダがないこと |
-| `test_build_stockboot` | 17 | 段階の順序、diagnoseとcollectの判定（不安定なブロック、16回読む弱いブロック、別個体のダンプ）、試験用SquashFSの容量とtlの雛形、純正BusyBoxで動かないスクリプトを試験用SquashFSに入れないこと、action一式 |
+| `test_build_stockboot` | 18 | 段階の順序、diagnoseとcollectの判定（不安定なブロック、16回読む弱いブロック、別個体のダンプ）、試験用SquashFSの容量とtlの雛形、純正BusyBoxで動かないスクリプトを試験用SquashFSに入れないこと、action一式 |
 | `test_om_stockboot` | 12 | 模擬フラッシュ上の `om_stockboot.sh`：diagnoseとcollectは読取りのみ、probe-armは純正envだけを書く、語句と計画どおりのenvが要る、env書込みの失敗で元に戻す、試験イメージの失敗ではenvを書かない、finalの一時的な読み書き不良・後戻りできない点の前後の失敗・再試行 |
 | `test_build_migration_appfs` | 37 | 移行appfsの組立てと容量、runapp.shの起動行と試験起動の分岐（純正shで実行）、stage2.shと `trial.sh` が純正BusyBoxの範囲に収まること（`dd` の引数、`grep -x` を含む）、bundle |
 | `test_serve_migration` | 23 | bundleとaction一式の検査、モードごとのmanifest、1回だけのaction、run id、受信物（純正 `wget --post-data` の%XX形式の試験ログを元に戻すこと、受信を断るときも本文を読み切ってから応答すること）、語句の一致 |
@@ -242,7 +254,7 @@ python3 build_migration_appfs.py --firmware "$PUBLIC_ARTIFACTS/firmware.bin.hi35
   --oenv-image "$PRIVATE/env/env-openipc.img" --stock-appfs "$PRIVATE_INPUTS/stock-appfs.part" \
   --host 192.0.2.10 --mksquashfs "$HOST_MKSQUASHFS" --unsquashfs "$HOST_UNSQUASHFS" --out "$PRIVATE/bundle"
 python3 build_stockboot.py plan --firmware "$PUBLIC_ARTIFACTS/firmware.bin.hi3518ev100" \
-  --oipc-rootfs "$OIPC_ROOTFS" --mksquashfs "$HOST_MKSQUASHFS" --bundle "$PRIVATE/bundle"
+  --oipc-rootfs "$OIPC_ROOTFS" --auth-runtime "$AUTH_RUNTIME" --mksquashfs "$HOST_MKSQUASHFS" --bundle "$PRIVATE/bundle"
 
 # qemu-armが動的リンクなら、必要なLD_LIBRARY_PATHを --qemu-lib-path で渡す
 python3 validate_online_qemu.py --bundle "$PRIVATE/bundle" --stock-rootfs "$PRIVATE_INPUTS/stock-rootfs" \

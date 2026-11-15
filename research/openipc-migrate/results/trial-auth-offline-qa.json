@@ -1,0 +1,95 @@
+{
+  "schema": "openipc-trial-auth-offline-qa-v1",
+  "scope": "offline compatibility and failure-gate validation only",
+  "offline_tests_contacted_camera": false,
+  "physical_flash_write_allowed_by_this_report": false,
+  "permanent_migration_allowed_by_this_report": false,
+  "hardware_wifi_authentication_verified_by_this_report": false,
+  "tests": {
+    "migration_unit_and_integration": {
+      "run": 189,
+      "passed": 189,
+      "skipped": 0
+    },
+    "stock_arm_qemu": {
+      "result": "PASS",
+      "checks": {
+        "e2e_real_binaries": "PASS",
+        "etc_overlay_mount": "PASS",
+        "phase1_capacity": "PASS",
+        "phase1_real_ramfs": "PASS",
+        "runapp_trial_branch": "PASS",
+        "runtime_on_stock_root": "PASS",
+        "runtime_patch": "PASS",
+        "shells_parse": "PASS",
+        "stock_applets": "PASS"
+      }
+    },
+    "actual_auth_runtime_arm926": {
+      "all_passed": true,
+      "checks": {
+        "static_armv5_elf_contract": true,
+        "arm926_version_execution": true,
+        "nl80211_and_wext_present": true,
+        "arm_fixed_event_whitelist_and_no_arguments": true,
+        "linked_the_actual_runtime_build_debug_object": true,
+        "actual_executable_retains_all_fixed_events": true
+      },
+      "binary_bytes": 378556,
+      "network_or_camera_accessed": false
+    },
+    "adjacent_openipc_port": {
+      "run": 25,
+      "passed": 25
+    },
+    "repository_verifier": {
+      "run": 110,
+      "skipped": 6,
+      "exit_code": 0
+    },
+    "source_manifest": "PASS"
+  },
+  "capacity": {
+    "trial_payload": {
+      "bytes": 688128,
+      "limit_bytes": 720896,
+      "margin_bytes": 32768
+    },
+    "auth_binary_bytes": 378556,
+    "kernel_bytes": 1864732,
+    "kernel_limit_bytes": 1900544,
+    "rootfs_bytes": 5100346,
+    "rootfs_limit_bytes": 5111808,
+    "total_spi_bytes": 8388608,
+    "layout_unchanged": true
+  },
+  "authentication": {
+    "source_pins": "../auth/sources.json",
+    "build_recipe": "../build_trial_auth.py",
+    "profile": "static ARMv5 EABI5 soft-float; WPA2-PSK/CCMP; nl80211 and wext",
+    "entropy_and_cryptographic_checks_retained": true,
+    "configuration": "private hex SSID and derived PSK; never logged or committed",
+    "logging": "five fixed events, no arguments; raw output stays in RAM",
+    "upstream_no_wpa_msg_stripping_regression_fixed": true,
+    "actual_runtime_build_object_used_for_arm_event_test": true,
+    "maximum_auth_poll_intervals": 90,
+    "maximum_dhcp_attempts": 8,
+    "post_host_stability_seconds": 70,
+    "independent_stock_return_seconds": 900
+  },
+  "failure_regressions": [
+    "binary pin mismatch",
+    "auth process exit",
+    "no authentication event",
+    "association rejection",
+    "no DHCP after failed authentication",
+    "missing authentication evidence blocks trial/final gates",
+    "only owned auth process is terminated after report upload"
+  ],
+  "limitations": [
+    "No hardware Wi-Fi interoperability result is established by offline tests.",
+    "The dedicated trial authenticator does not test the permanent OpenIPC built-in supplicant.",
+    "The one-shot trial keeps stock userland and does not install permanent firmware.",
+    "The incomplete v1 smoke was superseded: final executable events were stripped and the smoke used a differently configured logging object."
+  ]
+}

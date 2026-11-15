@@ -35,6 +35,7 @@ import sb_fixture as fx  # noqa: E402
 from sb_fixture import sha, sl  # noqa: E402
 
 import build_stockboot as bs  # noqa: E402
+import auth_fixture as af  # noqa: E402
 
 BUSYBOX = fx.BUSYBOX
 # validate_online_qemu.py runs this suite with the REAL camera binaries under qemu-arm: OM_E2E_STOCK_BB is a
@@ -61,7 +62,7 @@ BLOCKED = frozenset((
 # trial.sh: the kernel/network side of the trial boot (modules, Wi-Fi link, DHCP) is stubbed.
 TRIAL_STUBS = {"insmod": "exit 0", "lsmod": 'echo "mt7601sta 0 0 - Live 0x0 (stub)"', "ifconfig": "exit 0",
                "udhcpc": "exit 0", "dmesg": "echo dmesg-stub", "uname": "echo 3.0.8",
-               "sleep": 'echo "$1" >> "$OMT_SLEEP_LOG"; exit 0'}
+               "sleep": 'echo "$1" >> "$OMT_SLEEP_LOG"; ' + f'exec {SLEEP} 0.01' }
 RUN_TIMEOUT = int(os.environ.get("OM_E2E_RUN_TIMEOUT", "900"))  # one boot of the stock firmware
 # Host BusyBox wget crashes on -T; the stand-ins drop "-T N" (the camera tools keep it).
 STRIP_T = ('skip=\nfor a do\n  shift\n  if [ -n "$skip" ]; then skip=; continue; fi\n'
@@ -252,6 +253,8 @@ class OnlineChain(unittest.TestCase):
         return p.read_text(errors="replace") if p.exists() else ""
 
     def bs(self, *argv, rc=0):
+        if argv and argv[0] in ("trial", "plan") and "--auth-runtime" not in argv:
+            argv = (*argv, "--auth-runtime", str(af.runtime(self.tmp / "auth-runtime")))
         out, err = io.StringIO(), io.StringIO()
         with contextlib.redirect_stdout(out), contextlib.redirect_stderr(err):
             got = bs.main(["--state", str(self.tmp / "state"), *argv])
@@ -368,11 +371,37 @@ class OnlineChain(unittest.TestCase):
                "OMT_PROC_MTD": str(proc / "mtd"), "OMT_PROC_CMDLINE": str(proc / "cmdline"),
                "OMT_PROC_DEVICES": str(proc / "devices"),
                "OMT_NET_DIR": str(net), "OMT_DEV_DIR": str(dev), "OMT_NO_ETC": "1", "OMT_NO_REBOOT": "1",
-               "OMT_SLEEP_LOG": str(base / "sleeps")}
+               "OMT_SLEEP_LOG": str(base / "sleeps"),
+               "OMT_SUPPLICANT": str(base / "auth-stub"),
+               "OMT_AUTH_PID": str(base / "auth.pid"),
+               "OMT_AUTH_MODE": getattr(self, "auth_failure", "")}
+        (base / "auth-stub").write_text("#!/bin/sh\n"
+            'echo "$$" > "$OMT_AUTH_PID"\n'
+            'case "$OMT_AUTH_MODE" in exit) exit 1;; timeout) ;;\n'
+            ' reject) echo CTRL-EVENT-ASSOC-REJECT;;\n'
+            ' *) echo CTRL-EVENT-CONNECTED;; esac\n'
+            f"exec {SLEEP} 900\n")
+        (base / "auth-stub").chmod(0o755)
+
+        if getattr(self, "auth_failure", "") == "pin":
+            (pay / "auth.sha1").write_text("0" * 40 + "\n")
         sent = len(self.srv.uploads.get("trial-log", [])) if self.srv else 0
         r = subprocess.run([STOCK_BB, "sh", str(pay / "trial.sh")], env=env, cwd=self.tmp, capture_output=True,
                            text=True, timeout=600, stdin=subprocess.DEVNULL)
         self.assertEqual(r.returncode, 0, r.stdout + r.stderr)
+        pidfile = base / "auth.pid"
+        if pidfile.exists():
+            pid = int(pidfile.read_text())
+            try:
+                state = proc_state(pid)
+            except FileNotFoundError:
+                state = "gone"
+            if state not in ("gone", "Z"):
+                # Clean up only this harness child, identified by its unique environment.
+                marker = ("OMT_AUTH_PID=" + str(pidfile)).encode()
+                if marker in Path(f"/proc/{pid}/environ").read_bytes().split(b"\0"):
+                    os.kill(pid, 9)
+                self.fail("the trial left its authentication child running")
         log = (work / "trial.log").read_text()
         if self.srv and len(self.srv.uploads.get("trial-log", [])) > sent:  # stored as trial.sh wrote it
             self.assertEqual(self.srv.uploads["trial-log"][-1], sha((work / "trial.log").read_bytes().rstrip(b"\n")))
@@ -446,7 +475,8 @@ class OnlineChain(unittest.TestCase):
         self.assertEqual(flags, {"nonce": nonce, "kernel": "3.0.8", "cmdline_mark": "1", "mtd_table": "ok",
                                  "env": "saved-by-uboot", "insmod_cfg80211": "0", "insmod_mt7601sta": "0",
                                  "iface": "ra0", "dhcp": "ok", "host": "ok", "result": "completed",
-                                 "insmod_wdt": "0", "ifup": "0", "dhcp_attempt": "1", "stable_window": "ok"})
+                                 "insmod_wdt": "0", "ifup": "0", "dhcp_attempt": "1", "stable_window": "ok",
+                                 "auth_binary": "ok", "auth": "connected"})
         self.assertEqual(self.events("trial"), ["trial-network-up", "trial-completed"])
         self.assertEqual(len(self.srv.uploads["trial-log"]), 1)
         # Had saveenv failed, the armed env would still be there: trial.sh writes the stock env back over the
@@ -481,7 +511,8 @@ class OnlineChain(unittest.TestCase):
         self.assertTrue({"wget", "sha1sum", "md5sum", "expr"} <= set(self.traced("p1")))
         # Replay only the extracted trial in the file-backed harness: no real device and no network.
         # The successful collection above is left untouched; the failure mailboxes are not applied.
-        for mode in ("watchdog", "ifup", "dhcp"):
+        for mode in ("watchdog", "ifup", "dhcp", "auth-exit", "auth-timeout", "auth-reject", "auth-pin"):
+            self.auth_failure = mode.removeprefix("auth-") if mode.startswith("auth-") else ""
             with self.subTest(trial_failure=mode):
                 self.trace.write_text("")
                 self.write_wrapper(self.trialbin, "insmod", "tr",
@@ -492,7 +523,9 @@ class OnlineChain(unittest.TestCase):
                 flags, _ = self.run_trial(trial, senv=fx.uboot_saved(armed),
                                           conf=self.tmp / "no-migrate.conf", apply=False)
                 self.assertEqual(flags["result"], {"watchdog": "watchdog-init-failed",
-                    "ifup": "wifi-ifup-failed", "dhcp": "no-dhcp-lease"}[mode])
+                    "ifup": "wifi-ifup-failed", "dhcp": "no-dhcp-lease",
+                    "auth-exit": "wifi-auth-process-exit", "auth-timeout": "wifi-auth-failed",
+                    "auth-reject": "wifi-auth-failed", "auth-pin": "auth-runtime-invalid"}[mode])
                 self.assertNotIn("stable_window", flags)
                 self.assertEqual(self.traced("tr").count("udhcpc"), 8 if mode == "dhcp" else 0)
                 if mode == "watchdog":

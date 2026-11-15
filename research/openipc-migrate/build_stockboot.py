@@ -46,6 +46,7 @@ HERE = Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE))
 import make_env  # noqa: E402
 import stock_layout as sl  # noqa: E402
+import trial_auth as ta  # noqa: E402
 from serve_migration import ACTION_SCHEMA, ACTIONS, inside_repo, validate_action_file, BundleError  # noqa: E402
 
 TRIAL_SH, TRIAL_DHCP = HERE / "camera" / "trial.sh", HERE / "camera" / "trial_dhcp.sh"
@@ -274,6 +275,8 @@ def cmd_collect(args, state: Path) -> dict:
         "modules_loaded": flags.get("insmod_cfg80211") == "0" and flags.get("insmod_mt7601sta") == "0",
         "wifi_interface": flags.get("iface", "none") != "none",
         "watchdog_driver_loaded": flags.get("insmod_wdt") == "0",
+        "auth_runtime_verified": flags.get("auth_binary") == "ok",
+        "wifi_authenticated": flags.get("auth") == "connected",
         "stable_window_survived": flags.get("stable_window") == "ok",
         "dhcp_ok": flags.get("dhcp") == "ok",
         "host_reached": flags.get("host") == "ok",
@@ -323,7 +326,7 @@ def find_modules(rootfs: Path) -> dict:
 
 
 def trial_payload(live: bytes, armed: bytes, nonce: str, ssid: str, psk: str, rootfs: Path, mksquashfs: str,
-                  workdir=None) -> tuple:
+                  workdir=None, auth_runtime=None) -> tuple:
     """Return (payload SquashFS, {name: size}) of the trial payload (tp partition, <= 704 KiB)."""
     mods = find_modules(rootfs)
     template = (rootfs / "etc" / "mediatek" / "MT7601USTA.dat").read_text("ascii")
@@ -333,6 +336,10 @@ def trial_payload(live: bytes, armed: bytes, nonce: str, ssid: str, psk: str, ro
             check_stock_sh(script.read_text("ascii"), script.name)
         except BuildError as exc:
             raise StateError(str(exc)) from None
+    if auth_runtime is None:
+        raise StateError("--auth-runtime is required for an authenticated trial")
+    auth = ta.runtime_files(private_dir(auth_runtime, create=False))
+    config = ta.wpa_config(ssid, psk)
     with tempfile.TemporaryDirectory(prefix="om-trial-", dir=workdir) as tmp:
         tree = Path(tmp) / "tp"
         tree.mkdir(mode=0o700)
@@ -342,9 +349,11 @@ def trial_payload(live: bytes, armed: bytes, nonce: str, ssid: str, psk: str, ro
                  "env-armed.md5": (hashlib.md5(armed).hexdigest() + "\n").encode(), "nonce": (nonce + "\n").encode(),
                  "tl-blank.img": sl.tl_blank()}
         files.update({n: p.read_bytes() for n, p in mods.items()})
+        files.update(auth)
+        files["wpa.conf"] = config
         for name, data in files.items():
             write_private(tree / name, data)
-            os.chmod(tree / name, 0o755 if name.endswith(".sh") else 0o600)
+            os.chmod(tree / name, 0o755 if name.endswith(".sh") or name == "wpa_supplicant" else 0o600)
         img = Path(tmp) / "tp.squashfs"
         r = subprocess.run([mksquashfs, str(tree), str(img), *TRIAL_MKSQUASHFS], capture_output=True, timeout=600)
         if r.returncode != 0:
@@ -375,7 +384,7 @@ def cmd_trial(args, state: Path) -> dict:
     armed, report = sl.build_trial(live)
     nonce = secrets.token_hex(16)
     payload, _ = trial_payload(live, armed, nonce, wifi["wlanssid"], wifi["wlanpass"], Path(args.oipc_rootfs),
-                               args.mksquashfs, args.workdir)
+                               args.mksquashfs, args.workdir, args.auth_runtime)
     pad = lambda data, n: data + b"\xff" * (n - len(data))  # noqa: E731
     trial = pad(fw[:k["total"]], sl.TK_LEN) + pad(payload, sl.TP_LEN)
     build = {"nonce": nonce, "payload_bytes": len(payload), "payload_limit_bytes": sl.TP_LEN,
@@ -429,11 +438,11 @@ def cmd_plan(args, state=None) -> dict:
     final, final_rep = sl.build_final(base)
     psk = secrets.token_urlsafe(48)[:63]  # placeholder of maximal WPA length; never stored
     payload, files = trial_payload(base, armed, secrets.token_hex(16), "x" * 32, psk, Path(args.oipc_rootfs),
-                                   args.mksquashfs, args.workdir)
+                                   args.mksquashfs, args.workdir, args.auth_runtime)
     out = {"layout": sl.plan(fw), "probe_env": probe_rep, "trial_env": trial_rep, "final_env": final_rep,
            "trial_kernel": {"bytes": k["total"], "slot_bytes": sl.TK_LEN, "margin_bytes": sl.TK_LEN - k["total"]},
            "trial_payload": {"bytes": len(payload), "limit_bytes": sl.TP_LEN, "margin_bytes": sl.TP_LEN - len(payload),
-                             "file_bytes": {n: v for n, v in files.items() if n != "MT7601USTA.dat"},
+                             "file_bytes": {n: v for n, v in files.items() if n not in ("MT7601USTA.dat", "wpa.conf")},
                              "wifi": "placeholder of maximal length (32-char SSID, 63-char PSK)"},
            "camera_contacted": False}
     if args.bundle:
@@ -470,6 +479,7 @@ def main(argv=None) -> int:
     p = sub.add_parser("trial")
     p.add_argument("--firmware", type=Path, required=True)
     p.add_argument("--oipc-rootfs", type=Path, required=True)
+    p.add_argument("--auth-runtime", type=Path, required=True, help="private static ARMv5 WPA2 runtime")
     p.add_argument("--wifi-vars", type=Path, required=True)
     p.add_argument("--mksquashfs", required=True)
     p.add_argument("--workdir")
@@ -483,6 +493,7 @@ def main(argv=None) -> int:
     p = sub.add_parser("plan")
     p.add_argument("--firmware", type=Path, required=True)
     p.add_argument("--oipc-rootfs", type=Path, required=True)
+    p.add_argument("--auth-runtime", type=Path, required=True, help="private static ARMv5 WPA2 runtime")
     p.add_argument("--mksquashfs", required=True)
     p.add_argument("--bundle", type=Path, help="private bundle from build_migration_appfs.py (appfs size only)")
     p.add_argument("--workdir")
@@ -495,7 +506,7 @@ def main(argv=None) -> int:
         result = {"diag": cmd_diag, "probe": cmd_probe, "collect": cmd_collect, "trial": cmd_trial,
                   "final": cmd_final, "restore": cmd_restore, "status": cmd_status, "plan": cmd_plan}[args.cmd](
             args, state)
-    except (StateError, sl.LayoutError, make_env.EnvError, BundleError, OSError, UnicodeDecodeError) as exc:
+    except (StateError, ta.AuthError, sl.LayoutError, make_env.EnvError, BundleError, OSError, UnicodeDecodeError) as exc:
         print(f"build_stockboot: {exc}", file=sys.stderr)
         return 2
     print(json.dumps(result, indent=2, sort_keys=True))

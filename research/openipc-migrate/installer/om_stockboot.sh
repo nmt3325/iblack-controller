@@ -310,10 +310,13 @@ read2(){ rd "$1" "$2" "$3" > "$4"; rd "$1" "$2" "$3" > "$4.b"
   "$BB" cmp -s "$4" "$4.c"; r=$?; "$BB" rm -f "$4.b" "$4.c"; return $r; }
 
 act_diagnose(){
-  QUIESCED=1; hook quiesce >/dev/null 2>&1 || log "note: quiesce refused; blocks written by the stock app may vary"
+  # Read-only diagnosis must not stop the stock network/watchdog-feeding services.
+  # Repeated reads below still fail the host gate if live data changes.
+  log "read-only diagnosis: stock services remain running"
   I="$TMP/diag-info"; : > "$I"
   sec(){ t=$1; shift; echo "== $t" >> "$I"; "$@" >> "$I" 2>&1; echo >> "$I"; }
   sec uname "$BB" uname -a
+  sec uptime "$BB" cat /proc/uptime
   for f in cmdline version cpuinfo meminfo partitions devices modules mounts misc; do sec "$f" "$BB" cat "/proc/$f"; done
   sec mtd "$BB" cat "$MTD_PROC"
   sec df "$BB" df
@@ -329,10 +332,13 @@ act_diagnose(){
   for d in /sys/class/net/*; do echo "${d##*/} $("$BB" cat "$d/operstate" 2>/dev/null) $("$BB" readlink "$d/device/driver" 2>/dev/null)" >> "$I"; done
   sec wireless "$BB" cat /proc/net/wireless
   echo "== dmesg" >> "$I"; "$BB" dmesg 2>&1 | "$BB" tail -n 400 >> "$I"
+  # Confirm basic evidence before a slow read or later failure can lose it.
+  upload diag-info "$I"; progress "diagnose-info-ready"
   B="$TMP/diag-blocks"; : > "$B"; pass=1
   log "hashing all 128 erase blocks (3 passes)"
   while [ $pass -le 3 ]; do abs=0; i=0
     while [ $i -lt 6 ]; do nb=$(($(psize $i)/BS)); k=0
+      progress "diag-pass-$pass-part-$i"
       while [ $k -lt $nb ]; do echo "b $pass $abs $(rd_hash $i $k 1)" >> "$B"; k=$((k+1)); abs=$((abs+1)); done
       i=$((i+1)); done
     pass=$((pass+1)); done
@@ -340,7 +346,7 @@ act_diagnose(){
   while [ $r -le 16 ]; do echo "w $r $(rd_hash 5 $wb 1)" >> "$B"; r=$((r+1)); done
   r=1; while [ $r -le 3 ]; do echo "u $r $(rd_hash 0 0 4)" >> "$B"; r=$((r+1)); done
   read_live_env; echo "e 1 $LIVE_SHA" >> "$B"; echo "e 2 $(SHA "$TMP/live2.env")" >> "$B"
-  upload diag-info "$I"; upload diag-blocks "$B"; upload diag-env "$TMP/live1.env"
+  upload diag-blocks "$B"; upload diag-env "$TMP/live1.env"
   progress "diagnose-done"; log "diagnose finished (read-only)"; finish 0; }
 
 act_collect(){

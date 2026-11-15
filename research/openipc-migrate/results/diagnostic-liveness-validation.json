@@ -1,0 +1,54 @@
+{
+  "adjacent_openipc_port_tests_passed": 25,
+  "capacity": {
+    "installer_matches_source": true,
+    "limit_bytes": 2621432,
+    "margin_bytes": 8184,
+    "migration_appfs_bytes": 2613248,
+    "stock_tree_roundtrip_passed": true
+  },
+  "changes": [
+    "read-only diagnosis leaves stock network and watchdog-feeding services running",
+    "confirmed basic diagnostic upload precedes bulk hashing; includes uptime",
+    "per-partition progress for all three read passes",
+    "optional standby event persistence without granting file, upload, GO, write or reboot permissions"
+  ],
+  "date_utc": "2026-11-15T02:54:50Z",
+  "limitations": [
+    "previous real-device diagnostic interruption cause remains unproven; no watchdog conclusion",
+    "live stock data changing during repeated reads still fails the diagnosis",
+    "emulation does not prove physical saveenv, one-shot boot or Wi-Fi operation"
+  ],
+  "new_regression_tests_passed": 8,
+  "preserved_gates": [
+    "all repeated flash-read stability checks, including the weak block",
+    "stock U-Boot and environment checks",
+    "write-action quiesce and all write/reboot confirmation gates",
+    "protected legacy update code unchanged"
+  ],
+  "qemu_arm": {
+    "camera_contacted": false,
+    "checks": {
+      "e2e_real_binaries": "PASS",
+      "etc_overlay_mount": "PASS",
+      "phase1_capacity": "PASS",
+      "phase1_real_ramfs": "PASS",
+      "runapp_trial_branch": "PASS",
+      "runtime_on_stock_root": "PASS",
+      "runtime_patch": "PASS",
+      "shells_parse": "PASS",
+      "stock_applets": "PASS"
+    },
+    "real_binary_e2e_tests_passed": 16,
+    "real_mtd_access": false,
+    "stock_capacity_tests_passed": 23
+  },
+  "red_regressions_on_previous_code": 6,
+  "schema": 1,
+  "scope": "Offline diagnostic-liveness repair validation only; not deployment authorization or proof of a successful real-device diagnosis",
+  "unit_tests": {
+    "failed": 0,
+    "passed": 170,
+    "skipped": 0
+  }
+}

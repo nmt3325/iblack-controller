@@ -205,6 +205,14 @@ finalの後戻りできない区間は、firmware約6.6 MiBの消去・書込み
 
 追加修正後は、単体・結合テスト162件、隣接するopenipc-portの25件、qemu-armの9項目がすべてPASSした。純正BusyBox実物で容量判定23件とオンライン経路16件がPASS。イメージは2,613,248 / 2,621,432 bytes（余り8,184 bytes）で、埋め込まれたstage2もソースと一致する。記録は [`results/ramfs-stat-alias-validation.json`](results/ramfs-stat-alias-validation.json)。これは追加修正のオフライン結果であり、実機diagnoseの成功や追加送信・試験起動・finalの実行許可を意味しない。
 
+## 読取り専用診断の継続性
+
+diagnoseでは純正アプリ・ネットワークサービスを停止しない。サービス停止によってWi-Fiやwatchdogへの給餌を妨げないための変更であり、以前の実機中断がwatchdog原因だったと断定するものではない。書込みactionのquiesceと確認語句は変更していない。純正アプリの稼働中にデータが変われば、従来どおり反復読取りの不一致として先へ進まない。
+
+基本情報（uptimeを含む）を最初に送信・確認してから全ブロックのハッシュを計算し、3巡それぞれの区画開始を通知する。後段で中断しても、先に届いた基本情報と進捗を原因調査に使える。standbyでも `--backup-dir` を指定すれば受信イベントを私的なログへ保存するが、GO・ファイル配布・アップロード受入れ・書込み・再起動の許可は与えない。更新送信後はstandbyで起動が落ち着くのを待ってから、読取り専用診断を開始する。
+
+オフライン検証は単体・結合170件（新規回帰8件）、隣接25件、qemu-arm 9項目がPASS。純正ARMバイナリのオンライン経路16件・容量判定23件もPASSし、appfsは2,613,248 / 2,621,432 bytes（余り8,184 bytes）。記録は [`results/diagnostic-liveness-validation.json`](results/diagnostic-liveness-validation.json)。これは実機での診断・saveenv・OpenIPC試験起動の成功を意味しない。
+
 ## 再実行
 
 `tests/` と `validate_online_qemu.py` はカメラにもフラッシュにも触れない。

@@ -457,11 +457,10 @@ class MigrationServer:
         self.write, self.reboot = write_confirm is not None, reboot_confirm is not None
         self.seq = secrets.token_hex(8)
         self.consumed = False
-        self.backup_dir = None
-        if self.go:
-            if backup_dir is None:
-                raise ValueError("--backup-dir is required in every action mode")
-            self.backup_dir = private_dir(backup_dir)
+        if self.go and backup_dir is None:
+            raise ValueError("--backup-dir is required in every action mode")
+        # Optional standby/abort event persistence does not permit files or uploads.
+        self.backup_dir = private_dir(backup_dir) if backup_dir is not None else None
         self.out = out or sys.stdout
         self.lock = threading.Lock()
         self.events, self.served, self.uploads = [], {}, {}

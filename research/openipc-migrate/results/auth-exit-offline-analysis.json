@@ -62,6 +62,32 @@
     "No raw logs, configuration, credentials, network identifiers, private hashes or run identifiers are included.",
     "A fourth physical trial requires new explicit authorization; final migration remains blocked."
   ],
+  "next_trial_image_offline_validation": {
+    "before_any_write": "a fresh read-only env and U-Boot check must match the values this image was built against, otherwise abort",
+    "bootcmd_chars": 417,
+    "bootcmd_limit_chars": 1023,
+    "built_from_source_revision": "2ed417d601095d0f7f63174a4ed3c47a608e6b56",
+    "camera_reboots": 0,
+    "camera_writes": 0,
+    "checks_added_for_this_fix": [
+      "auth_config_has_no_update_config",
+      "auth_config_only_runtime_profile_fields",
+      "auth_payload_runtime_accepts_payload_config_under_qemu",
+      "trial_script_two_stage_authentication"
+    ],
+    "checks_passed": 30,
+    "checks_total": 30,
+    "env_basis": "armed env derived from the read-only live env probe; the env read after the third trial's stock return is identical to it",
+    "env_image_bytes": 131072,
+    "kernel_bytes": 1864732,
+    "kernel_limit_bytes": 1900544,
+    "payload_bytes": 688128,
+    "payload_limit_bytes": 720896,
+    "payload_margin_bytes": 32768,
+    "payload_runtime_under_qemu": "the executable and wpa.conf extracted from the built payload kept running for 3 s under qemu-arm (-i lo -D wext, network namespace with only lo)",
+    "trial_image_bytes": 2621440,
+    "written_to_camera": false
+  },
   "offline_reproduction": {
     "cases": [
       {

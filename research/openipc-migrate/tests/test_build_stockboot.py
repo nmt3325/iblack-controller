@@ -33,7 +33,7 @@ exit 0
 DAT = "Default\nCountryRegion=1\nSSID=\nNetworkType=Infra\nAuthMode=OPEN\nEncrypType=NONE\nWPAPSK=\n"
 TRIAL_OK = {"kernel": "3.0.8", "cmdline_mark": "1", "mtd_table": "ok", "env": "saved-by-uboot",
             "insmod_cfg80211": "0", "insmod_mt7601sta": "0", "iface": "ra0", "dhcp": "ok", "host": "ok",
-            "result": "ok"}
+            "result": "ok", "insmod_wdt": "0", "stable_window": "ok"}
 
 
 def tl_block(flags: dict) -> bytes:
@@ -114,10 +114,12 @@ class Flow(unittest.TestCase):
         mod = r / "lib" / "modules" / "3.0.8"
         (mod / "kernel" / "net" / "wireless").mkdir(parents=True)
         (mod / "extra").mkdir()
+        (mod / "hisilicon").mkdir()
         (mod / "modules.dep").write_text("kernel/net/wireless/cfg80211.ko:\nextra/mt7601sta.ko: "
-                                         "kernel/net/wireless/cfg80211.ko\n")
+                                         "kernel/net/wireless/cfg80211.ko\nhisilicon/wdt.ko:\n")
         (mod / "kernel" / "net" / "wireless" / "cfg80211.ko").write_bytes(fx.rbytes(5, 4000))
         (mod / "extra" / "mt7601sta.ko").write_bytes(fx.rbytes(6, 800_000 if big_module else 9000))
+        (mod / "hisilicon" / "wdt.ko").write_bytes(fx.rbytes(7, 1024))
         (r / "etc" / "mediatek").mkdir(parents=True)
         (r / "etc" / "mediatek" / "MT7601USTA.dat").write_text(DAT)
         return r
@@ -150,6 +152,20 @@ class Flow(unittest.TestCase):
         self.assertFalse((self.tmp / "x").exists())
         self.assertEqual(self.bs("status"), {"diag": "missing", "probe": "missing", "trial-build": "missing",
                                              "trial": "missing"})
+
+    def test_trial_requires_matching_watchdog_module(self):
+        root = self.oipc_rootfs()
+        dep = root / "lib/modules/3.0.8/modules.dep"
+        dep.write_text(dep.read_text().replace("hisilicon/wdt.ko:\n", ""))
+        with self.assertRaisesRegex(bs.StateError, "wdt.ko"):
+            bs.find_modules(root)
+
+    def test_trial_watchdog_must_not_pull_unknown_modules(self):
+        root = self.oipc_rootfs()
+        dep = root / "lib/modules/3.0.8/modules.dep"
+        dep.write_text(dep.read_text().replace("hisilicon/wdt.ko:\n", "hisilicon/wdt.ko: extra/unknown.ko\n"))
+        with self.assertRaisesRegex(bs.StateError, "wdt.ko"):
+            bs.find_modules(root)
 
     def test_private_paths(self):
         repo = Path(bs.__file__).resolve().parent
@@ -252,6 +268,21 @@ class Flow(unittest.TestCase):
         err = self.bs("final", "--firmware", str(self.tmp / "firmware.bin"), "--out", str(self.tmp / "f"), rc=2)
         self.assertIn("dhcp_ok,nonce_matches", err)
         self.assertFalse((self.tmp / "f").exists())
+
+    @unittest.skipUnless(MKSQ, "OM_MKSQUASHFS not set")
+    def test_watchdog_and_stability_evidence_are_both_required(self):
+        self.through_probe()
+        _, _, out = self.trial()
+        self.set_flash(sl.SENV_OFF, fx.uboot_saved((out / "env-armed.img").read_bytes()))
+        build = json.loads((self.state / "trial-build.json").read_text())
+        for missing, check in [("insmod_wdt", "watchdog_driver_loaded"), ("stable_window", "stable_window_survived")]:
+            flags = dict(TRIAL_OK, nonce=build["nonce"])
+            flags.pop(missing)
+            self.set_flash(sl.TL_OFF, tl_block(flags)); self.camera("collect")
+            result = self.bs("collect", "--uploads", str(self.up), "--stage", "trial")
+            self.assertFalse(result["ok"]); self.assertFalse(result["checks"][check])
+            self.bs("final", "--firmware", str(self.tmp / "firmware.bin"), "--out",
+                    str(self.tmp / ("blocked-" + missing)), rc=2)
 
     @unittest.skipUnless(MKSQ, "OM_MKSQUASHFS not set")
     def test_trial_payload_capacity(self):

@@ -2,7 +2,15 @@
 
 判断と実機上の未解決事項は [`docs/OPENIPC-PORTING.md`](../../docs/OPENIPC-PORTING.md)、純正更新経路の前段検証は [`research/openipc-port`](../openipc-port/README.md) にある。
 
-**このディレクトリのコードは、まだ実機で一度も実行していない。** この段階ではカメラへ接続しておらず、フラッシュの書込み・消去も再起動もしていない。全結果で `flash_write_allowed` は `false`。実機で動かすのは、所有者が段階ごとに明示的に承認した場合に限る。
+**恒久移行（`final`）は未実行。** 当初の検証結果はオフライン試験であり、その `flash_write_allowed: false` は実機の操作履歴を表さない。その後、所有者の段階別承認のもと、移行appfsの配信、読取り専用診断、純正U-Bootの `saveenv` probe、OpenIPC kernel＋純正ユーザーランドの一度限りの試験起動を実施した。最初の試験ではkernel起動・Wi-Fiモジュール読込み・インターフェース出現を確認したが、DHCP完了前に再起動して純正APへ戻り、ネットワーク試験は不合格だった。実機操作は引き続き各段階の承認範囲だけで行い、自動再試行しない。
+
+### 試験起動の再起動対策
+
+通常のOpenIPC起動処理 `load_hisilicon` と同じ公開rootfsの `wdt.ko` を試験payloadにも含め、カーネル内の給餌を明示的に有効にしてWi-Fi処理より前に読み込む。ドライバーの読込みに失敗したら試験を中止する。約1分の再起動と、以前のpayloadにこのドライバーがなかった事実は整合するが、実機の再試験前に原因と断定しない。レジスターへの直接書込みや不明なwatchdogの無効化は行わない。
+
+DHCPは最大8回で、各開始前にSSID・PSKを含まない診断をtlへ保存する。ホストへの到達後も70秒間同じkernelで待ち、watchdog読込みと安定待機の両方の証拠がなければ、collectは試験を合格にしない。独立した900秒の純正復帰タイマーと、試験時の書込み範囲（tl・必要時の純正env）は変更しない。
+
+修正版のオフライン検証（173 tests、ARM実バイナリの9項目）は [`results/trial-watchdog-offline-qa.json`](results/trial-watchdog-offline-qa.json) に記録した。この結果は追加の実機試験を合格とするものではない。
 
 ## 前提と方式
 
@@ -152,7 +160,7 @@ finalの後戻りできない区間は、firmware約6.6 MiBの消去・書込み
 | モジュール | 件数 | 内容 |
 | --- | --- | --- |
 | `test_stock_layout` | 21 | 配置と容量、純正env（128 KiB）の符号化、純正U-Bootのコマンド解釈と `_do_setenv`、`cmdlinepart`、probe／試験／本番／復元env、`0x050000` にuImageヘッダがないこと |
-| `test_build_stockboot` | 14 | 段階の順序、diagnoseとcollectの判定（不安定なブロック、16回読む弱いブロック、別個体のダンプ）、試験用SquashFSの容量とtlの雛形、純正BusyBoxで動かないスクリプトを試験用SquashFSに入れないこと、action一式 |
+| `test_build_stockboot` | 17 | 段階の順序、diagnoseとcollectの判定（不安定なブロック、16回読む弱いブロック、別個体のダンプ）、試験用SquashFSの容量とtlの雛形、純正BusyBoxで動かないスクリプトを試験用SquashFSに入れないこと、action一式 |
 | `test_om_stockboot` | 12 | 模擬フラッシュ上の `om_stockboot.sh`：diagnoseとcollectは読取りのみ、probe-armは純正envだけを書く、語句と計画どおりのenvが要る、env書込みの失敗で元に戻す、試験イメージの失敗ではenvを書かない、finalの一時的な読み書き不良・後戻りできない点の前後の失敗・再試行 |
 | `test_build_migration_appfs` | 37 | 移行appfsの組立てと容量、runapp.shの起動行と試験起動の分岐（純正shで実行）、stage2.shと `trial.sh` が純正BusyBoxの範囲に収まること（`dd` の引数、`grep -x` を含む）、bundle |
 | `test_serve_migration` | 23 | bundleとaction一式の検査、モードごとのmanifest、1回だけのaction、run id、受信物（純正 `wget --post-data` の%XX形式の試験ログを元に戻すこと、受信を断るときも本文を読み切ってから応答すること）、語句の一致 |

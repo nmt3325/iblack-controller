@@ -60,7 +60,8 @@ BLOCKED = frozenset((
     "sysctl telnetd top udhcpc umount").split())
 # trial.sh: the kernel/network side of the trial boot (modules, Wi-Fi link, DHCP) is stubbed.
 TRIAL_STUBS = {"insmod": "exit 0", "lsmod": 'echo "mt7601sta 0 0 - Live 0x0 (stub)"', "ifconfig": "exit 0",
-               "udhcpc": "exit 0", "dmesg": "echo dmesg-stub", "uname": "echo 3.0.8"}
+               "udhcpc": "exit 0", "dmesg": "echo dmesg-stub", "uname": "echo 3.0.8",
+               "sleep": 'echo "$1" >> "$OMT_SLEEP_LOG"; exit 0'}
 RUN_TIMEOUT = int(os.environ.get("OM_E2E_RUN_TIMEOUT", "900"))  # one boot of the stock firmware
 # Host BusyBox wget crashes on -T; the stand-ins drop "-T N" (the camera tools keep it).
 STRIP_T = ('skip=\nfor a do\n  shift\n  if [ -n "$skip" ]; then skip=; continue; fi\n'
@@ -284,10 +285,12 @@ class OnlineChain(unittest.TestCase):
         mod = r / "lib" / "modules" / "3.0.8"
         (mod / "kernel" / "net" / "wireless").mkdir(parents=True)
         (mod / "extra").mkdir()
+        (mod / "hisilicon").mkdir()
         (mod / "modules.dep").write_text("kernel/net/wireless/cfg80211.ko:\nextra/mt7601sta.ko: "
-                                         "kernel/net/wireless/cfg80211.ko\n")
+                                         "kernel/net/wireless/cfg80211.ko\nhisilicon/wdt.ko:\n")
         (mod / "kernel" / "net" / "wireless" / "cfg80211.ko").write_bytes(fx.rbytes(5, 4000))
         (mod / "extra" / "mt7601sta.ko").write_bytes(fx.rbytes(6, 9000))
+        (mod / "hisilicon" / "wdt.ko").write_bytes(fx.rbytes(7, 1024))
         (r / "etc" / "mediatek").mkdir(parents=True)
         (r / "etc" / "mediatek" / "MT7601USTA.dat").write_text(DAT)
         return r
@@ -364,7 +367,8 @@ class OnlineChain(unittest.TestCase):
                "OMT_WORK": str(work), "OMT_CONF": str(conf or self.app / "migrate.conf"),
                "OMT_PROC_MTD": str(proc / "mtd"), "OMT_PROC_CMDLINE": str(proc / "cmdline"),
                "OMT_PROC_DEVICES": str(proc / "devices"),
-               "OMT_NET_DIR": str(net), "OMT_DEV_DIR": str(dev), "OMT_NO_ETC": "1", "OMT_NO_REBOOT": "1"}
+               "OMT_NET_DIR": str(net), "OMT_DEV_DIR": str(dev), "OMT_NO_ETC": "1", "OMT_NO_REBOOT": "1",
+               "OMT_SLEEP_LOG": str(base / "sleeps")}
         sent = len(self.srv.uploads.get("trial-log", [])) if self.srv else 0
         r = subprocess.run([STOCK_BB, "sh", str(pay / "trial.sh")], env=env, cwd=self.tmp, capture_output=True,
                            text=True, timeout=600, stdin=subprocess.DEVNULL)
@@ -375,6 +379,11 @@ class OnlineChain(unittest.TestCase):
         for secret in (SSID, PASS):
             self.assertNotIn(secret, log)
         flags = dict(re.findall(r"^omt ([a-z0-9_]+)=(.*)$", log, re.M))
+        sleeps = (base / "sleeps").read_text().splitlines() if (base / "sleeps").exists() else []
+        if flags.get("result") == "completed":
+            self.assertIn("70", sleeps, "success must follow the full stability wait")
+        else:
+            self.assertNotIn("70", sleeps, "a failed trial must not claim the stability window")
         tl = (dev / "b7").read_bytes()
         self.assertEqual(len(tl), sl.TL_LEN)
         self.assertEqual(tl[sl.TL_TEXT_LEN:sl.TL_TEXT_LEN + len(sl.TL_MARKER)], sl.TL_MARKER)
@@ -436,7 +445,8 @@ class OnlineChain(unittest.TestCase):
         nonce = json.loads((self.tmp / "state" / "trial-build.json").read_text())["nonce"]
         self.assertEqual(flags, {"nonce": nonce, "kernel": "3.0.8", "cmdline_mark": "1", "mtd_table": "ok",
                                  "env": "saved-by-uboot", "insmod_cfg80211": "0", "insmod_mt7601sta": "0",
-                                 "iface": "ra0", "dhcp": "ok", "host": "ok", "result": "completed"})
+                                 "iface": "ra0", "dhcp": "ok", "host": "ok", "result": "completed",
+                                 "insmod_wdt": "0", "ifup": "0", "dhcp_attempt": "1", "stable_window": "ok"})
         self.assertEqual(self.events("trial"), ["trial-network-up", "trial-completed"])
         self.assertEqual(len(self.srv.uploads["trial-log"]), 1)
         # Had saveenv failed, the armed env would still be there: trial.sh writes the stock env back over the
@@ -469,6 +479,26 @@ class OnlineChain(unittest.TestCase):
         self.assertFalse((self.om_dir / "payload").exists())
         self.assertToolDiscipline()
         self.assertTrue({"wget", "sha1sum", "md5sum", "expr"} <= set(self.traced("p1")))
+        # Replay only the extracted trial in the file-backed harness: no real device and no network.
+        # The successful collection above is left untouched; the failure mailboxes are not applied.
+        for mode in ("watchdog", "ifup", "dhcp"):
+            with self.subTest(trial_failure=mode):
+                self.trace.write_text("")
+                self.write_wrapper(self.trialbin, "insmod", "tr",
+                    'case "$1" in */wdt.ko) exit 1;; esac; exit 0' if mode == "watchdog" else "exit 0")
+                self.write_wrapper(self.trialbin, "ifconfig", "tr",
+                    '[ "$2" != up ]' if mode == "ifup" else "exit 0")
+                self.write_wrapper(self.trialbin, "udhcpc", "tr", "exit 1" if mode == "dhcp" else "exit 0")
+                flags, _ = self.run_trial(trial, senv=fx.uboot_saved(armed),
+                                          conf=self.tmp / "no-migrate.conf", apply=False)
+                self.assertEqual(flags["result"], {"watchdog": "watchdog-init-failed",
+                    "ifup": "wifi-ifup-failed", "dhcp": "no-dhcp-lease"}[mode])
+                self.assertNotIn("stable_window", flags)
+                self.assertEqual(self.traced("tr").count("udhcpc"), 8 if mode == "dhcp" else 0)
+                if mode == "watchdog":
+                    self.assertNotIn("insmod_cfg80211", flags)
+                elif mode == "dhcp":
+                    self.assertEqual((flags["dhcp"], flags["dhcp_attempt"]), ("fail", "8"))
 
     # ---- stays inert ------------------------------------------------------------------------------------
     def test_standby_times_out_and_the_lock_blocks_a_second_start(self):

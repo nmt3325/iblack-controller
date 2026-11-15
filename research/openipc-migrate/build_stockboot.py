@@ -273,6 +273,8 @@ def cmd_collect(args, state: Path) -> dict:
         "mtd_table_ok": flags.get("mtd_table") == "ok",
         "modules_loaded": flags.get("insmod_cfg80211") == "0" and flags.get("insmod_mt7601sta") == "0",
         "wifi_interface": flags.get("iface", "none") != "none",
+        "watchdog_driver_loaded": flags.get("insmod_wdt") == "0",
+        "stable_window_survived": flags.get("stable_window") == "ok",
         "dhcp_ok": flags.get("dhcp") == "ok",
         "host_reached": flags.get("host") == "ok",
         "uboot_saveenv_ran": flags.get("env") in ("saved-by-uboot", "base"),
@@ -313,7 +315,11 @@ def find_modules(rootfs: Path) -> dict:
     cfg = next((k for k in dep if k.endswith("/cfg80211.ko")), None)
     if not sta or not cfg or dep[sta].split() != [cfg]:
         raise StateError("OpenIPC rootfs: mt7601sta.ko must depend on cfg80211.ko only")
-    return {"cfg80211.ko": deps[0].parent / cfg, "mt7601sta.ko": deps[0].parent / sta}
+    wdt = next((k for k in dep if k.endswith("/wdt.ko")), None)
+    if not wdt or dep[wdt].split():
+        raise StateError("OpenIPC rootfs: wdt.ko must exist without additional dependencies")
+    return {"cfg80211.ko": deps[0].parent / cfg, "mt7601sta.ko": deps[0].parent / sta,
+            "wdt.ko": deps[0].parent / wdt}
 
 
 def trial_payload(live: bytes, armed: bytes, nonce: str, ssid: str, psk: str, rootfs: Path, mksquashfs: str,

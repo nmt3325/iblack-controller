@@ -11,7 +11,8 @@
 # layout are only tl (64 KiB log mailbox at 0x70000) and senv (vendor env); this script
 # writes tl (log checkpoints) and, only if the vendor env still equals the
 # armed image (saveenv failed), restores the stock env into senv.
-# Steps: check kernel/partition table, stop SysUpdate, eth0 down, Wi-Fi from
+# Steps: check kernel/partition table, load the pinned OpenIPC watchdog with its kernel
+# feeder enabled (normal OpenIPC load_hisilicon behavior), stop SysUpdate, eth0 down, Wi-Fi from
 # the OpenIPC cfg80211.ko + mt7601sta.ko and the MT7601USTA.dat built by the
 # host, DHCP, report to the LAN host (status + log upload; the stock wget sends --post-data
 # form-escaped and serve_migration.py decodes it), reboot -f.
@@ -89,6 +90,18 @@ elif [ "$senv" = "$(cat "$P/env-base.md5")" ]; then flag env base
 else flag env saved-by-uboot
 fi
 
+# ---- watchdog ownership before the long Wi-Fi/DHCP wait ------------------------------------
+# Normal OpenIPC load_hisilicon loads this same module. Its documented default kernel daemon feeds
+# the watchdog; the earlier stock-userland trial omitted it and reset before DHCP finished. That
+# timing alone is not proof of the reset cause. Do not poke registers, open an unowned watchdog, or
+# disable it: use the matching pinned driver with its feeder explicitly enabled, and fail closed.
+insmod "$P/wdt.ko" nodeamon=0 default_margin=60 nowayout=0 >> "$LOG" 2>&1
+wdt_rc=$?; flag insmod_wdt "$wdt_rc"
+[ "$wdt_rc" -eq 0 ] || finish watchdog-init-failed
+sec watchdog_modules lsmod
+sec watchdog_misc cat /proc/misc
+cp_note watchdog
+
 # ---- stock services off, Wi-Fi from the OpenIPC modules --------------------------------------
 killall SysUpdate >/dev/null 2>&1
 ifconfig eth0 down >/dev/null 2>&1
@@ -107,16 +120,29 @@ done
 flag iface "${IF:-none}"
 [ -n "$IF" ] || finish no-wifi-interface
 ifconfig "$IF" up >> "$LOG" 2>&1
+ifup_rc=$?; flag ifup "$ifup_rc"
+[ "$ifup_rc" -eq 0 ] || finish wifi-ifup-failed
 sec usb cat /sys/kernel/debug/usb/devices
 cp_note wifi
 
 # ---- DHCP and the LAN host ---------------------------------------------------------------------
 # (sourcing a missing file would end this sh before reboot -f: check first)
 if [ -r "$CONF" ]; then . "$CONF" 2>/dev/null; fi
+# No SSID/PSK, iwconfig output, or raw driver trace is copied into diagnostics. The fixed-label
+# health filter records reset/OOM/watchdog symptoms without the driver's authentication chatter.
+net_note(){
+  sec wireless cat /proc/net/wireless
+  sec carrier cat "$NETD/$IF/carrier"
+  sec meminfo cat /proc/meminfo
+  echo "== kernel-health" >> "$LOG"
+  dmesg | awk '/[Ww]atchdog|Kernel panic|Oops:|BUG:|Call [Tt]race|Out of memory|Killed process/ && !/[Ss][Ss][Ii][Dd]|[Pp][Ss][Kk]|[Pp]ass|[Kk]ey|PMK|PTK|GTK/' | tail -n 20 >> "$LOG" 2>&1
+}
 ok=0; n=0
 while [ "$ok" -eq 0 ] && [ "$n" -lt 8 ]; do
-  if udhcpc -i "$IF" -s "$P/trial_dhcp.sh" -t 5 -T 3 -n -q >> "$LOG" 2>&1; then ok=1; else sleep 5; fi
-  n=$(expr $n + 1)
+  n=$(expr $n + 1); log "DHCP attempt $n started"; flag dhcp_attempt "$n"
+  net_note; cp_note "dhcp-$n"
+  if udhcpc -i "$IF" -s "$P/trial_dhcp.sh" -t 5 -T 3 -n -q >> "$LOG" 2>&1; then ok=1
+  else log "DHCP attempt $n failed"; sleep 5; fi
 done
 if [ "$ok" -eq 1 ]; then flag dhcp ok; else flag dhcp fail; fi
 sec route cat /proc/net/route
@@ -128,5 +154,12 @@ rm -f "$W/manifest"
 wget -q -T 20 -O "$W/manifest" "http://$OM_HOST:$OM_PORT/manifest?run=$OM_RUN_ID" >/dev/null 2>&1
 # (anchored pattern: the stock grep has no -x)
 if grep -q "^run=$OM_RUN_ID\$" "$W/manifest" 2>/dev/null; then flag host ok; else flag host fail; fi
-sec dmesg-tail sh -c 'dmesg | tail -n 60'
+[ -r "$W/manifest" ] && grep -q "^run=$OM_RUN_ID\$" "$W/manifest" || finish host-unreachable
+# A quick association is insufficient evidence for watchdog ownership. Keep the same kernel alive
+# beyond the 60-second watchdog interval before declaring the trial complete. The launcher retains
+# its independent 900-second stock-return deadline, and no extra flash region becomes writable.
+log "host reached; starting 70-second stability window"; cp_note host-reached
+sleep 70 || finish stability-wait-failed
+flag stable_window ok; sec uptime_stable cat /proc/uptime
+net_note
 finish completed

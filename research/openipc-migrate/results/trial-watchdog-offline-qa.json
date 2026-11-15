@@ -1,0 +1,35 @@
+{
+  "adjacent_tests": 25,
+  "camera_access": false,
+  "camera_reboots": 0,
+  "flash_write_allowed": false,
+  "hardware_validation": "The separately authorized additional physical trial is not part of these offline results. Watchdog ownership and Wi-Fi/DHCP still require observation on the camera.",
+  "permanent_migration_executed": false,
+  "qemu_checks": {
+    "e2e_real_binaries": "PASS",
+    "etc_overlay_mount": "PASS",
+    "phase1_capacity": "PASS",
+    "phase1_real_ramfs": "PASS",
+    "runapp_trial_branch": "PASS",
+    "runtime_on_stock_root": "PASS",
+    "runtime_patch": "PASS",
+    "shells_parse": "PASS",
+    "stock_applets": "PASS"
+  },
+  "regressions": [
+    "matching_watchdog_module_required",
+    "watchdog_load_failure_stops_before_wifi",
+    "wifi_ifup_failure_stops_before_dhcp",
+    "dhcp_retry_bound_and_mailbox_checkpoints",
+    "host_manifest_checked_before_success",
+    "seventy_second_wait_on_success_path",
+    "missing_watchdog_or_stability_evidence_blocks_final",
+    "real_stock_busybox_and_patched_runtime_busybox_under_qemu"
+  ],
+  "repository_verify_rc": 0,
+  "result": "PASS",
+  "schema": "openipc-trial-watchdog-offline-qa-v1",
+  "scope": "offline_validation_only",
+  "unit_skipped": 0,
+  "unit_tests": 173
+}

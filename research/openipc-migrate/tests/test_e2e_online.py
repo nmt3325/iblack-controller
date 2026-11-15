@@ -518,6 +518,30 @@ class OnlineChain(unittest.TestCase):
         self.assertRegex(events[0], r"^lowmem-[0-9]+-[0-9]+$")
         self.assertEqual(self.srv.served, {})
 
+    def fake_zero_space(self, kind: str, total: int):
+        self.write_wrapper(self.stockbin, "df", None,
+                           "cat <<'EOF'\nFilesystem 1K-blocks Used Available Use% Mounted on\nnone 0 0 0 0% /dev\nEOF")
+        self.write_wrapper(self.stockbin, "stat", None,
+                           "cat <<'EOF'\n  File: /dev/om\n    ID: 0 Namelen: 255 Type: " + kind +
+                           f"\nBlock size: 4096\nBlocks: Total: {total} Free: 0 Available: 0\nEOF")
+
+    def test_ramfs_zero_accounting_allows_read_only_diagnose(self):
+        self.setup_bundle(overrides={"OM_MIN_AVAIL_KB": 12288, "OM_MIN_DIRFREE_KB": 10240})
+        self.fake_zero_space("ramfs", 0)
+        self.action("diagnose")
+        self.assertFlashUnchanged()
+        self.assertToolDiscipline()
+
+    def test_full_bounded_tmpfs_still_stops_before_download(self):
+        self.setup_bundle()
+        self.fake_zero_space("tmpfs", 131072)
+        self.start("diagnose")
+        self.boot()
+        self.assertRegex(self.events()[0], r"^lowmem-[0-9]+-0$")
+        self.assertEqual(len(self.events()), 1)
+        self.assertEqual(self.srv.served, {})
+        self.assertFlashUnchanged()
+
     # ---- verification failures ----------------------------------------------------------------------------
     def test_runtime_pin_mismatch_stops_phase1(self):
         for rel, name, served in (("runtime/busybox", "busybox", ["runtime/busybox"]),

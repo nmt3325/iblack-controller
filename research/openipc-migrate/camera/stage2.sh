@@ -53,6 +53,48 @@ p1_report(){ wget -q -T 10 -O /dev/null "$BASE/status?run=$OM_RUN_ID&phase=1&eve
 p1_mval(){ awk -F= -v k="$1" '$1 == k { sub(/^[^=]*=/, ""); print; exit }' "$OM_DIR/manifest" 2>/dev/null; }
 p1_sum(){ "$1" "$2" 2>/dev/null | awk '{print $1}'; }
 p1_ge(){ expr "${1:-0}" \>= "${2:-0}" >/dev/null 2>&1; }
+# RAMFS (also CONFIG_SHMEM=n's "tmpfs") reports zero filesystem blocks, not
+# zero usable memory. Identify it by statfs, not the mount's "tmpfs" label.
+# stat -c is not built into the stock BusyBox; its default -f output is.
+p1_ramfs_unaccounted(){
+  fsstat=$(stat -f "$OM_DIR" 2>/dev/null) || return 1
+  echo "$fsstat" | awk '
+    $1 == "ID:" { for (i=1; i<NF; i++) if ($i == "Type:") { t=$(i+1); nt++ } }
+    $1 == "Blocks:" && $2 == "Total:" && $4 == "Free:" && $6 == "Available:" {
+      nb++; z=(NF == 7 && $3 == "0" && $5 == "0" && $7 == "0")
+    }
+    END { exit !(nt == 1 && t == "ramfs" && nb == 1 && z) }'
+}
+# Read meminfo from stdin so the exact stock-awk calculation is fixture-tested.
+# RAMFS pages are Cached but Unevictable; do not count them as reclaimable.
+# Without the accounting fields use only free RAM + reclaimable buffers.
+p1_mem_avail(){ awk '
+    $1 ~ /^(MemFree:|Buffers:|Cached:|Shmem:|Unevictable:)$/ {
+      if (NF != 3 || $2 !~ /^[0-9]+$/ || $3 != "kB" || seen[$1]++) bad=1
+      n[$1]=$2
+    }
+    END {
+      if (bad || !seen["MemFree:"] || !seen["Buffers:"] || !seen["Cached:"]) { print 0; exit }
+      v=n["MemFree:"]+n["Buffers:"]
+      if (seen["Shmem:"] && seen["Unevictable:"]) v+=n["Cached:"]-n["Shmem:"]-n["Unevictable:"]
+      if (v < 0) v=0
+      print v
+    }'; }
+p1_capacity(){
+  avail=$(p1_mem_avail); dirfree=0
+  space=$(df "$OM_DIR" 2>/dev/null) || return 1
+  dirfree=$(echo "$space" | awk '
+    NR == 2 && NF >= 6 && $(NF-4) ~ /^[0-9]+$/ && $(NF-3) ~ /^[0-9]+$/ && $(NF-2) ~ /^[0-9]+$/ {
+      print $(NF-2); ok=1
+    }
+    END { if (!ok) print -1 }')
+  if [ "$dirfree" = 0 ] && p1_ramfs_unaccounted; then
+    # The 10 MiB work budget and a further 2 MiB of RAM headroom must both fit.
+    dirfree=$(expr "${avail:-0}" - 2048)
+    p1_ge "$dirfree" 0 || dirfree=0
+  fi
+  p1_ge "$avail" "$OM_MIN_AVAIL_KB" && p1_ge "$dirfree" "$OM_MIN_DIRFREE_KB"
+}
 p1_pins(){ case "$1" in
     busybox) echo "$OM_RT_BB_SHA1 $OM_RT_BB_MD5";;
     ld-musl.so) echo "$OM_RT_LD_SHA1 $OM_RT_LD_MD5";;
@@ -89,9 +131,7 @@ phase1(){
   mkdir -p "$OM_DIR" || exit 0
   log "phase1 start (stock sh); polling $BASE"
   if ! p1_wait_for_go; then log "no go; stock firmware continues"; exit 0; fi
-  avail=$(awk '/^MemFree:/{f=$2} /^Buffers:/{b=$2} /^Cached:/{c=$2} /^Shmem:/{s=$2} END{print f+b+c-s}' /proc/meminfo)
-  dirfree=$(df "$OM_DIR" 2>/dev/null | awk 'NR==2 {print $(NF-2)}')
-  if ! p1_ge "$avail" "$OM_MIN_AVAIL_KB" || ! p1_ge "$dirfree" "$OM_MIN_DIRFREE_KB"; then
+  if ! p1_capacity < /proc/meminfo; then
     p1_report "lowmem-$avail-$dirfree"; log "insufficient RAM: avail=$avail KiB, free in $OM_DIR=$dirfree KiB"; exit 0
   fi
   p1_report go-received

@@ -377,6 +377,11 @@ class Lab:
         self.record("runapp_trial_branch", ok, tests=res, seconds=secs,
                     shells=["host sh", "host BusyBox sh", "stock BusyBox 1.18.4 sh (qemu)"])
 
+    def check_phase1_capacity(self):
+        rc, res, secs = self.unittests("tests.test_phase1_capacity")
+        self.record("phase1_capacity", rc == 0 and len(res) >= 13 and all(v["result"] == "PASS" for v in res.values()),
+                    tests=res, seconds=secs)
+
     def check_e2e_real_binaries(self):
         rc, res, secs = self.unittests("tests.test_e2e_online", (), {"OM_E2E_RUNTIME_BB": str(self.rt_bbw),
                                                                        "OM_E2E_RUN_TIMEOUT": "5400"})
@@ -417,7 +422,7 @@ def main(argv=None) -> int:
     signal.signal(signal.SIGTERM, lambda *_: sys.exit(143))
     lab = Lab(args)
     checks = ["runtime_patch", "runtime_on_stock_root", "shells_parse", "stock_applets", "etc_overlay_mount",
-              "runapp_trial_branch", "e2e_real_binaries"]
+              "runapp_trial_branch", "phase1_capacity", "e2e_real_binaries"]
     started = time.time()
     try:
         lab.setup()

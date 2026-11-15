@@ -1,0 +1,49 @@
+{
+  "schema": 1,
+  "scope": "Offline RAMFS capacity-guard regression only; no deployment authorization",
+  "unit_tests": {
+    "passed": 150,
+    "failed": 0,
+    "skipped": 0
+  },
+  "adjacent_openipc_port_tests_passed": 25,
+  "qemu_arm": {
+    "emulator": "qemu-arm user mode, -cpu arm926",
+    "checks": {
+      "e2e_real_binaries": "PASS",
+      "etc_overlay_mount": "PASS",
+      "phase1_capacity": "PASS",
+      "runapp_trial_branch": "PASS",
+      "runtime_on_stock_root": "PASS",
+      "runtime_patch": "PASS",
+      "shells_parse": "PASS",
+      "stock_applets": "PASS"
+    },
+    "stock_capacity_tests_passed": 13,
+    "real_binary_e2e_tests_passed": 14,
+    "camera_contacted": false,
+    "real_mtd_access": false
+  },
+  "capacity": {
+    "migration_appfs_bytes": 2613248,
+    "limit_bytes": 2621432,
+    "margin_bytes": 8184
+  },
+  "guard": {
+    "minimum_available_ram_kib": 12288,
+    "minimum_work_budget_kib": 10240,
+    "additional_ramfs_reserve_kib": 2048,
+    "zero_accounting_exception": "statfs type ramfs and Total/Free/Available all zero; not a tmpfs mount-name exception",
+    "reclaimable_ram": "MemFree + Buffers + Cached - Shmem - Unevictable; without both accounting fields, MemFree + Buffers only"
+  },
+  "regressions": [
+    "tiny-shmem RAMFS zero blocks reaches read-only diagnose",
+    "full bounded tmpfs remains blocked",
+    "unknown filesystem or partial/malformed/failed stat/df remains blocked",
+    "low RAM or missing work-budget headroom remains blocked",
+    "malformed/missing/duplicate meminfo fields fail closed",
+    "unevictable RAMFS pages are not reclaimed twice"
+  ],
+  "private_literals_in_changed_source": 0,
+  "legacy_update_guards_unchanged": true
+}

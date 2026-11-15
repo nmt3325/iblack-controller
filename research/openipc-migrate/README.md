@@ -2,7 +2,9 @@
 
 判断と実機上の未解決事項は [`docs/OPENIPC-PORTING.md`](../../docs/OPENIPC-PORTING.md)、純正更新経路の前段検証は [`research/openipc-port`](../openipc-port/README.md) にある。
 
-**恒久移行（`final`）は未実行。** 当初の検証結果はオフライン試験であり、その `flash_write_allowed: false` は実機の操作履歴を表さない。その後、所有者の段階別承認のもと、移行appfsの配信、読取り専用診断、純正U-Bootの `saveenv` probe、OpenIPC kernel＋純正ユーザーランドの一度限りの試験起動を実施した。最初の試験ではkernel起動・Wi-Fiモジュール読込み・インターフェース出現を確認したが、DHCP完了前に再起動して純正APへ戻り、ネットワーク試験は不合格だった。実機操作は引き続き各段階の承認範囲だけで行い、自動再試行しない。
+**恒久移行（`final`）は2026-11-15に実行したが、完了していない。** 5回目の試験起動（16/16項目合格）の後にネットワーク経由でfinalを始め、mdat1/mdat2の退避と後戻りできない点（PONR）の通過までは報告が届いた。その32〜36秒後にカメラの電波が止まり、以後の報告・接続はない。PONR後の書込み途中でハードウェアwatchdogがリセットしたとみられ、カメラは起動できない（ネットワークでは戻せず、SPIで復旧する）。詳細は「5回目の試験起動と本番移行の結果」の節。
+
+それまでの経緯：当初の検証結果はオフライン試験であり、その `flash_write_allowed: false` は実機の操作履歴を表さない。その後、所有者の段階別承認のもと、移行appfsの配信、読取り専用診断、純正U-Bootの `saveenv` probe、OpenIPC kernel＋純正ユーザーランドの一度限りの試験起動を実施した。最初の試験ではkernel起動・Wi-Fiモジュール読込み・インターフェース出現を確認したが、DHCP完了前に再起動して純正APへ戻り、ネットワーク試験は不合格だった。実機操作は各段階の承認範囲だけで行い（後に所有者は段階ごとの承認を不要とした）、自動再試行しない。
 
 ### 試験起動の再起動対策
 
@@ -60,6 +62,39 @@ qemu-userはnl80211（NETLINK_GENERIC）とwireless extensionsのioctlを実際�
 Linuxホストで `mac80211_hwsim` を使って確かめた（root、専用のネットワーク名前空間、hostapd 2.10のWPA2-PSK/CCMP）。同じソース・パッチ・設定のネイティブビルドを使っている。4回目のパッチでは、APが4-way handshakeを完了したのにイベントが出ず、両バックエンドとも待機切れになり、4回目を再現した。修正後のパッチでは両方とも3回目のポーリングで接続を報告し、BusyBox `udhcpc` と `trial_dhcp.sh` によるDHCP、ping、接続の再確認も通った。確かめたのはサプリカントとカーネルのcfg80211/mac80211の経路で、ARMビルドとMT7601の実ドライバーは実機でしか確かめられない。修正後のARMランタイムは378,556 Bで、ビルダーの検査に合格した。
 
 所有者は以後の実機試験とネットワーク経由の移行を、段階ごとの承認なしで行うことを認めた。書込み前の読取り専用確認、U-Bootを書かないこと、不一致時の中止は引き続き守る。
+
+### 5回目の試験起動と本番移行の結果
+
+5回目の試験起動（4回目の修正版、`28c6051`）は [`results/trial5-hardware.json`](results/trial5-hardware.json) に記録した。OpenIPC kernelがWi-Fiの認証、DHCP、ホストへの到達まで進み、16項目すべてに合格して純正APへ戻った。
+
+続けて同じリビジョンでfinalを実行した（[`results/final-migration.json`](results/final-migration.json)）。時刻はUTC。17:17:27にaction開始、17:17:39にmdat1/mdat2の退避をホストが照合し、17:17:40にPONRの報告が届いた。17:18:12〜16に純正APのビーコンが消え、その後はfinal-verified・final-degraded・rebooting-finalのどれも届いていない。純正APはカーネル内で動き、再起動するまで残るはずなので、カメラは書込みの途中で止まったことになる。完了後のOpenIPCが参加するホストAPを30分立てたが、関連付け・認証・DHCPは0件。チャネル6を40秒監視しても、カメラの無線MACと純正BSSIDからのフレームは1つもなかった。
+
+原因はハードウェアwatchdogとみている。
+
+- 純正U-Boot 2010.06は `wdstart`/`wdstop` コマンドとwatchdog（`0x20040000`、ロック解除値 `0x1ACCE551`）の定数を持ち、Linuxより前にwatchdogを動かす。
+- 1回目の試験起動（`wdt.ko` なし）は起動の約1分後に再起動し、`wdt.ko` を読み込んだ2回目以降は再現しなかった。Linuxより前からwatchdogが動いていることと整合する。
+- 純正には `/dev/watchdog` がない（diagnose）。`cmsMain.out` は `/dev/mem` を開き、watchdogの基底アドレス（7か所）とロック解除値（3か所）を持つ。ユーザー空間から給餌している。
+- 純正の `/usr/bin/wdstop`（シンボル付き）は、`cmsdlWdInit`（`/dev/mem` の `0x20040000` をmmap）の後に `cmsdlWdStop`（`+0xC00` に `0x1ACCE551`、`+0x008`（WdogControl）に0、`+0xC00` に0）を行うだけである。
+- finalの `quiesce all` は、action開始直後（17:17:28ごろ）に `cmsMain.out` を含む全プロセスをSIGSTOPした。ビーコンが消えたのはその約44秒後。書込み計画は、PONR後にさらに約60秒（試験起動の実測は40ブロックで21秒）と照合を要していた。
+- 試験起動のquiesce（`cmsMain.out` と `SysUpdate`）は約28秒で終わり、この周期に届かなかった。diagnoseの「watchdogデバイスがない」という確認では、ユーザー空間の給餌を見つけられなかった。
+
+推定されるフラッシュの状態：U-Bootは不変、純正env（`0x80000` を読むbootcmd）のまま。`0x060000` のOpenIPC envと `0x070000`〜`0x1FFFFF` のOpenIPC kernelは書かれ、純正kernelは上書き済み。bakfsは書換えの途中で、mtd1〜mtd4は純正のまま。U-Bootの `bootm` はイメージを見つけられず、U-Boot自身が動かしたwatchdogでリセットを繰り返す。U-Bootにはシリアル・USB・TFTPしかなく、UARTもEthernetもないこの個体はネットワークでは戻せない。U-Bootは書いていない。
+
+#### SPIでの復旧
+
+8 MiBの全体を書き、読み戻して照合する。
+
+- 純正へ戻す：元のダンプをそのまま書く。U-BootのSHA-256は実機で照合したピンと一致し、mdat1/mdat2はPONR直前に退避したものとバイト単位で一致した。純正envも、キーと値は実機のenvと同じ（試験起動のsaveenvでキーの順序だけが変わっていた）。
+- OpenIPCを直接書く：`compose_spi_image.py openipc` で、ダンプのU-Boot、`env-final.img`、`env-openipc.img`、`firmware.bin`、消去済みのrootfs_dataを組む。インストーラーの書込み計画をダンプ上で再生した結果とバイト単位で一致することも確かめる。env-finalでの起動経路そのものは、実機で動かしていない。起動後はenv-openipcのSSIDへ参加するので、ホストAPを立てておく。
+
+出力は0600で作り、上書きしない。MACアドレスやWi-Fiの鍵を含むので、Gitには入れない。合成ツールの単体テストは `tests/test_compose_spi_image.py`（合成データだけを使う）。
+
+#### 次のネットワーク移行の前に必要なこと
+
+- `quiesce all` の直後に、RAMランタイムから純正 `wdstop` と同じ手順（`+0xC00` に解除値、WdogControlに0、再ロック）でwatchdogを止め、WdogControlを読み戻して0でなければ書かない。または、quiesceが止めないRAMランタイムの給餌ループ（WdogIntClr）で給餌を続ける。「レジスターへの直接書込みは行わない」という前述の方針は、純正 `wdstop` と同じ手順に限って改める。
+- finalの前に、読取り専用の実機ゲートを足す。`quiesce all` とwatchdog停止の状態で120秒以上保ち、再開して報告する。
+- PONR後も区画ごとに進捗を送る（届かなくても続行する）。失敗した位置が分かるようにする。
+- ホストでは、final中にNetworkManagerが家庭用の接続へ自動で戻らないようにする。
 
 ## 前提と方式
 
@@ -138,7 +173,7 @@ phase2（RAM上のOpenIPC BusyBox）：manifestのseqが変わるたびに om_st
 
 **移行appfsを届ける部分（純正TCP3508の `0x96` 更新）は実装していない。** 既存の `research/sysupdate-offline/pack_update.py` のガードも変えていない。`0x96` はappfsとbakfsを両方書き換えて再起動するので、それ自体に別の承認が要る。trial-armの後はbakfsに純正appfsの控えが残らない。そこから先の復旧手段はSPIダンプになる。
 
-## 運用順（実機で行う場合の想定。現時点では承認されていない）
+## 運用順（実機で行う場合）
 
 各段階で、ホストは1モードだけの `serve_migration.py` を起動する。カメラは起動ごとにphase1を1回だけ始める（起動45秒後から20秒ごと、最大30分）。間に合わなければ電源を入れ直す。私的なディレクトリ（`$ST` 状態、`$UP` 受信物、`$A` action一式）はリポジトリの外に置き、0700にする。
 
@@ -177,7 +212,7 @@ python3 serve_migration.py --bundle "$B" --mode final --action-dir "$A/final" --
 - **書込みと照合**：mtd1–mtd5は区画全体を消去してcharデバイスへ書く。mtd0（env）は64 KiBごとに `mtdblock0` 経由で書き、ほかのプロセスが `mtdblock0` を開いていないときだけ書く。照合は、ページキャッシュを避けるためMTDのcharデバイスを最大3回読み、2回一致で判定する。
 - **書く順序**：trial-armはbakfs、最後に純正env。finalは `0x060000` のenvと `0x070000` の先頭ブロック（ここまでは純正が使わない領域で、中止しても純正のまま）、次に `0x080000` 以降（ここから後戻りできない）、最後に純正env。後戻りできない点を越えたら中止せず、失敗したブロックを再試行して記録し、純正envは必ず最後に書く。その後の実行で再試行できる。
 - **試験起動の分岐**：runapp.shの分岐は、`/proc/cmdline` に ` omtrial=1` があり、`/proc/mtd` に試験用の `tp` 行が正確にある場合だけ動く。分岐に入るとすぐ900秒のタイマーを起動し、時間が来たら `reboot -f` する。trial.shが書くのは `tl`（ログ）だけで、`saveenv` が失敗していた場合に限り純正envを書き戻す。Wi-Fiの設定は記録しない。
-- **停止とwatchdog**：書く前に `cmsMain.out` と `SysUpdate` をSIGSTOPで止める。watchdogデバイスがあれば停止を拒否する。空きRAMの推定値が12 MiB以上、作業用の空きが10 MiB以上でなければ始めない。通常の容量管理されたファイルシステムでは `df` の空きを使う。純正のtiny-shmemカーネルは `/dev` をtmpfsとしてマウントしても実体がRAMFSで、`df` は総容量・空きとも0になる。`stat -f` の表示がRAMFS（純正BusyBoxでは誤って `romfs`）で全ブロック数0、かつ `/proc/mounts` で正規化した作業ディレクトリを最長一致する一意な `ramfs` / `tmpfs` が `rw`（`ro` なし）である場合だけ、空きRAM推定値から別途2 MiBを残した値を作業用の空きとして使う。RAMFSのページを再利用可能と誤算しないよう `Shmem` と `Unevictable` を引く（両項目がない場合は `MemFree + Buffers` のみ）。本当に満杯のtmpfs、未知の形式、不正な出力では緩和しない。
+- **停止とwatchdog**：書く前に `cmsMain.out` と `SysUpdate` をSIGSTOPで止める（finalは全プロセス）。watchdogデバイスがあれば停止を拒否する。この版はハードウェアwatchdogを止めないため、finalは書込み途中でリセットされた（「5回目の試験起動と本番移行の結果」）。空きRAMの推定値が12 MiB以上、作業用の空きが10 MiB以上でなければ始めない。通常の容量管理されたファイルシステムでは `df` の空きを使う。純正のtiny-shmemカーネルは `/dev` をtmpfsとしてマウントしても実体がRAMFSで、`df` は総容量・空きとも0になる。`stat -f` の表示がRAMFS（純正BusyBoxでは誤って `romfs`）で全ブロック数0、かつ `/proc/mounts` で正規化した作業ディレクトリを最長一致する一意な `ramfs` / `tmpfs` が `rw`（`ro` なし）である場合だけ、空きRAM推定値から別途2 MiBを残した値を作業用の空きとして使う。RAMFSのページを再利用可能と誤算しないよう `Shmem` と `Unevictable` を引く（両項目がない場合は `MemFree + Buffers` のみ）。本当に満杯のtmpfs、未知の形式、不正な出力では緩和しない。
 - **終了コード**：0は完了、1は純正U-Bootの起動対象を変えずに拒否・失敗、2は書込み途中で照合が終わっていない（電源を保ったままfinalを再試行するか、SPIで復旧）、3は照合済みだが許可された再起動が起きなかった。finalで後戻りできない点を越えた後は、stage2が終了せず、finalの再試行とcollectだけを受け付ける。
 - テスト用のキー（`OM_SIM_*` など）は `render_conf(allow_test_keys=True)` のときだけ受け付ける。ビルダーはappfsに書かない。
 
@@ -196,7 +231,7 @@ python3 serve_migration.py --bundle "$B" --mode final --action-dir "$A/final" --
 | final：純正envの書込み（最後） | envのCRCが不良 → 既定env → 純正bootcmdがOpenIPCのデータを読む → SPIで復旧 |
 | final完了後 | OpenIPCで起動（`verify=y`。CRC不良ならリセットを繰り返す → SPIで復旧） |
 
-finalの後戻りできない区間は、firmware約6.6 MiBの消去・書込み・照合の間（数分の見込み、実測していない）。この間は電源を切らない。
+finalの後戻りできない区間は、firmware約6.6 MiBの消去・書込み・照合の間（試験起動の書込み速度から1〜2分の見込み）。この間は電源を切らない。2026-11-15のfinalは、この区間でwatchdogのリセットにより止まった。
 
 ## 検証結果（オフライン・エミュレーションだけ）
 
@@ -250,7 +285,7 @@ finalの後戻りできない区間は、firmware約6.6 MiBの消去・書込み
 - MT7601を、OpenIPCのモジュールと純正ユーザーランドで接続できるか（qemuでは模擬）。移行後のOpenIPCはwpa_supplicantを使うので、その経路は試験起動では確かめられない。移行後にWi-Fiでつながらなければ、戻る手段はSPIだけになる。
 - 既存bakfsの読出し不一致は未解決（[調査](../../docs/BAKFS-READBACK-INVESTIGATION.md)）。
 - AR0141センサーは、OpenIPC上で未確認。
-- 実機の空きRAM、`/dev` のtmpfs容量、watchdogデバイスの有無は、diagnoseで初めて分かる。
+- 実機の空きRAM、`/dev` のtmpfs容量、watchdogデバイスの有無は、diagnoseで初めて分かる。ただしwatchdogは純正ユーザー空間（`cmsMain.out`）が `/dev/mem` 経由で給餌しており、デバイスの有無では判定できない（finalの結果）。
 - 試験起動で `tl` と `senv` へ書く経路（`mtdblock7`／`mtdblock8` を開く `dd`）は、純正 `dd` と `1<>` の動作をqemuで確かめ、模擬ファイルに通しただけ。実機のMTDでの書込みは試験起動で初めて分かる。
 - Wi-Fiの設定は、試験用SquashFS（xz圧縮、bakfs領域）と、移行後の `0x060000` のenv（OpenIPCの通常どおり平文）に入る。試験で止めた場合、bakfs領域に残る。
 

@@ -2,6 +2,8 @@
 
 ## 判断
 
+> 2026-11-15の状態：試験起動の後にネットワーク経由のfinalを実行したが、書込みの途中でハードウェアwatchdogによりリセットされ、カメラは起動できない（SPIで復旧する）。この節の記述はそれ以前の判断である。経緯と復旧方法は [`research/openipc-migrate/README.md`](../research/openipc-migrate/README.md) にある。
+
 **Telnetログインなしでも、純正TCP3508更新サービスの `0x96` → 移行用appfs → RAM上の移行処理、という導入経路は成立する見込みがある。そのうちLAN上のホストから進めるオンライン移行処理を、純正U-Bootを残す方式で実装し、x86とqemu-armでのオフライン検証まで終えた。ただし、実機移行を許可できる状態ではない。**
 
 この個体はWi-Fiしか使えない（UARTもEthernetもない）。SPIでの読み書きはでき、8 MiB全体のダンプがある。そのため、この基板で起動したことのないOpenIPC U-Bootは書かない。純正U-Bootと純正envを残し、OpenIPCはその後ろへずらして置く。本番の前に、読取り専用のdiagnose、純正U-Bootがこちらのenvを実行できるかを見るprobe、自動で純正へ戻る1回だけの試験起動を挟む。
@@ -148,7 +150,7 @@ OpenIPCのkernelは、`0x50000` にuImageヘッダ（続いてSquashFS）があ�
 
 これを純正上でそのまま起動してよいという意味ではない。純正BusyBoxのアプレット不足・uClibc ABI・PID1・マウント構成・watchdog設定に合わせた、検証済み移行ランタイムが別途必要。単に `/tmp` にスクリプトを置くだけでは、実行中のシェル／共有ライブラリが消去対象に残り得る。
 
-実装した移行処理では、OpenIPCのBusyBoxとmuslローダーを `/dev/om`（RAM）に置き、BusyBoxのPT_INTERPを `/dev/om/ld-musl.so` に書き換えて、純正rootfsの隣で動かす。finalで後戻りできない点を越えた後は終了せず、finalの再試行とcollectだけを受け付ける。watchdogデバイスがある場合、今の実装は純正アプリの停止を拒否する。実機にwatchdogがあれば、引継ぎを別に設計する必要がある。
+実装した移行処理では、OpenIPCのBusyBoxとmuslローダーを `/dev/om`（RAM）に置き、BusyBoxのPT_INTERPを `/dev/om/ld-musl.so` に書き換えて、純正rootfsの隣で動かす。finalで後戻りできない点を越えた後は終了せず、finalの再試行とcollectだけを受け付ける。watchdogデバイスがある場合、今の実装は純正アプリの停止を拒否する。実機にwatchdogがあれば、引継ぎを別に設計する必要がある。実機にはwatchdogデバイスがなかったが、純正 `cmsMain.out` が `/dev/mem` 経由でハードウェアwatchdogへ給餌していた。finalはこれを止めたため、書込みの途中でリセットされた。
 
 finalでは、firmwareと2つのenv画像（64 KiB＋128 KiB）の7,208,960 BをRAMに置く。これはバイナリの最低ステージ量であり、RAM-root、復号バッファ、プロセス、ページキャッシュ等を含むピーク必要RAMではない。「空き約22 MBなら十分」とはまだ結論しない。移行処理は、空きRAMの推定が12 MiB未満か、`/dev/om` の空きが10 MiB未満なら始めない。このしきい値は実測前の仮の値である。
 
@@ -159,7 +161,7 @@ finalでは、firmwareと2つのenv画像（64 KiB＋128 KiB）の7,208,960 Bを
 3. **diagnose（読取りのみ）**：全128ブロックを3回ずつ読み、`0x6c0000` のブロックは16回読む。SPIダンプとの照合（純正U-Boot、純正env）、MTD表、MT7601（`148f:7601`）、watchdogデバイスの有無、空きRAMを確かめる。
 4. **probe（要承認）**：純正envをprobe用のenvに替えて再起動し、純正U-Bootがそれを実行して `saveenv` し、純正で起動することを確かめる。途中で電源が切れてenvのCRCが壊れても、純正U-Bootの既定env（純正配置）で純正が起動する。
 5. **試験起動（要承認）**：bakfs領域に試験イメージ（OpenIPC kernel＋試験用SquashFS）を書き、最後に試験用envを書いて再起動する。純正U-Bootは純正の `bootcmd` を書き戻して `saveenv` してから、OpenIPC kernelを1回だけ起動する。純正ユーザーランドのまま、OpenIPCのWi-Fiドライバで接続してホストへ報告し、再起動で純正へ戻る。kernelがユーザーランドに着く前に止まったときは900秒のタイマーが動かないので、手で電源を入れ直す（純正に戻る）。この後はbakfsに純正appfsの控えが残らない。
-6. **final（要承認）**：OpenIPC env → firmware → overlay消去 → 最後に純正env。firmwareの `0x080000` 以降を書き始めてから純正envを書き終えるまで（数分の見込み、未実測）は後戻りできず、ここで電源が切れたらSPIで復旧する。
+6. **final（要承認）**：OpenIPC env → firmware → overlay消去 → 最後に純正env。firmwareの `0x080000` 以降を書き始めてから純正envを書き終えるまで（試験起動の書込み速度から1〜2分の見込み）は後戻りできず、ここで電源が切れたらSPIで復旧する。2026-11-15のfinalは、この区間でwatchdogのリセットにより止まった。
 
 final前なら、diagnose時に読んだ純正envへいつでも戻せる（`restore-env`）。どの段階でも、最後の復旧手段はSPIとダンプである。
 

@@ -1,0 +1,52 @@
+{
+ "schema": "iblack-openipc-trial5-hardware/1",
+ "date_utc": "2026-11-15",
+ "tested_source_revision": "28c6051c98f05ab5ec8056c92033645939f475d0",
+ "scope": {
+  "physical_trial_index": 5,
+  "one_shot": true,
+  "automatic_retries": 0,
+  "sysupdate_resends": 0,
+  "uboot_written": false
+ },
+ "timeline_utc": {
+  "action_start_trial_arm": "16:57:52",
+  "writing_trial_image": "16:57:58",
+  "writing_trial_arm": "16:58:19",
+  "armed_trial_arm": "16:58:20",
+  "rebooting_trial_arm": "16:58:20",
+  "trial_network_up": "16:58:42",
+  "trial_completed": "16:59:53"
+ },
+ "trial_kernel": "3.0.8",
+ "log_source": "trial-log upload",
+ "trial_result": "completed",
+ "trial_passed": true,
+ "checks": {
+  "auth_runtime_verified": true,
+  "dhcp_ok": true,
+  "host_reached": true,
+  "kernel_booted_with_marker": true,
+  "modules_loaded": true,
+  "mtd_table_ok": true,
+  "nonce_matches": true,
+  "reads_stable": true,
+  "stable_window_survived": true,
+  "trial_log_found": true,
+  "uboot_saveenv_ran": true,
+  "uboot_unchanged": true,
+  "vendor_env_stock_equivalent": true,
+  "watchdog_driver_loaded": true,
+  "wifi_authenticated": true,
+  "wifi_interface": true
+ },
+ "checks_passed": "16/16",
+ "after_trial": {
+  "stock_ap_returned": true,
+  "collect_rc": 0,
+  "pretrial_reads_stable": true,
+  "pretrial_uboot_unchanged": true,
+  "management_routes_unchanged": true
+ },
+ "note": "The trial quiesce stopped only cmsMain.out and SysUpdate and lasted about 28 s (16:57:52-16:58:20), shorter than the hardware watchdog period, so it could not reveal that cmsMain.out feeds the watchdog (see final-migration.json)."
+}

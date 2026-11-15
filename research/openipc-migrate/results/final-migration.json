@@ -1,0 +1,74 @@
+{
+ "schema": "iblack-openipc-network-final/1",
+ "date_utc": "2026-11-15",
+ "tested_source_revision": "28c6051c98f05ab5ec8056c92033645939f475d0",
+ "authorization": "user: hardware trials and the network migration may run without further approval",
+ "outcome": "NOT COMPLETED: the camera went silent 32-36 s after the point of no return; no installer event after ponr; no network path is left, recovery needs the SPI programmer",
+ "uboot_written": false,
+ "timeline_utc": {
+  "final_offered": "17:17:20",
+  "payload_served": "17:17:21-17:17:27",
+  "action_start_final": "17:17:27",
+  "mdat1_mdat2_backups_exported_and_confirmed": "17:17:39",
+  "final_pre_ponr": "17:17:39",
+  "ponr": "17:17:40",
+  "stock_ap_beacons_lost": "17:18:12-17:18:16",
+  "host_reports_ssid_not_found": "17:18:31",
+  "host_event_server_stopped": "17:26",
+  "final_host_ap_active": "17:27:10-17:57:10"
+ },
+ "events_after_ponr": [],
+ "expected_events_after_ponr": [
+  "final-verified or final-degraded-*",
+  "rebooting-final"
+ ],
+ "final_host_ap": {
+  "active_minutes": 30,
+  "stations_seen": 0,
+  "association_or_auth_attempts": 0,
+  "dhcp_leases": 0
+ },
+ "monitor_capture": {
+  "channel": 6,
+  "seconds": 40,
+  "frames": 1215,
+  "transmitters": 17,
+  "frames_from_camera_wifi_mac_or_stock_bssid": 0,
+  "probe_requests_for_final_ssid": 0
+ },
+ "root_cause": {
+  "conclusion": "hardware watchdog reset in the middle of the post-PONR writes: quiesce all SIGSTOPped cmsMain.out, the only watchdog feeder",
+  "evidence": [
+   "vendor U-Boot 2010.06 has wdstart/wdstop commands and the SP805-type watchdog constants (base 0x20040000, lock key 0x1ACCE551): it arms the watchdog before Linux starts",
+   "the stock system has no /dev/watchdog (diagnose action); stock cmsMain.out opens /dev/mem and contains the watchdog base (7x) and lock key (3x): it feeds the watchdog from user space",
+   "stock /usr/bin/wdstop (not stripped): main -> cmsdlWdInit (mmap /dev/mem at 0x20040000) -> cmsdlWdStop: [0xC00]=0x1ACCE551, [0x008]=0 (WdogControl off), [0xC00]=0",
+   "an earlier trial kernel without wdt.ko was reset about 1 min after boot; trial 5 with wdt.ko survived (watchdog armed by U-Boot)",
+   "quiesce all ran right after action start (about 17:17:28); the beacons stopped about 44 s later while the plan still needed about 60 s after PONR (trial write rate about 120 KiB/s: 40 blocks in 21 s) plus the sweep",
+   "the stock AP is in-kernel and stays up until the reboot, yet neither final-verified/final-degraded nor rebooting-final arrived although the host server listened for 9 more minutes"
+  ],
+  "estimated_flash_state": {
+   "uboot": "unchanged",
+   "vendor_env_0x40000": "stock (bootcmd reads 0x80000)",
+   "openipc_env_0x60000": "written",
+   "kernel_0x70000_0x1fffff": "written (stock kernel at 0x80000 overwritten)",
+   "bakfs_mtd5": "being rewritten (incomplete)",
+   "mtd1_to_mtd4": "stock, not yet rewritten",
+   "env_final": "not written"
+  },
+  "resulting_boot": "U-Boot bootm at 0x80007fc0 finds no image and stays in U-Boot until its own armed watchdog resets it: a silent reset loop. U-Boot offers only serial, USB and TFTP (no UART or Ethernet on this unit), so the network cannot recover it."
+ },
+ "recovery": {
+  "method": "SPI programmer (8 MiB NOR), write a full image and verify by read-back",
+  "stock_option": "the original full dump: U-Boot SHA-256 equals the pin checked on the live unit, mdat1/mdat2 are byte-identical to the backups exported just before PONR, vendor env has the same keys and values as the live env (only the key order differs after the trial saveenv)",
+  "openipc_option": "compose_spi_image.py openipc: dump U-Boot + env-final.img + env-openipc.img + firmware.bin + erased rootfs_data; byte-identical to a replay of the installer write plan; the env-final boot path itself was never run on hardware",
+  "private_artifacts": "outside Git (images carry the unit MAC and Wi-Fi keys)"
+ },
+ "required_before_another_network_final": [
+  "after quiesce all, disable the watchdog with the stock sequence (unlock 0x1ACCE551 at +0xC00, WdogControl +0x008 = 0, relock) from the RAM runtime, read WdogControl back, and refuse to write if it is not 0",
+  "or keep feeding it from the RAM runtime (WdogIntClr) in a loop that quiesce never stops",
+  "new read-only hardware gate before any final: quiesce all + watchdog off, hold at least 120 s, resume, report",
+  "emit a best-effort progress event after every region after PONR, so a failure point is visible",
+  "host: stop NetworkManager from auto-joining the home uplink while the final runs"
+ ],
+ "mdat_backups": "exported over the network before PONR and confirmed by hash; kept privately outside Git"
+}

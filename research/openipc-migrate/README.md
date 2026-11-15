@@ -6,11 +6,13 @@
 
 ### 試験起動の再起動対策
 
-通常のOpenIPC起動処理 `load_hisilicon` と同じ公開rootfsの `wdt.ko` を試験payloadにも含め、カーネル内の給餌を明示的に有効にしてWi-Fi処理より前に読み込む。ドライバーの読込みに失敗したら試験を中止する。約1分の再起動と、以前のpayloadにこのドライバーがなかった事実は整合するが、実機の再試験前に原因と断定しない。レジスターへの直接書込みや不明なwatchdogの無効化は行わない。
+通常のOpenIPC起動処理 `load_hisilicon` と同じ公開rootfsの `wdt.ko` を試験payloadにも含め、カーネル内の給餌を明示的に有効にしてWi-Fi処理より前に読み込む。ドライバーの読込みに失敗したら試験を中止する。約1分の再起動と、以前のpayloadにこのドライバーがなかった事実は整合する。追加実機試験では起動175秒時点まで処理が続き、以前の途中再起動は再現しなかった。ただし、ハードウェアのリセット要因を直接測定したわけではないため、原因確定とは扱わない。レジスターへの直接書込みや不明なwatchdogの無効化は行わない。
 
 DHCPは最大8回で、各開始前にSSID・PSKを含まない診断をtlへ保存する。ホストへの到達後も70秒間同じkernelで待ち、watchdog読込みと安定待機の両方の証拠がなければ、collectは試験を合格にしない。独立した900秒の純正復帰タイマーと、試験時の書込み範囲（tl・必要時の純正env）は変更しない。
 
 修正版のオフライン検証（173 tests、ARM実バイナリの9項目）は [`results/trial-watchdog-offline-qa.json`](results/trial-watchdog-offline-qa.json) に記録した。この結果は追加の実機試験を合格とするものではない。
+
+追加実機試験は [`results/trial-watchdog-hardware.json`](results/trial-watchdog-hardware.json) に記録した。OpenIPC kernel・watchdog・Wi-Fiモジュールの読込みとインターフェースupは成功したが、DHCPは8回とも失敗し、`no-dhcp-lease` で終了して純正APへ復帰した（11/14項目合格、ネットワーク到達後の70秒待機は未実行）。通常のOpenIPCは `wpa_supplicant -D nl80211,wext` を起動する一方、今回の試験は.datの設定とモジュール読込みだけで認証プロセスを起動していない。この差とAPへの関連付け・認証を次に切り分ける。単なるDHCPサーバー不調とは断定せず、追加の実機再試行や恒久移行は行っていない。
 
 ## 前提と方式
 

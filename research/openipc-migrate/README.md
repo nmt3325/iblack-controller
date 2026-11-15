@@ -120,7 +120,7 @@ python3 serve_migration.py --bundle "$B" --mode final --action-dir "$A/final" --
 - **書込みと照合**：mtd1–mtd5は区画全体を消去してcharデバイスへ書く。mtd0（env）は64 KiBごとに `mtdblock0` 経由で書き、ほかのプロセスが `mtdblock0` を開いていないときだけ書く。照合は、ページキャッシュを避けるためMTDのcharデバイスを最大3回読み、2回一致で判定する。
 - **書く順序**：trial-armはbakfs、最後に純正env。finalは `0x060000` のenvと `0x070000` の先頭ブロック（ここまでは純正が使わない領域で、中止しても純正のまま）、次に `0x080000` 以降（ここから後戻りできない）、最後に純正env。後戻りできない点を越えたら中止せず、失敗したブロックを再試行して記録し、純正envは必ず最後に書く。その後の実行で再試行できる。
 - **試験起動の分岐**：runapp.shの分岐は、`/proc/cmdline` に ` omtrial=1` があり、`/proc/mtd` に試験用の `tp` 行が正確にある場合だけ動く。分岐に入るとすぐ900秒のタイマーを起動し、時間が来たら `reboot -f` する。trial.shが書くのは `tl`（ログ）だけで、`saveenv` が失敗していた場合に限り純正envを書き戻す。Wi-Fiの設定は記録しない。
-- **停止とwatchdog**：書く前に `cmsMain.out` と `SysUpdate` をSIGSTOPで止める。watchdogデバイスがあれば停止を拒否する。空きRAMの推定値が12 MiB以上、作業用の空きが10 MiB以上でなければ始めない。通常の容量管理されたファイルシステムでは `df` の空きを使う。純正のtiny-shmemカーネルは `/dev` をtmpfsとしてマウントしても実体がRAMFSで、`df` は総容量・空きとも0になる。`stat -f` がRAMFSかつ全ブロック数0を示す場合だけ、空きRAM推定値から別途2 MiBを残した値を作業用の空きとして使う。RAMFSのページを再利用可能と誤算しないよう `Shmem` と `Unevictable` を引く（両項目がない場合は `MemFree + Buffers` のみ）。本当に満杯のtmpfs、未知の形式、不正な出力では緩和しない。
+- **停止とwatchdog**：書く前に `cmsMain.out` と `SysUpdate` をSIGSTOPで止める。watchdogデバイスがあれば停止を拒否する。空きRAMの推定値が12 MiB以上、作業用の空きが10 MiB以上でなければ始めない。通常の容量管理されたファイルシステムでは `df` の空きを使う。純正のtiny-shmemカーネルは `/dev` をtmpfsとしてマウントしても実体がRAMFSで、`df` は総容量・空きとも0になる。`stat -f` の表示がRAMFS（純正BusyBoxでは誤って `romfs`）で全ブロック数0、かつ `/proc/mounts` で正規化した作業ディレクトリを最長一致する一意な `ramfs` / `tmpfs` が `rw`（`ro` なし）である場合だけ、空きRAM推定値から別途2 MiBを残した値を作業用の空きとして使う。RAMFSのページを再利用可能と誤算しないよう `Shmem` と `Unevictable` を引く（両項目がない場合は `MemFree + Buffers` のみ）。本当に満杯のtmpfs、未知の形式、不正な出力では緩和しない。
 - **終了コード**：0は完了、1は純正U-Bootの起動対象を変えずに拒否・失敗、2は書込み途中で照合が終わっていない（電源を保ったままfinalを再試行するか、SPIで復旧）、3は照合済みだが許可された再起動が起きなかった。finalで後戻りできない点を越えた後は、stage2が終了せず、finalの再試行とcollectだけを受け付ける。
 - テスト用のキー（`OM_SIM_*` など）は `render_conf(allow_test_keys=True)` のときだけ受け付ける。ビルダーはappfsに書かない。
 
@@ -199,7 +199,11 @@ finalの後戻りできない区間は、firmware約6.6 MiBの消去・書込み
 
 ## RAMFS容量判定の追加検証
 
-上の検証表は従来のスナップショット。容量0を返すRAMFSへの対応後は、単体・結合テスト150件、隣接するopenipc-portの25件、qemu-armの8項目がすべてPASSした。純正BusyBox実物で容量判定13件とオンライン経路14件を通し、RAMFSでは読取り専用diagnoseまで進むこと、満杯のtmpfs・RAM不足・余裕不足・異常な出力では取得前に止まることを確認した。イメージは2,613,248 / 2,621,432 bytes（余り8,184 bytes）。オフライン検証の記録は [`results/ramfs-capacity-validation.json`](results/ramfs-capacity-validation.json)。この結果は試験起動やfinalの実行許可を意味しない。
+初期の容量判定検証（150件・qemu-arm 8項目）は、RAMFSの `stat -f` 出力をfixtureで `ramfs` としており、実物のBusyBox 1.18.4が本物のRAMFSを `romfs` と表示する問題を検出できなかった。従来の記録は [`results/ramfs-capacity-validation.json`](results/ramfs-capacity-validation.json) に限界を明記して残した。
+
+追加修正では、表示名だけでなく最長一致する一意な `rw` のRAMFS/tmpfsマウントを確認する。非特権のuser/mount namespaceで本物のRAMFSを作り、旧判定は失敗、修正版は成功する回帰テストを追加した。実物のARM版 `stat` / `df` / `awk` を使い、読み取り専用RAMFSと実際に満杯にした4 KiB tmpfsは拒否することも確認した（RAM値だけは再現性のためfixture）。
+
+追加修正後は、単体・結合テスト162件、隣接するopenipc-portの25件、qemu-armの9項目がすべてPASSした。純正BusyBox実物で容量判定23件とオンライン経路16件がPASS。イメージは2,613,248 / 2,621,432 bytes（余り8,184 bytes）で、埋め込まれたstage2もソースと一致する。記録は [`results/ramfs-stat-alias-validation.json`](results/ramfs-stat-alias-validation.json)。これは追加修正のオフライン結果であり、実機diagnoseの成功や追加送信・試験起動・finalの実行許可を意味しない。
 
 ## 再実行
 

@@ -20,6 +20,8 @@ tests/sb_fixture.Camera, HTTP only to 127.0.0.1 (a MigrationServer, and a captur
   etc_overlay_mount      the /etc overlay of trial.sh (cp -a, mkdir, cp, mount -o bind) with the stock applets
   runapp_trial_branch    tests/test_build_migration_appfs.py runapp cases with the stock sh as an extra shell:
                          normal boots fall through, a trial boot execs trial.sh, a missing payload reboots
+  phase1_capacity        stock shell/awk capacity and fail-closed mount-parser regressions
+  phase1_real_ramfs       real RAMFS rw/ro and full bounded tmpfs, actual stock stat/df/awk in a namespace
   e2e_real_binaries      tests/test_e2e_online.py with the stock BusyBox for phase1 and trial.sh and the
                          patched OpenIPC BusyBox for phase2, om_stockboot.sh and the hook: diagnose,
                          probe-arm, collect, trial-arm, the trial boot, collect, final, and the refusal cases
@@ -40,6 +42,7 @@ import os
 import random
 import re
 import secrets
+import shlex
 import shutil
 import signal
 import struct
@@ -377,15 +380,67 @@ class Lab:
         self.record("runapp_trial_branch", ok, tests=res, seconds=secs,
                     shells=["host sh", "host BusyBox sh", "stock BusyBox 1.18.4 sh (qemu)"])
 
+    def check_phase1_real_ramfs(self):
+        """Real statfs/proc-mounts, not mocked text: catch the stock romfs mislabel."""
+        ns = self.tmp / "capacity-ns"
+        ns.mkdir()
+        ram, full = ns / "ram", ns / "full"
+        ram.mkdir(); full.mkdir()
+        # A libs-only prefix cannot shadow host paths while qemu resolves stat/df.
+        prefix = ns / "prefix"
+        prefix.mkdir()
+        shutil.copytree(self.stockq / "lib", prefix / "lib", symlinks=True)
+        stock = write_exec(ns / "busybox-stock",
+                           f'#!/bin/sh\nexec "{self.qw}" -L "{prefix}" "{self.stockq}/bin/busybox" "$@"\n')
+        applets = ns / "applets"
+        applets.mkdir()
+        for name in ("awk", "df", "expr", "stat"):
+            write_exec(applets / name, f'#!/bin/sh\nexec "{stock}" {name} "$@"\n')
+        from test_phase1_capacity import MEM
+        mem = ns / "meminfo"
+        mem.write_text(MEM)
+        funcs = bma.STAGE2.read_text("ascii").split("# --- phase1 begin", 1)[1].split("p1_get(){", 1)[1]
+        funcs = "p1_get(){" + funcs.split("phase1(){", 1)[0]
+        guard = write_exec(ns / "guard.sh", 'OM_DIR=$1; OM_MIN_AVAIL_KB=12288; OM_MIN_DIRFREE_KB=10240\n' +
+                           funcs + '\np1_capacity < "$2"; r=$?; echo "$avail $dirfree"; exit "$r"\n')
+        statout = ns / "stock-stat.out"
+        script = write_exec(ns / "namespace.sh", "#!/bin/bash\nset -eu\n" +
+            "RAM=" + shlex.quote(str(ram)) + "\nFULL=" + shlex.quote(str(full)) + "\n" +
+            "guard(){ PATH=" + shlex.quote(str(applets)) + " " + shlex.quote(str(stock)) + " sh " +
+            shlex.quote(str(guard)) + ' "$1" ' + shlex.quote(str(mem)) + "; }\n" +
+            'mount -t ramfs -o rw,nosuid,nodev ramfs "$RAM"\n' +
+            '[ "$(stat -f -c %t "$RAM")" = 858458f6 ]; echo GENUINE_RAMFS\n' +
+            shlex.quote(str(stock)) + ' stat -f "$RAM" > ' + shlex.quote(str(statout)) + "\n" +
+            'rw_out=$(guard "$RAM"); [ "$rw_out" = "16440 14392" ]; echo RAMFS_RW_PASS\n' +
+            'mount -o remount,ro "$RAM"\n' +
+            'if guard "$RAM"; then exit 1; else [ "$?" = 1 ]; fi; echo RAMFS_RO_REFUSED\n' +
+            'mount -t tmpfs -o rw,size=4096,nosuid,nodev tmpfs "$FULL"\n' +
+            'dd if=/dev/zero of="$FULL/fill" bs=4096 count=1 status=none\n' +
+            '[ "$(stat -f -c %b "$FULL")" -gt 0 ] && [ "$(stat -f -c %a "$FULL")" = 0 ]; echo GENUINE_FULL_TMPFS\n' +
+            'if guard "$FULL"; then exit 1; else [ "$?" = 1 ]; fi; echo FULL_TMPFS_REFUSED\n')
+        r = self.run(["unshare", "-Ur", "-m", "/bin/bash", script], timeout=180)
+        label = re.search(r"Type:\s+(\S+)", statout.read_text() if statout.exists() else "")
+        kind = label.group(1) if label else "missing"
+        checks = {"genuine_ramfs_magic": "GENUINE_RAMFS" in r.stdout.splitlines(),
+                  "ramfs_rw_pass": "RAMFS_RW_PASS" in r.stdout.splitlines(),
+                  "ramfs_ro_refused": "RAMFS_RO_REFUSED" in r.stdout.splitlines(),
+                  "genuine_full_tmpfs": "GENUINE_FULL_TMPFS" in r.stdout.splitlines(),
+                  "full_tmpfs_refused": "FULL_TMPFS_REFUSED" in r.stdout.splitlines(),
+                  "stock_label_recognized": kind in ("ramfs", "romfs")}
+        self.record("phase1_real_ramfs", r.returncode == 0 and all(checks.values()), rc=r.returncode,
+                    checks=checks, stock_stat_type=kind if kind in ("ramfs", "romfs") else "unrecognized",
+                    note="real namespace mounts and stock ARM stat/df/awk; deterministic meminfo fixture; "
+                         "4 KiB bounded tmpfs; namespace teardown unmounts everything; no camera I/O")
+
     def check_phase1_capacity(self):
         rc, res, secs = self.unittests("tests.test_phase1_capacity")
-        self.record("phase1_capacity", rc == 0 and len(res) >= 13 and all(v["result"] == "PASS" for v in res.values()),
+        self.record("phase1_capacity", rc == 0 and len(res) >= 23 and all(v["result"] == "PASS" for v in res.values()),
                     tests=res, seconds=secs)
 
     def check_e2e_real_binaries(self):
         rc, res, secs = self.unittests("tests.test_e2e_online", (), {"OM_E2E_RUNTIME_BB": str(self.rt_bbw),
                                                                        "OM_E2E_RUN_TIMEOUT": "5400"})
-        ok = rc == 0 and len(res) >= 12 and all(v["result"] == "PASS" for v in res.values())
+        ok = rc == 0 and len(res) >= 16 and all(v["result"] == "PASS" for v in res.values())
         self.record("e2e_real_binaries", ok, tests=res, seconds=secs,
                     note="phase1 and trial.sh under the stock BusyBox 1.18.4, phase2/om_stockboot.sh/hook under "
                          "the patched OpenIPC BusyBox (both qemu-arm); flash = simulated partitions")
@@ -422,7 +477,7 @@ def main(argv=None) -> int:
     signal.signal(signal.SIGTERM, lambda *_: sys.exit(143))
     lab = Lab(args)
     checks = ["runtime_patch", "runtime_on_stock_root", "shells_parse", "stock_applets", "etc_overlay_mount",
-              "runapp_trial_branch", "phase1_capacity", "e2e_real_binaries"]
+              "runapp_trial_branch", "phase1_capacity", "phase1_real_ramfs", "e2e_real_binaries"]
     started = time.time()
     try:
         lab.setup()

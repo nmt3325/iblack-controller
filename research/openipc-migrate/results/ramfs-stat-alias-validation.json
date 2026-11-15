@@ -1,0 +1,70 @@
+{
+  "adjacent_openipc_port_tests_passed": 25,
+  "capacity": {
+    "embedded_stage2_matches_source": true,
+    "limit_bytes": 2621432,
+    "margin_bytes": 8184,
+    "migration_appfs_bytes": 2613248
+  },
+  "date_utc": "2026-11-15T01:56:56Z",
+  "guard": {
+    "additional_ramfs_reserve_kib": 2048,
+    "minimum_available_ram_kib": 12288,
+    "minimum_work_budget_kib": 10240,
+    "reclaimable_ram": "MemFree + Buffers + Cached - Shmem - Unevictable; without both accounting fields, MemFree + Buffers only",
+    "zero_accounting_exception": "stat -f type ramfs or the stock romfs alias, all block counts zero, and a unique longest matching rw ramfs/tmpfs proc mount without ro"
+  },
+  "historical_fixture_record": "ramfs-capacity-validation.json",
+  "legacy_update_guards_unchanged": true,
+  "private_literals_in_changed_source": 0,
+  "qemu_arm": {
+    "camera_contacted": false,
+    "checks": {
+      "e2e_real_binaries": "PASS",
+      "etc_overlay_mount": "PASS",
+      "phase1_capacity": "PASS",
+      "phase1_real_ramfs": "PASS",
+      "runapp_trial_branch": "PASS",
+      "runtime_on_stock_root": "PASS",
+      "runtime_patch": "PASS",
+      "shells_parse": "PASS",
+      "stock_applets": "PASS"
+    },
+    "emulator": "qemu-arm user mode, -cpu arm926",
+    "real_binary_e2e_tests_passed": 16,
+    "real_mtd_access": false,
+    "stock_capacity_tests_passed": 23
+  },
+  "real_filesystem_regression": {
+    "bounded_tmpfs_test_bytes": 4096,
+    "checks": {
+      "full_tmpfs_refused": true,
+      "genuine_full_tmpfs": true,
+      "genuine_ramfs_magic": true,
+      "ramfs_ro_refused": true,
+      "ramfs_rw_pass": true,
+      "stock_label_recognized": true
+    },
+    "memory_input": "deterministic meminfo fixture; filesystem observations are real, not mocked",
+    "namespace": "unprivileged user and mount namespaces; automatic teardown",
+    "new_guard_accepts_genuine_writable_ramfs": true,
+    "old_guard_rejected_genuine_writable_ramfs": true,
+    "ramfs_magic": "0x858458f6",
+    "stock_stat_type": "romfs"
+  },
+  "regressions": [
+    "actual stock stat/df/awk and genuine RAMFS rw/ro, plus genuinely full bounded tmpfs",
+    "real ROMFS and unsupported filesystems remain blocked; mount labels alone never grant the exception",
+    "longest mount wins; directory boundaries, rw/ro, missing/malformed/duplicate mounts fail closed",
+    "canonical paths checked; unsupported escaping is refused",
+    "low RAM, insufficient reserve, malformed meminfo and stat/df still stop before download",
+    "stock romfs alias reaches read-only diagnose in the simulated online chain"
+  ],
+  "schema": 1,
+  "scope": "Offline stock BusyBox RAMFS-stat-alias regression only; no deployment authorization",
+  "unit_tests": {
+    "failed": 0,
+    "passed": 162,
+    "skipped": 0
+  }
+}

@@ -53,8 +53,10 @@ p1_report(){ wget -q -T 10 -O /dev/null "$BASE/status?run=$OM_RUN_ID&phase=1&eve
 p1_mval(){ awk -F= -v k="$1" '$1 == k { sub(/^[^=]*=/, ""); print; exit }' "$OM_DIR/manifest" 2>/dev/null; }
 p1_sum(){ "$1" "$2" 2>/dev/null | awk '{print $1}'; }
 p1_ge(){ expr "${1:-0}" \>= "${2:-0}" >/dev/null 2>&1; }
-# RAMFS (also CONFIG_SHMEM=n's "tmpfs") reports zero filesystem blocks, not
-# zero usable memory. Identify it by statfs, not the mount's "tmpfs" label.
+# RAMFS (also CONFIG_SHMEM=n's "tmpfs") has zero filesystem block counts.
+# The actual stock stat -f mislabels RAMFS as "romfs". Accept that alias only
+# with a unique longest matching, writable ramfs/tmpfs mount in /proc/mounts.
+# Real ROMFS, read-only mounts, bounded/full tmpfs and unknown output stay shut.
 # stat -c is not built into the stock BusyBox; its default -f output is.
 p1_ramfs_unaccounted(){
   fsstat=$(stat -f "$OM_DIR" 2>/dev/null) || return 1
@@ -63,7 +65,27 @@ p1_ramfs_unaccounted(){
     $1 == "Blocks:" && $2 == "Total:" && $4 == "Free:" && $6 == "Available:" {
       nb++; z=(NF == 7 && $3 == "0" && $5 == "0" && $7 == "0")
     }
-    END { exit !(nt == 1 && t == "ramfs" && nb == 1 && z) }'
+    END { exit !(nt == 1 && (t == "ramfs" || t == "romfs") && nb == 1 && z) }' || return 1
+  # Do not guess at proc-mounts escaping or awk -v backslash interpretation.
+  # The stock shell does not support POSIX character classes in case patterns.
+  case "$OM_DIR" in *\\*) return 1;; esac
+  echo "$OM_DIR" | awk '
+    NR != 1 || $0 !~ /^[-a-zA-Z0-9_.\/]+$/ { bad=1 }
+    END { exit (NR != 1 || bad) }' || return 1
+  fsdir=$(cd "$OM_DIR" 2>/dev/null && pwd -P) || return 1
+  case "$fsdir" in *\\*) return 1;; esac
+  awk -v p="$fsdir" '
+    BEGIN { if (p !~ /^\/[-a-zA-Z0-9_.\/]*$/) bad=1 }
+    NF != 6 || $2 !~ /^\// { bad=1; next }
+    {
+      m=$2; n=length(m)
+      if (m == "/" || p == m || index(p, m "/") == 1) {
+        if (n > best) { best=n; count=0 }
+        if (n == best) { count++; kind=$3; opts="," $4 "," }
+      }
+    }
+    END { exit !(!bad && count == 1 && (kind == "ramfs" || kind == "tmpfs") &&
+                 index(opts, ",rw,") && !index(opts, ",ro,")) }' /proc/mounts
 }
 # Read meminfo from stdin so the exact stock-awk calculation is fixture-tested.
 # RAMFS pages are Cached but Unevictable; do not count them as reclaimable.

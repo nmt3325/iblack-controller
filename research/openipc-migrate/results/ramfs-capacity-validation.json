@@ -1,6 +1,6 @@
 {
   "schema": 1,
-  "scope": "Offline RAMFS capacity-guard regression only; no deployment authorization",
+  "scope": "Historical fixture-based RAMFS capacity regression; not proof for genuine RAMFS with the stock stat applet; no deployment authorization",
   "unit_tests": {
     "passed": 150,
     "failed": 0,
@@ -37,7 +37,7 @@
     "reclaimable_ram": "MemFree + Buffers + Cached - Shmem - Unevictable; without both accounting fields, MemFree + Buffers only"
   },
   "regressions": [
-    "tiny-shmem RAMFS zero blocks reaches read-only diagnose",
+    "mocked ramfs stat label plus zero blocks reaches read-only diagnose",
     "full bounded tmpfs remains blocked",
     "unknown filesystem or partial/malformed/failed stat/df remains blocked",
     "low RAM or missing work-budget headroom remains blocked",
@@ -45,5 +45,8 @@
     "unevictable RAMFS pages are not reclaimed twice"
   ],
   "private_literals_in_changed_source": 0,
-  "legacy_update_guards_unchanged": true
+  "legacy_update_guards_unchanged": true,
+  "historical_validation_only": true,
+  "limitation": "The fixture said ramfs; the real stock BusyBox stat -f reports romfs on genuine RAMFS. These passing tests did not catch that alias incompatibility.",
+  "superseded_by": "ramfs-stat-alias-validation.json"
 }

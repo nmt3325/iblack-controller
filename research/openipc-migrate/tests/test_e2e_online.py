@@ -518,19 +518,46 @@ class OnlineChain(unittest.TestCase):
         self.assertRegex(events[0], r"^lowmem-[0-9]+-[0-9]+$")
         self.assertEqual(self.srv.served, {})
 
-    def fake_zero_space(self, kind: str, total: int):
+    def fake_zero_space(self, kind: str, total: int, *, mount_kind="tmpfs", mount_opts="rw"):
         self.write_wrapper(self.stockbin, "df", None,
                            "cat <<'EOF'\nFilesystem 1K-blocks Used Available Use% Mounted on\nnone 0 0 0 0% /dev\nEOF")
         self.write_wrapper(self.stockbin, "stat", None,
                            "cat <<'EOF'\n  File: /dev/om\n    ID: 0 Namelen: 255 Type: " + kind +
                            f"\nBlock size: 4096\nBlocks: Total: {total} Free: 0 Available: 0\nEOF")
 
+        mounts = self.tmp / "mounts.fixture"
+        mounts.write_text(f"none {self.om_dir} {mount_kind} {mount_opts} 0 0\n")
+        self.write_wrapper(self.stockbin, "awk", None,
+                           'if [ "$1" = "-v" ] && [ "${2%%=*}" = p ] && [ "$4" = /proc/mounts ]; then\n'
+                           f'  exec {STOCK_BB} awk "$1" "$2" "$3" "{mounts}"\n'
+                           f'fi\nexec {STOCK_BB} awk "$@"')
+
     def test_ramfs_zero_accounting_allows_read_only_diagnose(self):
         self.setup_bundle(overrides={"OM_MIN_AVAIL_KB": 12288, "OM_MIN_DIRFREE_KB": 10240})
-        self.fake_zero_space("ramfs", 0)
+        self.fake_zero_space("romfs", 0)  # real stock stat -f labels RAMFS as romfs
         self.action("diagnose")
         self.assertFlashUnchanged()
         self.assertToolDiscipline()
+
+    def test_romfs_alias_on_read_only_ramfs_stops_before_download(self):
+        self.setup_bundle()
+        self.fake_zero_space("romfs", 0, mount_kind="ramfs", mount_opts="ro")
+        self.start("diagnose")
+        self.boot()
+        self.assertRegex(self.events()[0], r"^lowmem-[0-9]+-0$")
+        self.assertEqual(len(self.events()), 1)
+        self.assertEqual(self.srv.served, {})
+        self.assertFlashUnchanged()
+
+    def test_genuine_romfs_does_not_get_ramfs_capacity_bypass(self):
+        self.setup_bundle()
+        self.fake_zero_space("romfs", 0, mount_kind="romfs", mount_opts="ro")
+        self.start("diagnose")
+        self.boot()
+        self.assertRegex(self.events()[0], r"^lowmem-[0-9]+-0$")
+        self.assertEqual(len(self.events()), 1)
+        self.assertEqual(self.srv.served, {})
+        self.assertFlashUnchanged()
 
     def test_full_bounded_tmpfs_still_stops_before_download(self):
         self.setup_bundle()

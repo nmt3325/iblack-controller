@@ -30,6 +30,7 @@
       "wifi_authenticated": false,
       "wifi_interface": true
     },
+    "correction": "An earlier version of this record said the trial found no authentication process identity at its immediate /proc PID/start-time check. The tl log shows that check passed; the exit was detected at the first liveness poll. Corrected after the offline analysis in auth-exit-offline-analysis.json.",
     "dhcp_stage_reached": false,
     "host_auth_configuration_checks_passed": true,
     "image_and_env_write_verified": true,
@@ -38,9 +39,10 @@
     "log_source": "flash TL mailbox, read after stock return",
     "network_report_received": false,
     "passed": false,
+    "probable_cause": "Configuration rejected at parse time: the generated wpa.conf began with update_config=0, a global field that this CONFIG_NO_CONFIG_WRITE build of wpa_supplicant 2.11 does not parse. Under qemu-arm the same executable and configuration exit with status 255 within 0.03 s, and removing only that line keeps it running. Probable, not confirmed: the hardware exit status was not captured.",
     "reboot_event_seen": true,
     "result": "wifi-auth-process-exit",
-    "startup_failure_observation": "The trial reported no authentication process identity at its immediate /proc PID/start-time check. No fixed authentication event was recorded. The underlying launch/exit reason was not captured.",
+    "startup_failure_observation": "The start-time identity check passed: the trial logged the authentication start 9.37 s after boot and verified its start checkpoint in tl at 9.79 s. The process was already gone at the first liveness poll, within about 0.9 s of launch, before any fixed authentication event. The trial script of this revision did not record the exit status.",
     "unconfirmed_causes": [
       "driver initialization failure",
       "kernel or executable ABI incompatibility",

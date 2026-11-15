@@ -305,6 +305,24 @@ class Flow(unittest.TestCase):
                     str(self.tmp / ("blocked-" + missing)), rc=2)
 
     @unittest.skipUnless(MKSQ, "OM_MKSQUASHFS not set")
+    def test_wext_fallback_connection_is_authentication_evidence(self):
+        # The nl80211 supplicant ended by itself (exit status 255) and the one wext attempt connected; a wext
+        # attempt that never stayed connected is no evidence. collect reports each attempt and its status.
+        self.through_probe()
+        _, _, out = self.trial()
+        self.set_flash(sl.SENV_OFF, fx.uboot_saved((out / "env-armed.img").read_bytes()))
+        build = json.loads((self.state / "trial-build.json").read_text())
+        for extra, ok in (({"auth": "process-exit", "auth_rc": "255", "auth_wext": "connected"}, True),
+                          ({"auth": "wait-expired", "auth_rc": "0", "auth_wext": "lost"}, False)):
+            with self.subTest(**extra):
+                self.set_flash(sl.TL_OFF, tl_block(dict(TRIAL_OK, nonce=build["nonce"], **extra)))
+                self.camera("collect")
+                res = self.bs("collect", "--uploads", str(self.up), "--stage", "trial")
+                self.assertEqual((res["ok"], res["checks"]["wifi_authenticated"]), (ok, ok), res)
+                self.assertEqual({k: res[k] for k in ("auth", "auth_rc", "auth_wext", "auth_wext_rc")},
+                                 dict(extra, auth_wext_rc=None))
+
+    @unittest.skipUnless(MKSQ, "OM_MKSQUASHFS not set")
     def test_trial_payload_capacity(self):
         self.through_probe()
         err = self.bs("trial", "--firmware", str(self.tmp / "firmware.bin"), "--oipc-rootfs",

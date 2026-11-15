@@ -375,10 +375,15 @@ class OnlineChain(unittest.TestCase):
                "OMT_SUPPLICANT": str(base / "auth-stub"),
                "OMT_AUTH_PID": str(base / "auth.pid"),
                "OMT_AUTH_MODE": getattr(self, "auth_failure", "")}
+        # One line per start: PID and driver backend. The *-fallback modes fail the nl80211 attempt (exit 255
+        # as a rejected configuration or driver init does, or no event until it is stopped) and connect on wext.
         (base / "auth-stub").write_text("#!/bin/sh\n"
-            'echo "$$" > "$OMT_AUTH_PID"\n'
+            'echo "$$ $4" >> "$OMT_AUTH_PID"\n'
+            '[ "$1 $3 $5" = "-i -D -c" ] || exit 99\n'
             'case "$OMT_AUTH_MODE" in exit) exit 1;; timeout) ;;\n'
             ' reject) echo CTRL-EVENT-ASSOC-REJECT;;\n'
+            ' exit-fallback) [ "$4" = wext ] || exit 255; echo CTRL-EVENT-CONNECTED;;\n'
+            ' timeout-fallback) [ "$4" = wext ] && echo CTRL-EVENT-CONNECTED;;\n'
             ' *) echo CTRL-EVENT-CONNECTED;; esac\n'
             f"exec {SLEEP} 900\n")
         (base / "auth-stub").chmod(0o755)
@@ -390,18 +395,20 @@ class OnlineChain(unittest.TestCase):
                            text=True, timeout=600, stdin=subprocess.DEVNULL)
         self.assertEqual(r.returncode, 0, r.stdout + r.stderr)
         pidfile = base / "auth.pid"
-        if pidfile.exists():
-            pid = int(pidfile.read_text())
+        self.auth_backends, left = [], []
+        marker = ("OMT_AUTH_PID=" + str(pidfile)).encode()
+        for line in (pidfile.read_text().splitlines() if pidfile.exists() else []):
+            pid, backend = line.split(" ", 1)
+            self.auth_backends.append(backend)
             try:
-                state = proc_state(pid)
-            except FileNotFoundError:
-                state = "gone"
-            if state not in ("gone", "Z"):
                 # Clean up only this harness child, identified by its unique environment.
-                marker = ("OMT_AUTH_PID=" + str(pidfile)).encode()
-                if marker in Path(f"/proc/{pid}/environ").read_bytes().split(b"\0"):
-                    os.kill(pid, 9)
-                self.fail("the trial left its authentication child running")
+                if proc_state(int(pid)) != "Z" and \
+                        marker in Path(f"/proc/{pid}/environ").read_bytes().split(b"\0"):
+                    os.kill(int(pid), 9)
+                    left.append(backend)
+            except (FileNotFoundError, ProcessLookupError, PermissionError):
+                pass
+        self.assertEqual(left, [], "the trial left an authentication child running")
         log = (work / "trial.log").read_text()
         if self.srv and len(self.srv.uploads.get("trial-log", [])) > sent:  # stored as trial.sh wrote it
             self.assertEqual(self.srv.uploads["trial-log"][-1], sha((work / "trial.log").read_bytes().rstrip(b"\n")))
@@ -477,6 +484,7 @@ class OnlineChain(unittest.TestCase):
                                  "iface": "ra0", "dhcp": "ok", "host": "ok", "result": "completed",
                                  "insmod_wdt": "0", "ifup": "0", "dhcp_attempt": "1", "stable_window": "ok",
                                  "auth_binary": "ok", "auth": "connected"})
+        self.assertEqual(self.auth_backends, ["nl80211"])
         self.assertEqual(self.events("trial"), ["trial-network-up", "trial-completed"])
         self.assertEqual(len(self.srv.uploads["trial-log"]), 1)
         # Had saveenv failed, the armed env would still be there: trial.sh writes the stock env back over the
@@ -511,7 +519,8 @@ class OnlineChain(unittest.TestCase):
         self.assertTrue({"wget", "sha1sum", "md5sum", "expr"} <= set(self.traced("p1")))
         # Replay only the extracted trial in the file-backed harness: no real device and no network.
         # The successful collection above is left untouched; the failure mailboxes are not applied.
-        for mode in ("watchdog", "ifup", "dhcp", "auth-exit", "auth-timeout", "auth-reject", "auth-pin"):
+        for mode in ("watchdog", "ifup", "dhcp", "auth-exit", "auth-timeout", "auth-reject", "auth-pin",
+                     "auth-exit-fallback", "auth-timeout-fallback"):
             self.auth_failure = mode.removeprefix("auth-") if mode.startswith("auth-") else ""
             with self.subTest(trial_failure=mode):
                 self.trace.write_text("")
@@ -525,9 +534,28 @@ class OnlineChain(unittest.TestCase):
                 self.assertEqual(flags["result"], {"watchdog": "watchdog-init-failed",
                     "ifup": "wifi-ifup-failed", "dhcp": "no-dhcp-lease",
                     "auth-exit": "wifi-auth-process-exit", "auth-timeout": "wifi-auth-failed",
-                    "auth-reject": "wifi-auth-failed", "auth-pin": "auth-runtime-invalid"}[mode])
+                    "auth-reject": "wifi-auth-failed", "auth-pin": "auth-runtime-invalid",
+                    "auth-exit-fallback": "no-migrate-conf", "auth-timeout-fallback": "no-migrate-conf"}[mode])
                 self.assertNotIn("stable_window", flags)
-                self.assertEqual(self.traced("tr").count("udhcpc"), 8 if mode == "dhcp" else 0)
+                self.assertEqual(self.traced("tr").count("udhcpc"),
+                                 {"dhcp": 8, "auth-exit-fallback": 1, "auth-timeout-fallback": 1}.get(mode, 0))
+                # Each attempt's outcome and the supplicant's own exit status (128+15: the stub dies on SIGTERM).
+                keys = ("auth", "auth_rc", "auth_wext", "auth_wext_rc")
+                self.assertEqual({k: v for k, v in flags.items() if k in keys},
+                                 {"dhcp": {"auth": "connected"},
+                                  "auth-exit": {"auth": "process-exit", "auth_rc": "1",
+                                                "auth_wext": "process-exit", "auth_wext_rc": "1"},
+                                  "auth-timeout": {"auth": "wait-expired", "auth_rc": "143",
+                                                   "auth_wext": "wait-expired", "auth_wext_rc": "143"},
+                                  "auth-reject": {"auth": "association-rejected", "auth_rc": "143",
+                                                  "auth_wext": "association-rejected", "auth_wext_rc": "143"},
+                                  "auth-exit-fallback": {"auth": "process-exit", "auth_rc": "255",
+                                                         "auth_wext": "connected"},
+                                  "auth-timeout-fallback": {"auth": "wait-expired", "auth_rc": "143",
+                                                            "auth_wext": "connected"}}.get(mode, {}))
+                # Never two at once: wext only after the nl80211 supplicant is confirmed gone.
+                self.assertEqual(self.auth_backends, [] if mode in ("watchdog", "ifup", "auth-pin") else
+                                 ["nl80211"] if mode == "dhcp" else ["nl80211", "wext"])
                 if mode == "watchdog":
                     self.assertNotIn("insmod_cfg80211", flags)
                 elif mode == "dhcp":

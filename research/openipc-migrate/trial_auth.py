@@ -163,7 +163,10 @@ def wpa_config(ssid: str, psk: str) -> bytes:
         key = hashlib.pbkdf2_hmac("sha1", psk_bytes, ssid_bytes, 4096, 32).hex()
     else:
         raise AuthError("trial Wi-Fi needs an 8–63 character passphrase or 64 hex digits")
-    return ("update_config=0\nap_scan=1\nnetwork={\n"
+    # Only fields this runtime parses: auth/wpa.config sets CONFIG_NO_CONFIG_WRITE, which removes
+    # update_config, and an unknown global makes wpa_supplicant exit 255 before any socket or driver
+    # call. That ended the third trial; it was reproduced offline with the same binary and config.
+    return ("ap_scan=1\nnetwork={\n"
             f"    ssid={ssid_bytes.hex()}\n    scan_ssid=1\n    psk={key}\n"
             "    proto=RSN\n    key_mgmt=WPA-PSK\n    pairwise=CCMP\n"
             "    group=CCMP\n    ieee80211w=0\n}\n").encode("ascii")

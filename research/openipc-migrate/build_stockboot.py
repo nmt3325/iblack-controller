@@ -276,7 +276,7 @@ def cmd_collect(args, state: Path) -> dict:
         "wifi_interface": flags.get("iface", "none") != "none",
         "watchdog_driver_loaded": flags.get("insmod_wdt") == "0",
         "auth_runtime_verified": flags.get("auth_binary") == "ok",
-        "wifi_authenticated": flags.get("auth") == "connected",
+        "wifi_authenticated": "connected" in (flags.get("auth"), flags.get("auth_wext")),
         "stable_window_survived": flags.get("stable_window") == "ok",
         "dhcp_ok": flags.get("dhcp") == "ok",
         "host_reached": flags.get("host") == "ok",
@@ -287,6 +287,7 @@ def cmd_collect(args, state: Path) -> dict:
     }
     out = {"ok": all(checks.values()), "checks": checks, "result": flags.get("result"),
            "kernel": flags.get("kernel"), "iface": flags.get("iface"), "envlive": sha(env),
+           **{k: flags.get(k) for k in ("auth", "auth_rc", "auth_wext", "auth_wext_rc")},
            "log_source": "trial-log upload" if raw else ("tl mailbox" if text else None)}
     save_json(state, "trial.json", out)
     if out["ok"]:

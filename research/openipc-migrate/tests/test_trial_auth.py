@@ -3,7 +3,10 @@ import hashlib
 import json
 import os
 from pathlib import Path
+import shutil
+import signal
 import struct
+import subprocess
 import sys
 import tempfile
 import unittest
@@ -12,6 +15,13 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import auth_fixture as af
 import trial_auth as ta
+
+ROOT = Path(__file__).resolve().parents[1]
+SSID, PASS = "dummy-ssid-for-test", "dummy-pass-for-test"
+# Optional: the private pinned runtime directory (as given to build_stockboot.py --auth-runtime) and a
+# qemu-arm launcher for an ARMv5 CPU, to run the real executable on the configuration it is shipped with.
+RUNTIME = os.environ.get("OM_AUTH_RUNTIME")
+QEMU_ARM = os.environ.get("OM_QEMU_ARM")
 
 
 class Authentication(unittest.TestCase):
@@ -40,6 +50,17 @@ class Authentication(unittest.TestCase):
             with self.subTest(ssid_length=len(ssid), psk_length=len(psk)):
                 with self.assertRaises(ta.AuthError):
                     ta.wpa_config(ssid, psk)
+
+    def test_config_only_uses_fields_of_the_runtime_profile(self):
+        # The pinned build sets CONFIG_NO_CONFIG_WRITE, which removes update_config from its parser: that one
+        # unknown global made the third hardware trial's supplicant exit (255) before any driver call.
+        self.assertIn("CONFIG_NO_CONFIG_WRITE=y", (ROOT / "auth" / "wpa.config").read_text().splitlines())
+        lines = ta.wpa_config(SSID, PASS).decode("ascii").splitlines()
+        self.assertEqual(lines[:2], ["ap_scan=1", "network={"])
+        self.assertEqual([line.strip().split("=", 1)[0] for line in lines[2:-1]],
+                         ["ssid", "scan_ssid", "psk", "proto", "key_mgmt", "pairwise", "group", "ieee80211w"])
+        self.assertEqual(lines[-1], "}")
+        self.assertNotIn("update_config", "\n".join(lines))
 
     def test_maximal_credentials(self):
         self.assertIn(b"ssid=" + b"78" * 32, ta.wpa_config("x" * 32, "p" * 63))
@@ -124,6 +145,46 @@ class Authentication(unittest.TestCase):
             os.symlink("real", binary)
             with self.assertRaises(ta.AuthError):
                 ta.runtime_files(p)
+
+
+@unittest.skipUnless(RUNTIME and QEMU_ARM and shutil.which("unshare"),
+                     "needs OM_AUTH_RUNTIME (private runtime), OM_QEMU_ARM (ARMv5 launcher) and unshare")
+class RealRuntimeReadsTheTrialConfig(unittest.TestCase):
+    """The pinned executable under qemu-arm, in a user+network namespace that has only lo. qemu-user does not
+    emulate nl80211 or the wireless-extension ioctls, so this checks the configuration and the start, not the
+    driver: an accepted configuration keeps it running, a rejected one ends it with 255 at once."""
+
+    def run_supplicant(self, config: bytes, seconds: float) -> tuple:
+        files = ta.runtime_files(Path(RUNTIME))  # verified exactly as for a payload
+        with tempfile.TemporaryDirectory(prefix="om-auth-qemu-") as tmp:
+            binary, conf = Path(tmp) / "wpa_supplicant", Path(tmp) / "wpa.conf"
+            binary.write_bytes(files["wpa_supplicant"])
+            binary.chmod(0o700)
+            conf.write_bytes(config)
+            proc = subprocess.Popen(["unshare", "-rn", QEMU_ARM, str(binary), "-i", "lo", "-D", "wext",
+                                     "-c", str(conf)], stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL,
+                                    stderr=subprocess.DEVNULL, start_new_session=True)
+            try:
+                return False, proc.wait(timeout=seconds)
+            except subprocess.TimeoutExpired:
+                return True, None
+            finally:
+                for sig in (signal.SIGTERM, signal.SIGKILL):
+                    try:
+                        os.killpg(proc.pid, sig)
+                        proc.wait(timeout=10)
+                        break
+                    except ProcessLookupError:
+                        break
+                    except subprocess.TimeoutExpired:
+                        continue
+
+    def test_generated_config_keeps_the_real_supplicant_running(self):
+        self.assertEqual(self.run_supplicant(ta.wpa_config(SSID, PASS), 3), (True, None))
+
+    def test_the_third_trial_config_still_ends_it_with_255(self):
+        # The same fields plus update_config=0, as the third hardware trial shipped them.
+        self.assertEqual(self.run_supplicant(b"update_config=0\n" + ta.wpa_config(SSID, PASS), 20), (False, 255))
 
 
 if __name__ == "__main__":

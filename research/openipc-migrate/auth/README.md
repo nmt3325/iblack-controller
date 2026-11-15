@@ -49,10 +49,24 @@ Pass the private runtime directory to both `build_stockboot.py trial` and
   object from the actual supplicant build, not a differently configured copy.
   No control socket is compiled in. This patch is inappropriate for a build
   that needs a control interface.
-- The trial launches one foreground supplicant as its owned background child,
-  checks the pinned executable again with stock `sha1sum`, and waits at most
-  90 polling intervals for a real `CTRL-EVENT-CONNECTED`.
+- The trial checks the pinned executable again with stock `sha1sum`, starts
+  one supplicant with `-D nl80211` as its owned background child and waits at
+  most 90 polling intervals for a real `CTRL-EVENT-CONNECTED`. Only once that
+  process is confirmed gone (it exited, or it was stopped after the wait) does
+  it make a single `-D wext` attempt of at most 60 intervals, so two
+  supplicants never run at once. Each attempt's outcome and exit status are
+  recorded as `auth`/`auth_rc` and `auth_wext`/`auth_wext_rc` (255: the
+  supplicant's own initialization failure; 128+N: killed by signal N).
   DHCP does not run after a failed authentication gate.
+- The generated configuration holds only fields this build parses: `ap_scan`
+  and one RSN/WPA2-PSK/CCMP network block. `wpa.config` sets
+  `CONFIG_NO_CONFIG_WRITE`, which removes `update_config` from the parser; an
+  unknown global field makes the supplicant exit with 255 before any socket or
+  driver call, silently under `CONFIG_NO_STDOUT_DEBUG`. That ended the third
+  physical trial. A unit test pins the field list. With `OM_AUTH_RUNTIME` (the
+  private runtime directory) and `OM_QEMU_ARM` (a qemu-arm launcher for
+  `-cpu arm926`) set, the tests also start the real executable on the
+  generated configuration in a network namespace that has only `lo`.
 - The child's PID and original `/proc` start time gate cleanup. It stays alive
   through result upload, then only that process is terminated.
 - The existing 70-second post-host stability window and independent 900-second
@@ -63,5 +77,7 @@ Pass the private runtime directory to both `build_stockboot.py trial` and
   firmware is installed by this build tool.
 
 Run the executable under `qemu-arm -cpu arm926 -v` and `-h`, test the fixed-event
-hook on ARM, and run the full stock-BusyBox QEMU chain before physical use.
-Those are compatibility checks, not proof of hardware Wi-Fi interoperability.
+hook on ARM, start it on the generated configuration, and run the full
+stock-BusyBox QEMU chain before physical use. qemu-user cannot pass nl80211 or
+wireless-extension requests to a driver, so these are compatibility checks,
+not proof of hardware Wi-Fi interoperability.

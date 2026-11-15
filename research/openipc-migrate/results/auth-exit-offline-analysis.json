@@ -1,0 +1,134 @@
+{
+  "analyzed_trial_source_revision": "614e18f0df2c6685f0cd55cb26c99df2a4763d4b",
+  "camera_contacted": false,
+  "configuration_bisect": {
+    "accepted_only_without": "update_config",
+    "method": "remove one line at a time; user and network namespace with only lo; -i lo -D wext; still running after 2 s counts as accepted",
+    "placeholder_ssid_with_real_psk_exit_status": 255,
+    "real_ssid_with_placeholder_psk_exit_status": 255,
+    "same_structure_with_placeholder_values_exit_status": 255,
+    "still_exit_255_without_any_one_of": [
+      "ap_scan",
+      "ssid",
+      "scan_ssid",
+      "psk",
+      "proto",
+      "key_mgmt",
+      "pairwise",
+      "group",
+      "ieee80211w"
+    ]
+  },
+  "correction": "auth-trial-hardware.json first said the trial found no process identity at its immediate /proc start-time check. The tl log shows that check passed and the exit was detected at the first liveness poll; the record now says so.",
+  "date_utc": "2026-11-15",
+  "emulation_limits": [
+    "qemu-user does not support NETLINK_GENERIC sockets and returns ENOSYS for wireless-extension ioctls, so driver initialization, scanning, association and the 4-way handshake cannot be exercised offline.",
+    "Offline acceptance of the configuration does not prove hardware Wi-Fi authentication."
+  ],
+  "fix": {
+    "collect": "a connected wext attempt counts as authentication evidence; collect reports each attempt and its exit status",
+    "configuration": "update_config removed; only ap_scan and one RSN/WPA2-PSK/CCMP network block (ssid, scan_ssid, psk, proto, key_mgmt, pairwise, group, ieee80211w).",
+    "trial_script": [
+      "-D nl80211 first, at most 90 one-second polls for CTRL-EVENT-CONNECTED",
+      "one -D wext attempt of at most 60 polls, only after the nl80211 process is confirmed gone (it exited, or SIGTERM then SIGKILL after the wait); two supplicants never run at once",
+      "a process that cannot be confirmed gone blocks the wext attempt and fails the gate",
+      "each attempt records auth/auth_wext and its exit status auth_rc/auth_wext_rc in tl (255 initialization failure, 126/127 exec failure, 128+N signal N)"
+    ],
+    "unchanged": [
+      "704 KiB trial payload boundary",
+      "8 MiB layout and kernel slot",
+      "stock U-Boot",
+      "trial writes limited to tl and senv",
+      "independent 900-second stock-return timer",
+      "at most 8 DHCP attempts",
+      "70-second post-host stability window"
+    ]
+  },
+  "hardware_log": {
+    "exit_detected_at": "first liveness poll, within about 0.9 s of launch",
+    "exit_status_recorded": false,
+    "fixed_authentication_events": 0,
+    "seconds_after_boot": {
+      "authentication_started": 9.37,
+      "exit_checkpoint_verified": 10.23,
+      "start_checkpoint_verified": 9.79,
+      "trial_end": 10.25
+    },
+    "source": "flash TL mailbox, read after stock return",
+    "start_time_identity_check_passed": true
+  },
+  "hardware_record": "auth-trial-hardware.json",
+  "limitations": [
+    "No raw logs, configuration, credentials, network identifiers, private hashes or run identifiers are included.",
+    "A fourth physical trial requires new explicit authorization; final migration remains blocked."
+  ],
+  "offline_reproduction": {
+    "cases": [
+      {
+        "case": "trial-3 configuration, -i lo -D nl80211,wext",
+        "exit_status": 255,
+        "seconds": 0.03,
+        "socket_or_driver_calls_before_exit": false
+      },
+      {
+        "case": "trial-3 configuration, interface absent",
+        "exit_status": 255,
+        "seconds": 0.03
+      },
+      {
+        "case": "empty configuration, -i lo -D nl80211,wext",
+        "exit_status_after_sigterm": 0,
+        "still_running_after_seconds": 6
+      }
+    ],
+    "configuration": "the private wpa.conf of the third trial payload; never printed or committed",
+    "emulator": "qemu-arm user mode, -cpu arm926",
+    "executable": "the pinned trial runtime of the third trial payload (static ARMv5 EABI5 soft-float wpa_supplicant 2.11)"
+  },
+  "physical_actions": 0,
+  "probable_cause": {
+    "confidence": "probable; the hardware exit status was not captured",
+    "mechanism": "auth/wpa.config sets CONFIG_NO_CONFIG_WRITE=y. wpa_supplicant 2.11 compiles the update_config global field only without CONFIG_NO_CONFIG_WRITE, so update_config=0 is an unknown global field: the configuration fails to parse and wpa_supplicant exits with status 255 before opening any socket or driver interface.",
+    "why_nothing_was_logged": "CONFIG_NO_STDOUT_DEBUG removes the parse-error message, and the event-only patch prints only the five fixed events."
+  },
+  "regression_tests_added": [
+    "generated configuration has exactly the runtime-profile fields and no update_config",
+    "real runtime under qemu-arm keeps running on the generated configuration",
+    "real runtime under qemu-arm still exits 255 once update_config=0 is added",
+    "stock-BusyBox trial chain: nl80211 exits 255 then wext connects, and nl80211 times out then wext connects; exit statuses and backends are checked",
+    "collect accepts a connected wext attempt and rejects a lost one"
+  ],
+  "schema": "iblack-openipc-auth-exit-offline-analysis/1",
+  "scope": "Offline analysis and fix of the third physical trial's authentication-process exit. No camera access, flash write or reboot.",
+  "shell_behavior_verified": "Stock BusyBox 1.18.4 ash under qemu-arm: a finished background job stays readable in /proc until it is reaped; after a foreground command reaps it, kill -0 fails and wait PID returns its stored status (255, 139 and 143 checked).",
+  "validation": {
+    "adjacent_tests": {
+      "passed": 25,
+      "run": 25,
+      "skipped": 0
+    },
+    "migration_unit_and_integration": {
+      "passed": 193,
+      "run": 193,
+      "skipped": 0
+    },
+    "repository_verification": {
+      "exit_status": 0,
+      "skipped": 6,
+      "tests_run": 110
+    },
+    "stock_arm_qemu": {
+      "checks_passed": 9,
+      "checks_total": 9,
+      "e2e_real_binary_tests_passed": 16,
+      "note": "trial.sh failure and fallback modes run under the stock BusyBox 1.18.4 ash on qemu-arm",
+      "result": "PASS"
+    },
+    "trial_payload_with_maximal_placeholder_credentials": {
+      "bytes": 688128,
+      "limit_bytes": 720896,
+      "margin_bytes": 32768,
+      "trial_sh_bytes": 13530
+    }
+  }
+}

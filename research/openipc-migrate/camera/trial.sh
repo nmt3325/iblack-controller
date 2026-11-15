@@ -14,8 +14,9 @@
 # Steps: check kernel/partition table, load the pinned OpenIPC watchdog with its kernel
 # feeder enabled (normal OpenIPC load_hisilicon behavior), stop SysUpdate, eth0 down, Wi-Fi from
 # the OpenIPC cfg80211.ko + mt7601sta.ko and the MT7601USTA.dat built by the
-# host, explicit WPA2 authentication, DHCP, report to the LAN host (status + log upload; the stock wget sends --post-data
-# form-escaped and serve_migration.py decodes it), reboot -f.
+# host, explicit WPA2 authentication (nl80211, then at most one wext attempt), DHCP, report to
+# the LAN host (status + log upload; the stock wget sends --post-data form-escaped and
+# serve_migration.py decodes it), reboot -f.
 # Prints/uploads no Wi-Fi credentials (the .dat, wpa.conf and auth.raw are never logged).
 umask 077
 PATH=${OMT_TEST_PATH:-/sbin:/usr/sbin:/bin:/usr/bin}; export PATH
@@ -48,9 +49,9 @@ checkpoint(){
   rm -f "$W/tl.img"
   [ -n "$want" ] && [ "$want" = "$got" ]; }
 cp_note(){ if checkpoint; then log "checkpoint $1 written to tl"; else log "checkpoint $1 NOT verified"; fi; }
-# Only the foreground process started below is ours to terminate. Match its original
+# Only the supplicant process started below is ours to terminate. Match its original
 # /proc start time as well as its PID; never killall a supplicant or touch another service.
-APID=""; ASTART=""
+APID=""; ASTART=""; AUTHF=auth
 auth_alive(){
   case "$APID" in ""|0|1|*[!0-9]*) return 1;; esac
   [ -n "$ASTART" ] && [ "$ASTART" = "$(awk '{print $22}' "/proc/$APID/stat" 2>/dev/null)" ] && \
@@ -59,6 +60,28 @@ auth_alive(){
 auth_connected(){
   awk '/^CTRL-EVENT-CONNECTED$/ {s=1} /^CTRL-EVENT-DISCONNECTED$/ {s=0} END {exit (s ? 0 : 1)}' \
     "$W/auth.raw" 2>/dev/null
+}
+# The exit status of that supplicant once it is gone, as "omt <attempt>_rc": 255 is its own init
+# failure (configuration rejected, driver or interface setup), 126/127 an exec failure, 128+N death
+# by signal N, 0 a clean exit after our SIGTERM, "unknown" while the PID still exists. This sh
+# reaps a finished background job during any foreground command and keeps its status for the
+# wait builtin, so once kill -0 fails, wait returns that status at once.
+auth_reap(){
+  auth_rc=unknown
+  case "$APID" in
+    ""|0|1|*[!0-9]*) ;;
+    *) kill -0 "$APID" 2>/dev/null && sleep 1
+       if ! kill -0 "$APID" 2>/dev/null; then wait "$APID" 2>/dev/null; auth_rc=$?; fi;;
+  esac
+  flag "${AUTHF}_rc" "$auth_rc"
+}
+# SIGTERM (the supplicant deinitializes and exits), up to 10 s for it to go, then SIGKILL.
+auth_stop(){
+  auth_alive || return 0
+  kill "$APID" 2>/dev/null
+  st_n=0
+  while auth_alive && [ "$st_n" -lt 10 ]; do sleep 1; st_n=$(expr $st_n + 1); done
+  if auth_alive; then kill -9 "$APID" 2>/dev/null; sleep 1; fi
 }
 auth_cleanup(){
   if auth_alive; then kill "$APID" 2>/dev/null; fi
@@ -157,29 +180,44 @@ if [ -n "$auth_want" ] && [ "$auth_want" = "$auth_got" ]; then flag auth_binary 
 else flag auth_binary bad; finish auth-runtime-invalid; fi
 [ -r "$P/wpa.conf" ] || finish auth-config-missing
 AUTH=${OMT_SUPPLICANT:-$P/wpa_supplicant}
-: > "$W/auth.raw"
-"$AUTH" -i "$IF" -D nl80211,wext -c "$P/wpa.conf" > "$W/auth.raw" 2>&1 &
-APID=$!
-ASTART=$(awk '{print $22}' "/proc/$APID/stat" 2>/dev/null)
-[ -n "$ASTART" ] || { flag auth process-exit; finish wifi-auth-process-exit; }
-log "Wi-Fi authentication started"; cp_note auth-start
-authed=0; n=0
-while [ "$n" -lt 90 ]; do
-  if ! auth_alive; then flag auth process-exit; cp_note auth; finish wifi-auth-process-exit; fi
-  if auth_connected; then authed=1; break; fi
-  sleep 1; n=$(expr $n + 1)
-done
-if [ "$authed" -eq 1 ]; then
-  flag auth connected
-else
-  auth_reason=wait-expired
-  grep -q '^CTRL-EVENT-SCAN-FAILED$' "$W/auth.raw" && auth_reason=scan-failed
-  grep -q '^CTRL-EVENT-ASSOC-REJECT$' "$W/auth.raw" && auth_reason=association-rejected
-  grep -q '^CTRL-EVENT-SSID-TEMP-DISABLED$' "$W/auth.raw" && auth_reason=temporarily-disabled
-  flag auth "$auth_reason"
+# One attempt: the supplicant with driver backend $2 for at most $3 one-second polls, its flags
+# named $1. Returns 0 connected (it keeps running), 1 gone for certain (its exit status recorded),
+# 2 it may still exist.
+auth_try(){
+  AUTHF=$1; at_res=process-exit
+  : > "$W/auth.raw"
+  "$AUTH" -i "$IF" -D "$2" -c "$P/wpa.conf" > "$W/auth.raw" 2>&1 &
+  APID=$!
+  ASTART=$(awk '{print $22}' "/proc/$APID/stat" 2>/dev/null)
+  if [ -n "$ASTART" ]; then
+    log "Wi-Fi authentication started ($AUTHF, backend $2)"; cp_note "$AUTHF-start"
+    at_res=wait-expired; at_n=0
+    while [ "$at_n" -lt "$3" ]; do
+      if ! auth_alive; then at_res=process-exit; break; fi
+      if auth_connected; then flag "$AUTHF" connected; authed=1; cp_note "$AUTHF"; return 0; fi
+      sleep 1; at_n=$(expr $at_n + 1)
+    done
+    if [ "$at_res" = wait-expired ]; then
+      grep -q '^CTRL-EVENT-SCAN-FAILED$' "$W/auth.raw" && at_res=scan-failed
+      grep -q '^CTRL-EVENT-ASSOC-REJECT$' "$W/auth.raw" && at_res=association-rejected
+      grep -q '^CTRL-EVENT-SSID-TEMP-DISABLED$' "$W/auth.raw" && at_res=temporarily-disabled
+      auth_stop
+    fi
+  fi
+  flag "$AUTHF" "$at_res"; auth_reap; cp_note "$AUTHF"
+  if kill -0 "$APID" 2>/dev/null; then return 2; fi
+  APID=""; ASTART=""; return 1
+}
+# nl80211 first. wext only once that process is confirmed gone (it exited, or it was stopped after
+# its 90 s), so two supplicants never run at once; the vendor mt7601sta driver may implement its
+# station side only through wireless extensions.
+authed=0
+auth_try auth nl80211 90; at_ret=$?
+if [ "$at_ret" -eq 1 ]; then auth_try auth_wext wext 60; fi
+if [ "$authed" -ne 1 ]; then
+  [ "$at_res" = process-exit ] && finish wifi-auth-process-exit
+  finish wifi-auth-failed
 fi
-cp_note auth
-[ "$authed" -eq 1 ] || finish wifi-auth-failed
 # No SSID/PSK, iwconfig output, or raw driver trace is copied into diagnostics. The fixed-label
 # health filter records reset/OOM/watchdog symptoms without the driver's authentication chatter.
 net_note(){
@@ -212,8 +250,8 @@ if grep -q "^run=$OM_RUN_ID\$" "$W/manifest" 2>/dev/null; then flag host ok; els
 # its independent 900-second stock-return deadline, and no extra flash region becomes writable.
 log "host reached; starting 70-second stability window"; cp_note host-reached
 sleep 70 || finish stability-wait-failed
-auth_alive || finish wifi-auth-process-exit
-if ! auth_connected; then flag auth lost; finish wifi-auth-lost; fi
+if ! auth_alive; then flag "$AUTHF" process-exit; auth_reap; finish wifi-auth-process-exit; fi
+if ! auth_connected; then flag "$AUTHF" lost; finish wifi-auth-lost; fi
 flag stable_window ok; sec uptime_stable cat /proc/uptime
 net_note
 finish completed

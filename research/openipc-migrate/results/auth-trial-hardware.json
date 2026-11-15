@@ -1,0 +1,107 @@
+{
+  "date_utc": "2026-11-15",
+  "final_safety": {
+    "host_standby_verified": true,
+    "management_routes_unchanged": true,
+    "reads_stable": true,
+    "remaining_authorized_additional_trials": 0,
+    "stock_ap_returned": true,
+    "temporary_dhcp_active": false,
+    "temporary_host_ap_active": false,
+    "uboot_unchanged": true,
+    "vendor_env_stock_equivalent": true
+  },
+  "hardware_trial": {
+    "checks": {
+      "auth_runtime_verified": true,
+      "dhcp_ok": false,
+      "host_reached": false,
+      "kernel_booted_with_marker": true,
+      "modules_loaded": true,
+      "mtd_table_ok": true,
+      "nonce_matches": true,
+      "reads_stable": true,
+      "stable_window_survived": false,
+      "trial_log_found": true,
+      "uboot_saveenv_ran": true,
+      "uboot_unchanged": true,
+      "vendor_env_stock_equivalent": true,
+      "watchdog_driver_loaded": true,
+      "wifi_authenticated": false,
+      "wifi_interface": true
+    },
+    "dhcp_stage_reached": false,
+    "host_auth_configuration_checks_passed": true,
+    "image_and_env_write_verified": true,
+    "kernel_release": "3.0.8",
+    "kind": "one-shot OpenIPC kernel with stock userland; not the final OpenIPC rootfs",
+    "log_source": "flash TL mailbox, read after stock return",
+    "network_report_received": false,
+    "passed": false,
+    "reboot_event_seen": true,
+    "result": "wifi-auth-process-exit",
+    "startup_failure_observation": "The trial reported no authentication process identity at its immediate /proc PID/start-time check. No fixed authentication event was recorded. The underlying launch/exit reason was not captured.",
+    "unconfirmed_causes": [
+      "driver initialization failure",
+      "kernel or executable ABI incompatibility",
+      "other immediate launch or exit failure"
+    ]
+  },
+  "limitations": [
+    "This is not a successful full OpenIPC migration. Authentication, DHCP and the stability window did not pass.",
+    "The current bakfs contains the authenticated trial image, not a vendor appfs recovery backup.",
+    "No raw logs, firmware, dumps, credentials, network identifiers, private hashes or run identifiers are included.",
+    "Any further physical trial or redelivery requires new explicit authorization; final migration remains blocked."
+  ],
+  "offline_trial_validation": {
+    "bootcmd_chars": 417,
+    "bootcmd_limit_chars": 1023,
+    "checks_passed": 26,
+    "checks_total": 26,
+    "env_image_bytes": 131072,
+    "extraction_note": "The SquashFS inodes encoded 0755 for executable files. A first host extraction under umask 077 appeared as 0700; re-extraction with child umask 000 inside a private 0700 parent confirmed all exact inode modes without altering the image.",
+    "kernel_bytes": 1864732,
+    "kernel_limit_bytes": 1900544,
+    "payload_bytes": 688128,
+    "payload_limit_bytes": 720896,
+    "payload_margin_bytes": 32768,
+    "same_image_revalidated_without_rebuild": true,
+    "trial_image_bytes": 2621440
+  },
+  "recovery_redelivery": {
+    "agent_callback_recovered": true,
+    "appfs_bytes": 2613248,
+    "appfs_limit_bytes": 2621432,
+    "camera_success_acknowledged": true,
+    "final_ack_sent": true,
+    "fresh_readonly_env_collection_passed": true,
+    "packet_bytes": 2613324,
+    "readback_checks": {
+      "pass1_appfs_exact": true,
+      "pass1_bakfs_exact": true,
+      "pass1_bakfs_inner_crc": true,
+      "pass1_stock_boot_kernel_unchanged": true,
+      "pass1_stock_rootfs_unchanged": true,
+      "pass2_appfs_exact": true,
+      "pass2_bakfs_exact": true,
+      "pass2_bakfs_inner_crc": true,
+      "pass2_stock_boot_kernel_unchanged": true,
+      "pass2_stock_rootfs_unchanged": true,
+      "two_reads_appfs_identical": true,
+      "two_reads_bakfs_identical": true
+    },
+    "transport_retries": 0
+  },
+  "schema": "iblack-openipc-auth-hardware-trial/1",
+  "scope": {
+    "authorized_additional_physical_trials": 1,
+    "authorized_recovery_redeliveries": 1,
+    "automatic_retries": 0,
+    "performed_additional_physical_trials": 1,
+    "performed_recovery_redeliveries": 1,
+    "permanent_migration_authorized": false,
+    "permanent_migration_performed": false,
+    "series_trial_index": 3
+  },
+  "tested_source_revision": "614e18f0df2c6685f0cd55cb26c99df2a4763d4b"
+}

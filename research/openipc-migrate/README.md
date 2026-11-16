@@ -289,8 +289,8 @@ finalの後戻りできない区間は、firmware約6.6 MiBの消去・書込み
 
 - `0x96` の送信はリポジトリに入れていない（実機ではリポジトリ外の私的な送信ツールを使った）。appfsとbakfsを両方書き換えて再起動する。
 - 純正U-Bootが、こちらのenvを実際に実行して `saveenv` できるか（probe）。純正U-Bootのコマンド解釈はバイナリから読み取ってモデル化しただけで、実機では動かしていない。
-- OpenIPC kernelがこの基板で起動するか。SPIフラッシュ素子の認識、純正rootfs（xz）のマウント、`mtdparts` の解釈が分かるのは試験起動のときだけ。kernelがユーザーランドに着く前に止まった場合は、900秒のタイマーが動かないので、手で電源を入れ直す（純正に戻る）。
-- MT7601を、OpenIPCのモジュールと純正ユーザーランドで接続できるか（qemuでは模擬）。移行後のOpenIPCはwpa_supplicantを使うので、その経路は試験起動では確かめられない。移行後にWi-Fiでつながらなければ、戻る手段はSPIだけになる。
+- OpenIPC kernelがこの基板で起動するか。SPIフラッシュ素子の認識、純正rootfs（xz）のマウント、`mtdparts` の解釈が分かるのは試験起動のときだけ。kernelがユーザーランドに着く前に止まった場合は、900秒のタイマーが動かないので、手で電源を入れ直す（純正に戻る）。（2台目で起動を確認。下の「2台目の実機移行」）
+- MT7601を、OpenIPCのモジュールと純正ユーザーランドで接続できるか（qemuでは模擬）。移行後のOpenIPCはwpa_supplicantを使うので、その経路は試験起動では確かめられない。移行後にWi-Fiでつながらなければ、戻る手段はSPIだけになる。（2台目では移行後もWi-Fiで接続できた）
 - 既存bakfsの読出し不一致は未解決（[調査](../../docs/BAKFS-READBACK-INVESTIGATION.md)）。
 - AR0141センサーは、OpenIPC上で未確認。
 - 実機の空きRAM、`/dev` のtmpfs容量、watchdogデバイスの有無は、diagnoseで初めて分かる。ただしwatchdogは純正ユーザー空間（`cmsMain.out`）が `/dev/mem` 経由で給餌しており、デバイスの有無では判定できない（finalの結果）。
@@ -323,6 +323,17 @@ diagnoseでは純正アプリ・ネットワークサービスを停止しない
 - 単体・結合テスト220件（失敗・スキップなし）、隣接するopenipc-portの25件が成功。
 - qemu-arm（9項目すべてPASS）：実バイナリのE2E 18件（watchdog関連の3件を含む）、容量判定23件。純正rootfs上のパッチ済みOpenIPC BusyBox（227アプレット）で、`devmem` が返す形の16進数をシェル算術で扱えること（`sh_arith_devmem_words`）も確かめた。
 - SP805を実際に止められるか、止めた状態でWi-Fiが保てるかは、実機のwdtgateで初めて分かる。
+
+## 2台目の実機移行（ネットワーク経由、2026-11-16）
+
+結果は [results/unit2-network-migration.json](results/unit2-network-migration.json)。
+
+- 純正ファームのWi-Fi APモードから、UART・Ethernet・SPIクリップなしで移行した。U-Bootは書いていない。
+- diagnose → wdtgate（SP805を304秒止めて再開）→ probe → 試験起動（16/16）→ final の順に通った。finalはPONR後の書込みをすべて読み戻して確認し、再起動した。
+- 移行後のOpenIPC（kernel 3.0.8）はホストのAPにつながり、DHCP・ping・SSH(22)・HTTP(80)が応答した。HTTPは初回セットアップ画面。rootfs_dataのjffs2はリセットをまたいで残る（初回起動で作られたSSHホスト鍵が変わらない）。
+- 残っている問題: 約40秒ごとに再起動する（1回の起動でSSHは約14秒、HTTPは約6秒しか開かない）。SP805が起動時から動いたままで、だれも給餌していないと判断した。OpenIPCは `wdt.ko` を `load_hisilicon`（S70vendor）の `insert_ko` の最後でしか読み込まない。この基板では、検出されてenvに保存されたセンサーIDが `insert_sns` の一覧になく、`report_error` で抜けるので、そこまで届かない。試験起動は自分で `wdt.ko` を読み込んでいたので生き残った。シェルがまだ無いので、実機では未確認。
+- 初回セットアップ（Majestic EULAへの同意とrootパスワード）は、カメラ自身が「所有者本人が入力すること、AIや自動化は代行しないこと」と求めているので、自動では行っていない。所有者がセットアップしたあと、`/etc/modules` に `wdt` を足して読み込み、再起動後に80秒を超えて動くことを確かめる（リポジトリ外の補助スクリプトで行う）。
+- 次の機体では、finalで rootfs_data の先頭に `/init` の持ち込み（`OPENIPC-OVL1`）を置き、`etc/modules` に `wdt` を入れておけば、初回起動からwatchdogを給餌できる見込み（未実装）。
 
 ## 再実行
 

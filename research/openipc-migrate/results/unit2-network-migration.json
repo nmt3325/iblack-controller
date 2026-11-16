@@ -1,0 +1,139 @@
+{
+ "schema": "iblack-openipc-unit2-network-migration/1",
+ "date_utc": "2026-11-16",
+ "tested_source_revision": "57099fe63cd8eb9fd2d1da7b813cc368161f42ee",
+ "unit": 2,
+ "starting_point": "stock firmware in its own Wi-Fi access-point mode; no UART, no Ethernet, no SPI clip",
+ "uboot_written": false,
+ "stages": {
+  "diagnose": {
+   "ok": true,
+   "mt7601_usb": true,
+   "mem_total_kb": 38816,
+   "watchdog_device_in_stock": false,
+   "sp805": {
+    "identified": true,
+    "enabled": true,
+    "load": 60000000
+   },
+   "unstable_blocks": 0,
+   "weak_block_variants": 1,
+   "problems": 0
+  },
+  "wdtgate": {
+   "ok": true,
+   "held_seconds": 304.1,
+   "min_hold_seconds": 240,
+   "counter_frozen_while_held": true,
+   "checks": {
+    "held_in_one_boot": true,
+    "hold_long_enough": true,
+    "network_while_quiesced": true,
+    "off_while_quiesced": true,
+    "rearmed_after": true,
+    "registers_readable": true,
+    "resumed": true,
+    "state_saved_while_quiesced": true
+   },
+   "checks_passed": "8/8"
+  },
+  "probe": {
+   "ok": true,
+   "reads_stable": true,
+   "uboot_unchanged": true
+  },
+  "trial": {
+   "one_shot": true,
+   "repeats": 0,
+   "kernel": "3.0.8",
+   "trial_result": "completed",
+   "trial_passed": true,
+   "checks": {
+    "auth_runtime_verified": true,
+    "dhcp_ok": true,
+    "host_reached": true,
+    "kernel_booted_with_marker": true,
+    "modules_loaded": true,
+    "mtd_table_ok": true,
+    "nonce_matches": true,
+    "reads_stable": true,
+    "stable_window_survived": true,
+    "trial_log_found": true,
+    "uboot_saveenv_ran": true,
+    "uboot_unchanged": true,
+    "vendor_env_stock_equivalent": true,
+    "watchdog_driver_loaded": true,
+    "wifi_authenticated": true,
+    "wifi_interface": true
+   },
+   "checks_passed": "16/16",
+   "stock_ap_returned": true,
+   "collect_rc": 0
+  },
+  "final": {
+   "offered": 1,
+   "server_restarts": 0,
+   "sysupdate_resends": 0,
+   "ponr_seen": true,
+   "final_verified": true,
+   "reboot_event_seen": true,
+   "outcome": "rebooting",
+   "camera_events": [
+    "action-start-final",
+    "final-pre-ponr",
+    "ponr",
+    "final-w-m0",
+    "final-w-m5",
+    "final-w-m4",
+    "final-w-m3",
+    "final-w-m2",
+    "final-w-m1",
+    "final-w-env",
+    "final-verified",
+    "rebooting-final"
+   ],
+   "timeline_utc": {
+    "action_start_final": "02:14:44",
+    "ponr": "02:15:04",
+    "final_w_env": "02:16:39",
+    "final_verified": "02:16:41",
+    "rebooting_final": "02:16:41"
+   }
+  }
+ },
+ "after_final": {
+  "openipc_dhcp_lease_utc": "02:17:05",
+  "dhcp_lease": true,
+  "ping": true,
+  "tcp": {
+   "22": true,
+   "80": true,
+   "554": false
+  },
+  "http_root": {
+   "status": 200,
+   "page": "first-run setup page (/setup.html)"
+  },
+  "ssh_shell": false,
+  "ssh_shell_reason": "first-run claim: root has no password yet, so the claim shell refuses non-interactive sessions",
+  "first_run_setup_done_by_automation": false,
+  "first_run_setup_reason": "setup requires accepting the Majestic EULA, which the camera states must be typed by its human owner, not by automation",
+  "overlay_persists_across_resets": true,
+  "overlay_persistence_evidence": "SSH host key generated at first boot is unchanged after many resets",
+  "reset_loop": {
+   "present": true,
+   "dhcp_acks_first_30_min": 46,
+   "longest_dhcp_gap_seconds": 41,
+   "period_seconds_median": 40,
+   "tcp22_open_seconds_per_cycle": 13.6,
+   "tcp80_open_seconds_per_cycle": 5.7
+  },
+  "reset_cause_assessment": "The SP805 stays armed from boot (load 60000000, about 20 s x 2) and nothing services it. OpenIPC loads wdt.ko only at the end of insert_ko in load_hisilicon (S70vendor); on this board the sensor id that ipcinfo detected and saved to the env is not in the insert_sns list, so insert_sns calls report_error and the script exits before insmod wdt.ko. The trial boot survived because it loaded wdt.ko itself. Inferred from the scripts and the timing; not yet observed from a shell or console.",
+  "pending": [
+   "owner completes first-run setup (EULA + root password)",
+   "add wdt to /etc/modules and load it now, then confirm uptime beyond 80 s after a reboot"
+  ],
+  "detected_sensor_id_supported_by_load_hisilicon": false
+ },
+ "next_units": "make the final installer seed etc/modules with wdt through the /init carry-in blob (OPENIPC-OVL1) in rootfs_data, so the first boot loads the watchdog driver before the 40 s reset"
+}

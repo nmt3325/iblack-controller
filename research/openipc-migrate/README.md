@@ -292,7 +292,7 @@ finalの後戻りできない区間は、firmware約6.6 MiBの消去・書込み
 - OpenIPC kernelがこの基板で起動するか。SPIフラッシュ素子の認識、純正rootfs（xz）のマウント、`mtdparts` の解釈が分かるのは試験起動のときだけ。kernelがユーザーランドに着く前に止まった場合は、900秒のタイマーが動かないので、手で電源を入れ直す（純正に戻る）。（2台目で起動を確認。下の「2台目の実機移行」）
 - MT7601を、OpenIPCのモジュールと純正ユーザーランドで接続できるか（qemuでは模擬）。移行後のOpenIPCはwpa_supplicantを使うので、その経路は試験起動では確かめられない。移行後にWi-Fiでつながらなければ、戻る手段はSPIだけになる。（2台目では移行後もWi-Fiで接続できた）
 - 既存bakfsの読出し不一致は未解決（[調査](../../docs/BAKFS-READBACK-INVESTIGATION.md)）。
-- AR0141センサーは、OpenIPC上で未確認。
+- AR0141センサーは、2台目のOpenIPCで映像を確認した（[video/README.md](video/README.md)）。
 - 実機の空きRAM、`/dev` のtmpfs容量、watchdogデバイスの有無は、diagnoseで初めて分かる。ただしwatchdogは純正ユーザー空間（`cmsMain.out`）が `/dev/mem` 経由で給餌しており、デバイスの有無では判定できない（finalの結果）。
 - 試験起動で `tl` と `senv` へ書く経路（`mtdblock7`／`mtdblock8` を開く `dd`）は、純正 `dd` と `1<>` の動作をqemuで確かめ、模擬ファイルに通しただけ。実機のMTDでの書込みは試験起動で初めて分かる。
 - Wi-Fiの設定は、試験用SquashFS（xz圧縮、bakfs領域）と、移行後の `0x060000` のenv（OpenIPCの通常どおり平文）に入る。試験で止めた場合、bakfs領域に残る。
@@ -335,7 +335,7 @@ diagnoseでは純正アプリ・ネットワークサービスを停止しない
 - 初回セットアップ（Majestic EULAへの同意とrootパスワード）は、カメラ自身が「所有者本人が入力すること、AIや自動化は代行しないこと」と求めているので、同意は所有者がSSHの対話で自分で入力した。質問が出てからリセットまで約6秒しかないので、所有者が先に決めたパスワードを、同意のあとに出る `passwd` の2つのプロンプトにだけ、リポジトリ外の補助スクリプトが入れた（同意の語は入れない）。
 - 続けて `/etc/modules` に `wdt` を足して読み込み、1回再起動して123秒動き続けることを確かめた。以後DHCPの取り直しは止まり（確認時点で約6分）、ping・SSH(22)・HTTP(80)が応答する。SSHはパスワードを求める。
 - 接続に時間がかかる理由: TCP接続からdropbearのバナーまで約5.1秒かかる（起動処理の負荷）。鍵交換は約1.5秒で、既定のcurve25519+ed25519が最速だった（ECDH P-256は2.0〜2.2秒）。
-- 残り: 映像は未確認。RTSP(554)は閉じたまま。envに保存されたセンサーIDが `insert_sns` の一覧にないので、`load_hisilicon` はセンサーから先を読み込まない。センサーはAR0141とみているので、envの `sensor` を `ar0141` にすれば進む見込み（未実施。所有者のパスワードが要る）。
+- 映像（続き）: envの `sensor` を `ar0141` にし、AR0141のini、`isp.blkCnt: 9`、起動直後と動作中の映像を見張る `S96vicheck` を入れて、720pのH.264が約27 fpsでRTSP(554)から出るようになった（[video/README.md](video/README.md)、[results/unit2-video.json](results/unit2-video.json)）。
 - 次の機体では、finalで rootfs_data の先頭に `/init` の持ち込み（`OPENIPC-OVL1`）を置き、`etc/modules` に `wdt` を入れておけば、初回起動からwatchdogを給餌できる見込み（未実装）。
 
 ## 再実行
@@ -369,4 +369,4 @@ python3 validate_online_qemu.py --bundle "$PRIVATE/bundle" --stock-rootfs "$PRIV
 
 ## Gitに入れないもの
 
-bundle、移行appfs、env画像、試験イメージと試験用SquashFS、action一式、`build_stockboot.py` の状態ディレクトリ、カメラからの受信物（diagnose、collect、mdat、ログ）、firmware・U-Bootの実体、純正appfs・rootfs、SPIダンプ、run id、LANアドレス、SSID・パスフレーズ、私的ログ、更新envelope。`.gitignore` だけに頼らず、追加するファイルを明示的に選んで中身を確かめる。
+bundle、移行appfs、env画像、試験イメージと試験用SquashFS、action一式、`build_stockboot.py` の状態ディレクトリ、カメラからの受信物（diagnose、collect、mdat、ログ、静止画・映像）、firmware・U-Bootの実体、純正appfs・rootfs、SPIダンプ、run id、LANアドレス、SSID・パスフレーズ、私的ログ、更新envelope。`.gitignore` だけに頼らず、追加するファイルを明示的に選んで中身を確かめる。

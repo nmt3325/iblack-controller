@@ -47,7 +47,7 @@
 
 - **SoC：Hi3518EV100が最有力**。純正U-BootのDDR／PLL表はEV100 universal U-Bootと125/125項目一致したという前段調査に基づく。今回は再測定していない。チップ刻印は未確認。
 - RAM：64 MiB、NOR：8 MiBという前段調査を前提とする。Linuxが使えるRAMと空き容量は別であり、移行時の実測が必要。
-- センサー：AR0141。前段調査では純正初期化表とOpenIPC `libsns_ar0140.so` の表が一致。実画像は未確認で、センサーiniは未作成。
+- センサー：AR0141。前段調査では純正初期化表とOpenIPC `libsns_ar0140.so` の表が一致。2台目のOpenIPCで映像を確認した（720pのH.264、約27 fps。Bayer配列はGRBG）。iniと設定は [`research/openipc-migrate/video`](../research/openipc-migrate/video/README.md)。
 - Wi-Fi：純正はMT7601系列。対象OpenIPC rootfsには `lib/modules/3.0.8/extra/mt7601sta.ko` がある。
 - 外部接続：Wi-Fiだけ（UARTもEthernetもない）。SPIでの読み書きはでき、8 MiB全体のダンプがある（所有者が保管し、Gitには入れない）。
 
@@ -142,7 +142,7 @@ OpenIPCのkernelは、`0x50000` にuImageヘッダ（続いてSquashFS）があ�
 
 ### センサー
 
-`load_hisilicon` は `ar0140 | ar0141` に24 MHzクロック設定を持つ。ライブラリだけでなく、AR0141用ini、I2C、解像度・フレームレート・GPIOを合わせて検証する必要がある。
+`load_hisilicon` は `ar0140 | ar0141` に24 MHzクロック設定を持つ。ライブラリだけでなく、AR0141用ini、I2C、解像度・フレームレート・GPIOを合わせて検証する必要がある。2台目では、envの `sensor=ar0141`、AR0141用ini（`libsns_ar0140.so`、GRBG）、`isp.blkCnt: 9` で映像が出た。起動して最初のmajesticだけはVIがフレームを受けない（センサーがスタンバイのうちにVIを有効にするため）ので、`S96vicheck` が1回起動し直す。暗視のGPIOは未確認。詳細は [`research/openipc-migrate/video`](../research/openipc-migrate/video/README.md)。
 
 ### RAM-rootとwatchdog
 

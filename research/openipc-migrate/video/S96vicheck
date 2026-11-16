@@ -1,0 +1,124 @@
+#!/bin/sh
+#
+# Video input check for Hi3518EV100 + AR0141 (iErmu / iBlack).
+#
+# The VIU only latches its port/channel enable bits while the sensor drives
+# PIXCLK. On a cold boot the AR0141 is still in soft standby when majestic
+# enables the VI, so that first start never gets a frame (IntCnt stays 0,
+# "Timeout from venc channel 0"). Every later start works, because the sensor
+# keeps streaming after majestic exits. This script watches the first start
+# after boot and, only if the VI is configured but no frame interrupt arrives,
+# restarts majestic once.
+#
+# After that it keeps watching. If the same majestic process has a configured
+# VI whose frame counter has not moved for STALL seconds, it restarts majestic:
+# at most MAXTRY times in a row (a restart while the sensor is stopped can
+# itself come up without frames), then once every BACKOFF seconds. A new
+# majestic PID (restart by the user, the web UI or the supervisor) starts the
+# observation again, so intentional restarts are never counted as stalls.
+#
+# The VICHECK_* variables exist only for the offline test (tests/test_vicheck.py).
+
+TAG=vicheck
+VI_PROC=${VICHECK_VI_PROC:-/proc/umap/vi}
+MAJESTIC=${VICHECK_MAJESTIC:-/etc/init.d/S95majestic}
+PIDFILE=${VICHECK_PIDFILE:-/var/run/vicheck.pid}
+GRACE=8
+POLL=10
+STALL=30
+MAXTRY=3
+BACKOFF=600
+
+# Prints the IntCnt of VI physical channel 0, or nothing while the VI is not configured.
+vi_intcnt() {
+	awk '/VI PHYCHN STATUS 1/ { s = 1; next }
+		s == 1 && /PhyChn/ { s = 2; next }
+		s == 2 { if ($1 ~ /^[0-9]+$/) print $3; exit }' "$VI_PROC" 2>/dev/null
+}
+
+# 0: frames arrive; 1: VI configured but no frame for GRACE s; 2: VI not up within $1 s.
+wait_frames() {
+	limit=$1 t=0 since=
+	while [ "$t" -lt "$limit" ]; do
+		if pidof majestic >/dev/null; then
+			n=$(vi_intcnt)
+			if [ -n "$n" ]; then
+				[ "$n" -gt 0 ] && return 0
+				[ -z "$since" ] && since=$t
+				[ $((t - since)) -ge "$GRACE" ] && return 1
+			fi
+		fi
+		sleep 1
+		t=$((t + 1))
+	done
+	return 2
+}
+
+boot_check() {
+	wait_frames 90
+	case $? in
+	0) logger -t "$TAG" "video input running" ;;
+	2) logger -t "$TAG" "VI not configured within 90 s; nothing done" ;;
+	1)
+		logger -t "$TAG" "VI configured but no frame from the sensor (cold start); restarting majestic once"
+		"$MAJESTIC" restart >/dev/null 2>&1
+		if wait_frames 90; then
+			logger -t "$TAG" "video input running after one restart"
+		else
+			logger -t "$TAG" "still no frame after one restart"
+		fi
+		;;
+	esac
+}
+
+monitor() {
+	lastpid= lastn= still=0 tries=0
+	while :; do
+		sleep "$POLL"
+		pid=$(pidof majestic)
+		n=$(vi_intcnt)
+		if [ -z "$pid" ] || [ -z "$n" ] || [ "$pid" != "$lastpid" ] || [ -z "$lastn" ]; then
+			# Not running, VI not configured, or a new process: start over.
+			lastpid=$pid lastn=$n still=0
+			continue
+		fi
+		if [ "$n" != "$lastn" ]; then
+			[ "$tries" -gt 0 ] && logger -t "$TAG" "video input running again after $tries restart(s)"
+			lastn=$n still=0 tries=0
+			continue
+		fi
+		still=$((still + POLL))
+		[ "$still" -lt "$STALL" ] && continue
+		[ "$tries" -ge "$MAXTRY" ] && [ "$still" -lt "$BACKOFF" ] && continue
+		tries=$((tries + 1))
+		logger -t "$TAG" "no frame from the VI for $still s; restarting majestic ($tries)"
+		"$MAJESTIC" restart >/dev/null 2>&1
+		lastpid= lastn= still=0
+	done
+}
+
+case "$1" in
+	start)
+		if [ -f "$PIDFILE" ] && kill -0 "$(cat "$PIDFILE")" 2>/dev/null; then
+			echo "vicheck already running"
+			exit 0
+		fi
+		(boot_check; monitor) </dev/null >/dev/null 2>&1 &
+		echo $! >"$PIDFILE"
+		;;
+	run)
+		# Foreground, for tests and debugging.
+		boot_check
+		monitor
+		;;
+	stop)
+		[ -f "$PIDFILE" ] && kill "$(cat "$PIDFILE")" 2>/dev/null
+		rm -f "$PIDFILE"
+		;;
+	*)
+		echo "Usage: $0 {start|stop|run}"
+		exit 1
+		;;
+esac
+
+exit 0

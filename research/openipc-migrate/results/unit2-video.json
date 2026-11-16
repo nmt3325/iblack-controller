@@ -1,0 +1,128 @@
+{
+  "schema": "iblack-openipc-unit2-video/1",
+  "date_utc": "2026-11-16",
+  "unit": 2,
+  "base_revision": "79ead328e8f65ca78a6a996193c9729754c2f46a",
+  "uboot_written": false,
+  "firmware_written": false,
+  "camera_changes": {
+    "uboot_env": {
+      "sensor": "ar0141",
+      "before": "the id that load_hisilicon detected on first boot and saved; insert_sns does not list it (value not recorded)"
+    },
+    "overlay_files": {
+      "/etc/sensors/ar0141_i2c_720p.ini": {
+        "repo": "video/ar0141_i2c_720p.ini",
+        "sha256": "86a954c6faa454f5249ea2009b61a456703040d59578bc0603e7f79a2d15d541"
+      },
+      "/etc/majestic.yaml": {
+        "repo": "video/majestic.yaml",
+        "sha256": "ec72ae0662943cfc0977e06baa6df57601e59ad1297377b18a8630734b04d83f",
+        "note": "only isp.blkCnt; the firmware ships no majestic.yaml"
+      },
+      "/etc/init.d/S96vicheck": {
+        "repo": "video/S96vicheck",
+        "sha256": "cdb3e1c3c942ee707a21422d6c23008d8da966eb61e714420d4101320a8db559",
+        "mode": "0755"
+      }
+    }
+  },
+  "findings": {
+    "load_hisilicon": "with sensor=ar0141 it sets the sensor clock to 24 MHz (0x20030030=0x1) and loads the modules after the sensor; majestic picks /etc/sensors/ar0141_i2c_720p.ini and libsns_ar0140.so, IQ default.ini",
+    "bayer": {
+      "pattern": "GRBG (Isp_Bayer=1)",
+      "method": "sensor test pattern 0x3070=1 (solid colour), red channel 0x3072 only, JPEG snapshot means",
+      "jpeg_mean_rgb": [
+        0.82,
+        0.41,
+        0.56
+      ],
+      "jpeg_sd": 0.003
+    },
+    "vb_blocks": {
+      "auto_6": {
+        "vi_fps": "17-18",
+        "vbfail": "rising"
+      },
+      "isp_blkCnt_9": {
+        "vi_fps": "26-27",
+        "venc_fps": 27,
+        "vbfail": 0,
+        "mmz_free_mb": 11
+      }
+    },
+    "cold_start": {
+      "symptom": "first majestic after boot: VI IntCnt stays 0, 'Timeout from venc channel 0'; every later start works",
+      "cause": "the VIU keeps its port/channel enable bits (0x20580100, 0x20581000) only while the sensor drives PIXCLK; majestic enables the VI before the sensor init, and the AR0141 is in soft standby after power-up",
+      "sensor_after_majestic_exit": "keeps streaming (0x301A = 0x10DC)",
+      "reproduced_by": "clearing the stream bit of 0x301A before starting majestic",
+      "workaround": "S96vicheck: if the VI is configured but no frame arrives for 8 s, restart majestic once"
+    },
+    "mid_stream_stall": {
+      "seen_after": "repeated sensor test-pattern changes over I2C while streaming",
+      "symptom": "VIU registers read 0, IntCnt frozen, JPEG 503, majestic still running",
+      "recovery": "one majestic restart",
+      "monitor": "S96vicheck polls IntCnt every 10 s; same majestic PID and no change for 30 s -> restart; up to 3 in a row, then every 600 s; a new PID resets the observation"
+    }
+  },
+  "verification": {
+    "reboot": {
+      "runs": 3,
+      "last_run": "committed video/S96vicheck",
+      "log": [
+        "VI configured but no frame from the sensor (cold start); restarting majestic once",
+        "video input running after one restart"
+      ],
+      "video_at_uptime_s": 49
+    },
+    "sensor_stop_test": {
+      "runs": 2,
+      "last_run": "committed video/S96vicheck",
+      "action": "clear the stream bit of 0x301A while streaming",
+      "monitor_restarts_s_after_stop_first_run": [
+        35,
+        82
+      ],
+      "log_last": "video input running again after 2 restart(s)",
+      "recovered": true
+    },
+    "after_reboot": {
+      "vi_fps": 27,
+      "venc_fps": 27,
+      "jpeg": {
+        "http": 200,
+        "size": "1280x720"
+      },
+      "rtsp": {
+        "path": "/stream=0",
+        "auth": "Basic",
+        "codec": "H264",
+        "profile": "Main",
+        "level": "3.1",
+        "size": "1280x720",
+        "fps": [
+          26.7,
+          26.8
+        ],
+        "kbps": [
+          1014,
+          1018
+        ],
+        "idr_interval_s": 1
+      },
+      "ram_free_incl_cache_mb": 12
+    },
+    "offline_test": {
+      "file": "tests/test_vicheck.py",
+      "scenarios": 8,
+      "shell": "host BusyBox ash"
+    }
+  },
+  "open_issues": [
+    "IQ is OpenIPC default.ini (no AR0141 tuning)",
+    "night mode GPIOs (IR-cut, IR LED) not investigated",
+    "eth0 without a PHY is brought up; hieth logs 'tx timeout' repeatedly (no effect on video or Wi-Fi)",
+    "the hostname still carries the wrong sensor id from first boot (cosmetic)",
+    "writing sensor registers over I2C while streaming can stall the VI (the monitor recovers it)"
+  ]
+}

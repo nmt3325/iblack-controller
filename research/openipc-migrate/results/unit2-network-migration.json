@@ -133,7 +133,55 @@
    "owner completes first-run setup (EULA + root password)",
    "add wdt to /etc/modules and load it now, then confirm uptime beyond 80 s after a reboot"
   ],
-  "detected_sensor_id_supported_by_load_hisilicon": false
+  "detected_sensor_id_supported_by_load_hisilicon": false,
+  "pending_status": "both done on 2026-11-16; see after_owner_setup"
  },
- "next_units": "make the final installer seed etc/modules with wdt through the /init carry-in blob (OPENIPC-OVL1) in rootfs_data, so the first boot loads the watchdog driver before the 40 s reset"
+ "next_units": "make the final installer seed etc/modules with wdt through the /init carry-in blob (OPENIPC-OVL1) in rootfs_data, so the first boot loads the watchdog driver before the 40 s reset",
+ "after_owner_setup": {
+  "first_run_setup_done_by_owner": true,
+  "eula_acceptance_typed_by": "the owner, in person, in the SSH claim dialog",
+  "root_password": "chosen by the owner beforehand; a helper outside the repo typed it only into the two passwd prompts that follow acceptance (value not recorded)",
+  "claim_timing_s": {
+   "tcp22_open_per_cycle": 13.6,
+   "server_banner_after_tcp_connect": 5.1,
+   "kex": {
+    "curve25519-sha256 + ssh-ed25519": 1.5,
+    "curve25519-sha256 + ecdsa-sha2-nistp256": 1.5,
+    "ecdh-sha2-nistp256 + ecdsa-sha2-nistp256": 2.0,
+    "ecdh-sha2-nistp256 + ssh-ed25519": 2.2
+   },
+   "authenticated_after_tcp_connect": 6.4,
+   "assessment": "the banner delay is boot load on the camera, not crypto; the default algorithms are already the fastest, leaving about 6 s after the question appears",
+   "side_effect": "dropbear runs with -R, so the one ECDSA test connection made it create an ECDSA host key on the camera"
+  },
+  "watchdog_fix": {
+   "method": "append wdt to /etc/modules (S35modules modprobes it early in boot) and modprobe wdt at once",
+   "etc_modules_wdt": true,
+   "loaded": true,
+   "overlay": "jffs2"
+  },
+  "reboot_check": {
+   "uptime_after_reboot_s": 123,
+   "stable": true
+  },
+  "reset_loop": {
+   "present": false,
+   "last_dhcp_ack_utc": "04:36:26",
+   "checked_utc": "04:42:09",
+   "seconds_without_reset_at_check": 343
+  },
+  "external_check": {
+   "ping": "10/10",
+   "tcp": {
+    "22": true,
+    "80": true,
+    "554": false
+   },
+   "http_root_status": 200,
+   "ssh_requires_password": true
+  },
+  "pending": [
+   "video: the sensor id saved in env is still not in insert_sns, so load_hisilicon stops before the sensor and majestic does not stream (RTSP 554 closed); setting env sensor=ar0141 is the expected next step (not done; needs the owner's password)"
+  ]
+ }
 }

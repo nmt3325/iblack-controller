@@ -4,7 +4,7 @@
     "e2e_real_binaries": {
       "note": "phase1 and trial.sh under the stock BusyBox 1.18.4, phase2/om_stockboot.sh/hook under the patched OpenIPC BusyBox (both qemu-arm); flash = simulated partitions",
       "result": "PASS",
-      "seconds": 226.7,
+      "seconds": 325.6,
       "tests": {
         "test_abort": {
           "result": "PASS",
@@ -12,7 +12,7 @@
         },
         "test_backup_export_failure_keeps_stock": {
           "result": "PASS",
-          "seconds": 16.4
+          "seconds": 11.4
         },
         "test_dirty_state_only_accepts_final_or_collect": {
           "result": "PASS",
@@ -20,15 +20,23 @@
         },
         "test_final_refuses_a_firmware_that_differs_from_its_pin": {
           "result": "PASS",
-          "seconds": 8.1
+          "seconds": 7.5
         },
         "test_foreign_run_id_gets_nothing_even_from_a_final_server": {
           "result": "PASS",
-          "seconds": 2.9
+          "seconds": 3.0
+        },
+        "test_full_bounded_tmpfs_still_stops_before_download": {
+          "result": "PASS",
+          "seconds": 0.9
         },
         "test_full_migration_over_the_network": {
           "result": "PASS",
-          "seconds": 161.4
+          "seconds": 208.4
+        },
+        "test_genuine_romfs_does_not_get_ramfs_capacity_bypass": {
+          "result": "PASS",
+          "seconds": 1.0
         },
         "test_go_without_the_phrase_is_ignored": {
           "result": "PASS",
@@ -36,23 +44,39 @@
         },
         "test_low_memory_stops_before_any_download": {
           "result": "PASS",
-          "seconds": 0.8
+          "seconds": 0.9
+        },
+        "test_ramfs_zero_accounting_allows_read_only_diagnose": {
+          "result": "PASS",
+          "seconds": 34.2
+        },
+        "test_romfs_alias_on_read_only_ramfs_stops_before_download": {
+          "result": "PASS",
+          "seconds": 1.0
         },
         "test_runtime_pin_mismatch_stops_phase1": {
           "result": "PASS",
-          "seconds": 2.6
+          "seconds": 2.5
         },
         "test_standby_times_out_and_the_lock_blocks_a_second_start": {
           "result": "PASS",
-          "seconds": 3.3
+          "seconds": 3.4
+        },
+        "test_unreadable_watchdog_keeps_stock": {
+          "result": "PASS",
+          "seconds": 9.6
         },
         "test_watchdog_device_refuses_to_quiesce": {
           "result": "PASS",
-          "seconds": 6.8
+          "seconds": 6.7
+        },
+        "test_watchdog_that_does_not_stop_keeps_stock": {
+          "result": "PASS",
+          "seconds": 8.8
         },
         "test_write_and_reboot_phrases_gate_the_installer": {
           "result": "PASS",
-          "seconds": 15.8
+          "seconds": 17.3
         }
       }
     },
@@ -65,9 +89,121 @@
       "stock_files_hidden": true,
       "symlink_kept": true
     },
+    "phase1_capacity": {
+      "result": "PASS",
+      "seconds": 19.2,
+      "tests": {
+        "test_correct_ramfs_label_also_requires_mount_proof": {
+          "result": "PASS",
+          "seconds": 0.7
+        },
+        "test_df_failure_or_malformed_output_does_not_bypass_guard": {
+          "result": "PASS",
+          "seconds": 0.5
+        },
+        "test_escaped_paths_fail_closed": {
+          "result": "PASS",
+          "seconds": 1.1
+        },
+        "test_full_bounded_tmpfs_is_rejected": {
+          "result": "PASS",
+          "seconds": 0.3
+        },
+        "test_longest_mount_wins_over_writable_ram_parent": {
+          "result": "PASS",
+          "seconds": 1.3
+        },
+        "test_malformed_or_missing_memory_fields_fail_closed": {
+          "result": "PASS",
+          "seconds": 1.4
+        },
+        "test_missing_accounting_uses_only_free_and_buffers": {
+          "result": "PASS",
+          "seconds": 0.9
+        },
+        "test_missing_malformed_or_ambiguous_mounts_fail_closed": {
+          "result": "PASS",
+          "seconds": 1.9
+        },
+        "test_missing_work_directory_is_rejected": {
+          "result": "PASS",
+          "seconds": 0.3
+        },
+        "test_mountpoint_matching_requires_directory_boundary": {
+          "result": "PASS",
+          "seconds": 0.6
+        },
+        "test_normal_accounted_filesystem_keeps_df_limit": {
+          "result": "PASS",
+          "seconds": 0.2
+        },
+        "test_ram_minimum_still_applies": {
+          "result": "PASS",
+          "seconds": 0.4
+        },
+        "test_ramfs_requires_all_block_counts_zero": {
+          "result": "PASS",
+          "seconds": 0.7
+        },
+        "test_ramfs_reserves_two_mib_beyond_work_budget": {
+          "result": "PASS",
+          "seconds": 0.4
+        },
+        "test_read_only_or_missing_rw_mounts_are_rejected": {
+          "result": "PASS",
+          "seconds": 2.3
+        },
+        "test_real_romfs_and_other_mount_types_are_rejected": {
+          "result": "PASS",
+          "seconds": 1.6
+        },
+        "test_real_stat_and_stock_awk_accept_normal_accounted_filesystem": {
+          "result": "PASS",
+          "seconds": 0.0
+        },
+        "test_realpath_normalization_handles_symlink_and_dot_dot": {
+          "result": "PASS",
+          "seconds": 0.8
+        },
+        "test_shmem_and_unevictable_are_not_reclaimable": {
+          "result": "PASS",
+          "seconds": 0.5
+        },
+        "test_stat_failure_or_partial_output_does_not_bypass_guard": {
+          "result": "PASS",
+          "seconds": 1.0
+        },
+        "test_stock_romfs_alias_accepts_both_ram_mount_names": {
+          "result": "PASS",
+          "seconds": 0.8
+        },
+        "test_tiny_shmem_ramfs_zero_is_not_disk_full": {
+          "result": "PASS",
+          "seconds": 0.4
+        },
+        "test_zero_accounting_other_types_are_rejected": {
+          "result": "PASS",
+          "seconds": 1.0
+        }
+      }
+    },
+    "phase1_real_ramfs": {
+      "checks": {
+        "full_tmpfs_refused": true,
+        "genuine_full_tmpfs": true,
+        "genuine_ramfs_magic": true,
+        "ramfs_ro_refused": true,
+        "ramfs_rw_pass": true,
+        "stock_label_recognized": true
+      },
+      "note": "real namespace mounts and stock ARM stat/df/awk; deterministic meminfo fixture; 4 KiB bounded tmpfs; namespace teardown unmounts everything; no camera I/O",
+      "rc": 0,
+      "result": "PASS",
+      "stock_stat_type": "romfs"
+    },
     "runapp_trial_branch": {
       "result": "PASS",
-      "seconds": 17.3,
+      "seconds": 16.6,
       "shells": [
         "host sh",
         "host BusyBox sh",
@@ -98,6 +234,7 @@
         "crc32_file": true,
         "crc32_tail_pipe": true,
         "od_tx4": true,
+        "sh_arith_devmem_words": true,
         "sha256sum": true
       },
       "arithmetic": "42",
@@ -158,14 +295,14 @@
       }
     }
   },
-  "date_utc": "2026-11-14T17:40:08Z",
+  "date_utc": "2026-11-16T01:28:40Z",
   "emulator": "qemu-arm user mode, -cpu arm926",
   "inputs": {
-    "hook_sha256": "a457fb1eb7855f348f86a850b3685e713caac5c505260bfb27c481afc3c01a93",
-    "installer_sha256": "5dd468b41ada04a6a803ac5991051675c59977f5af9f5a9e445547877884de4e",
-    "stage2_sha256": "ee98e3bc48f592af3d8c7aae13c00b5dce18fc0ed9ae09f1072dfe267866e444",
+    "hook_sha256": "2f629cbc7529f3de10fdb37c31c7b0e3ed731064fe1d27edea917932399a1ac0",
+    "installer_sha256": "772865143581f3ee2c421824684d399856dda09ed39430580ea8255c52f43ffb",
+    "stage2_sha256": "16bc6e041bfefbe1b99c8e6a7053e6c706462589cfb31029a07c6319a231e8a8",
     "trial_dhcp_sha256": "0480a05022a5df6b67c6ae2bac25640bdccf1d4c0f90d6b97db4c9befa033b6f",
-    "trial_sha256": "648f5664465f4a38895ac56cc524b809e05d362f9cdeac90860ddad290b0baeb"
+    "trial_sha256": "a9df9d704449bcb0d92c10c6ecfb0ac305dba840d61cccc70f13eb7bdc7a2c60"
   },
   "mtd_devices_opened": false,
   "network": "127.0.0.1 only",

@@ -228,7 +228,7 @@ p2_run(){ act=$1; st=$(p2_state)
     dirty:*|final:*) p2_report "refused-$act-in-state-$st"; return 0;;
   esac
   case "$act" in
-    diagnose|collect) files="";;
+    diagnose|collect|wdtgate) files="";;
     probe-arm) files="env-probe.img";;
     trial-arm) files="trial.img env-armed.img";;
     restore-env) files="env-base.img";;
@@ -256,10 +256,12 @@ p2_run(){ act=$1; st=$(p2_state)
     # Offline test harness only (never written by build_migration_appfs.py).
     set -- "$@" --sim-dir "$OM_SIM_DIR"; MTD_PROC=$OM_SIM_MTD_PROC; export MTD_PROC
     if [ -n "${OM_SIM_FAULT:-}" ]; then export OM_SIM_FAULT; fi
+    if [ -n "${OM_SIM_GATE_HOLD:-}" ]; then export OM_SIM_GATE_HOLD; fi
   fi
   OM_BB=$BB; export OM_BB OM_HOST OM_PORT OM_RUN_ID OM_DIR
   if [ -n "${OM_QUIESCE_PROCS:-}" ]; then export OM_QUIESCE_PROCS; fi
   if [ -n "${OM_WATCHDOG_DEV:-}" ]; then export OM_WATCHDOG_DEV; fi
+  if [ -n "${OM_DEVMEM:-}" ]; then export OM_DEVMEM; fi
   p2_report "action-start-$act"; log "action $act start"
   "$BB" sh "$OM_DIR/om_stockboot.sh" "$@" > "$OM_DIR/action.out" 2>&1
   rc=$?

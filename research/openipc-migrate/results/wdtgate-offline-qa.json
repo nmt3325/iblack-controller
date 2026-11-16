@@ -1,0 +1,48 @@
+{
+  "schema": "openipc-wdtgate-offline-qa-v1",
+  "scope": "offline_validation_only",
+  "result": "PASS",
+  "camera_access": false,
+  "flash_write_allowed": false,
+  "camera_reboots": 0,
+  "permanent_migration_executed": false,
+  "unit_tests": 220,
+  "unit_skipped": 0,
+  "adjacent_tests": 25,
+  "hook_watchdog_tests": 10,
+  "qemu_checks": {
+    "e2e_real_binaries": "PASS",
+    "etc_overlay_mount": "PASS",
+    "phase1_capacity": "PASS",
+    "phase1_real_ramfs": "PASS",
+    "runapp_trial_branch": "PASS",
+    "runtime_on_stock_root": "PASS",
+    "runtime_patch": "PASS",
+    "shells_parse": "PASS",
+    "stock_applets": "PASS"
+  },
+  "qemu_e2e_tests": 18,
+  "qemu_e2e_watchdog_tests": [
+    "test_unreadable_watchdog_keeps_stock",
+    "test_watchdog_device_refuses_to_quiesce",
+    "test_watchdog_that_does_not_stop_keeps_stock"
+  ],
+  "qemu_phase1_capacity_tests": 23,
+  "qemu_runtime_applets": 227,
+  "qemu_sh_arith_devmem_words": true,
+  "gate": {
+    "hold_seconds": 300,
+    "min_hold_seconds": 240,
+    "unit1_reset_after_quiesce_seconds_approx": 44
+  },
+  "changes": [
+    "sp805_off_after_quiesce_with_stock_wdstop_sequence",
+    "quiesce_undone_when_the_watchdog_does_not_stop",
+    "watchdog_rearmed_on_resume_and_before_an_authorized_reboot",
+    "wdtgate_stage_flash_untouched",
+    "final_requires_a_passed_wdtgate",
+    "diag_checks_sp805_registers_and_uploads_the_vendor_uboot_read",
+    "final_progress_per_partition_after_ponr"
+  ],
+  "hardware_validation": "Not part of these offline results. Whether the SP805 can be stopped on the camera and Wi-Fi stays up while every process is stopped is checked on the camera by wdtgate before final."
+}

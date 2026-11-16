@@ -6,10 +6,17 @@ Offline only: it reads the private uploads that serve_migration.py stored in
 that serve_migration.py --action-dir serves. It never contacts a camera.
 Every step refuses to run before the step it depends on succeeded:
 
-  diag     newest diagnose uploads (diag-info, diag-blocks, diag-env) vs the
-           SPI dump: per-block stability over 3 passes, weak block x16,
-           vendor U-Boot x3, vendor env (CRC, stock bootcmd, no marker), flash
-           table, MT7601 USB id, watchdog. Stores env-base.img (E0) + diag.json.
+  diag     newest diagnose uploads (diag-info, diag-blocks, diag-env and, when
+           present, diag-uboot) vs the SPI dump: per-block stability over 3
+           passes, weak block x16, vendor U-Boot x3 (+ the uploaded image),
+           vendor env (CRC, stock bootcmd, no marker), flash table, MT7601 USB
+           id, no /dev/watchdog, SP805 watchdog registers readable through
+           devmem. Stores env-base.img (E0) + diag.json.
+  wdtgate  newest wdtgate-info upload: in one boot the camera held every
+           process stopped with the SP805 watchdog switched off for at least
+           MIN_GATE_HOLD s, reached the host while quiesced, then re-armed
+           the watchdog and resumed (flash untouched). Unit 1 was reset ~44 s
+           into a quiesced final; final needs this gate.
   probe    action set probe-arm: env-probe.img built from E0.
   collect  newest collect uploads after a reboot. --stage probe: did the vendor
            U-Boot run the probe env and save the stock env? --stage trial:
@@ -19,7 +26,8 @@ Every step refuses to run before the step it depends on succeeded:
            payload SquashFS <= 704 KiB) and env-armed.img built from the env
            the probe left behind. The payload carries the Wi-Fi settings: the
            whole state directory is private.
-  final    action set final: env-final.img built from E0 (needs a passed trial).
+  final    action set final: env-final.img built from E0 (needs a passed trial
+           and a passed wdtgate).
   restore  action set restore-env: env-base.img = E0.
   status   sanitized overview of the state directory.
   plan     capacity report without any camera state (no --state needed): layouts, kernel/rootfs slot
@@ -59,6 +67,9 @@ TRIAL_MKSQUASHFS = ("-noappend", "-comp", "xz", "-b", "131072", "-Xbcj", "arm", 
                     "-processors", "1", "-no-exports", "-no-xattrs")
 DAT_KEYS = {"AuthMode": "WPA2PSK", "EncrypType": "AES"}
 FLAG_RE = re.compile(r"^omt ([a-z0-9_]+)=(.*)$", re.M)
+MIN_GATE_HOLD = 240     # s with every process stopped; the camera holds 300 s, unit 1 was reset after ~44 s
+WDT_RE = re.compile(r"wdt ctrl=(\d+) value=(\d+) load=(\d+) lock=(\d+) ris=(\d+) id=(\d+),(\d+),(\d+),(\d+) "
+                    r"cid=(\d+),(\d+),(\d+),(\d+) saved=(\d+|none)")
 
 
 class StateError(Exception):
@@ -137,6 +148,22 @@ def part_of(block: int) -> str:
     return sl.part_at(block * sl.ERASE, [(n, o, s) for n, o, s in sl.STOCK_PARTS])[0]
 
 
+def parse_wdt(text):
+    """One `migrate_hook.sh wdt-status` line -> register dict; None for "wdt unreadable" or anything else."""
+    m = WDT_RE.search(text or "")
+    if not m:
+        return None
+    n = [int(x) for x in m.groups()[:13]]
+    return {"ctrl": n[0], "value": n[1], "load": n[2], "lock": n[3], "ris": n[4], "id": n[5:9], "cid": n[9:13],
+            "saved": None if m.group(14) == "none" else int(m.group(14))}
+
+
+def sp805(w) -> bool:
+    """ARM PrimeCell SP805 id registers: periph 0x05 0x18 0x?4 0x00, cell 0x0d 0xf0 0x05 0xb1."""
+    return bool(w) and w["id"][:2] == [0x05, 0x18] and w["id"][2] & 0x0F == 0x04 and w["id"][3] == 0 \
+        and w["cid"] == [0x0D, 0xF0, 0x05, 0xB1]
+
+
 # ---- diag ------------------------------------------------------------------------------------
 def cmd_diag(args, state: Path) -> dict:
     uploads = private_dir(args.uploads, create=False)
@@ -166,6 +193,13 @@ def cmd_diag(args, state: Path) -> dict:
     uboot = blocks["u"][0]
     if uboot != sha(dump[:sl.UBOOT_LEN]):
         problems.append("vendor U-Boot differs from the SPI dump (the dump would not restore this boot loader)")
+    try:
+        uboot_image = newest_upload(uploads, "diag-uboot")
+    except StateError:
+        uboot_image = None
+        notes.append("no diag-uboot upload (the vendor U-Boot was checked by its hash only)")
+    if uboot_image is not None and (len(uboot_image) != sl.UBOOT_LEN or sha(uboot_image) != uboot):
+        problems.append("diag-uboot upload does not match the vendor U-Boot read on the camera")
     if sha(dump[sl.SENV_OFF:sl.SENV_OFF + sl.SENV_LEN]) != sha(env):
         notes.append("vendor env differs from the SPI dump (expected after env changes; E0 is the live env)")
     differs = sorted({part_of(i) for i, v in blocks["b"].items() if v[0] != sha(dump[i * sl.ERASE:(i + 1) * sl.ERASE])})
@@ -178,18 +212,27 @@ def cmd_diag(args, state: Path) -> dict:
     wdt = [l for l in info.get("watchdog", "").splitlines() if l and "No such file" not in l]
     if wdt:
         problems.append("a watchdog device exists (the hook refuses to stop the stock app)")
+    wregs = parse_wdt(info.get("wdt", ""))
+    if wregs is None:
+        problems.append("SP805 watchdog registers not readable through devmem (the hook could not switch it off)")
+    elif wregs["saved"] is not None:
+        notes.append("a saved watchdog state exists (an earlier quiesce was not resumed)")
+    wdt_regs = {"enabled": bool(wregs["ctrl"] & 3), "load": wregs["load"], "sp805": sp805(wregs)} if wregs else None
     mem = re.search(r"MemTotal:\s+(\d+) kB", info.get("meminfo", ""))
     diag = {"ok": not problems, "problems": problems, "notes": notes, "uboot": uboot, "envlive": sha(env),
             "env_keys": [k for k, _ in entries], "unstable_blocks": unstable, "weak_block_variants": weak_variants,
             "partitions_differing_from_spi_dump": differs, "mt7601_usb": usb_ok, "watchdog": bool(wdt),
-            "mem_total_kb": int(mem.group(1)) if mem else None,
+            "mem_total_kb": int(mem.group(1)) if mem else None, "wdt_regs": wdt_regs,
+            "uboot_image_uploaded": uboot_image is not None,
             "block_hashes": {str(i): v[0] for i, v in blocks["b"].items()}}
     write_private(state / "env-base.img", env, overwrite=True)
     save_json(state, "diag.json", diag)
-    for stale in ("probe.json", "trial.json", "trial-build.json", "env-live-probe.img", "env-live-trial.img"):
+    for stale in ("probe.json", "trial.json", "trial-build.json", "wdtgate.json", "env-live-probe.img",
+                  "env-live-trial.img"):
         (state / stale).unlink(missing_ok=True)
     return {k: diag[k] for k in ("ok", "problems", "notes", "weak_block_variants", "partitions_differing_from_spi_dump",
-                                 "mt7601_usb", "watchdog", "mem_total_kb")} | {"unstable_block_count": len(unstable)}
+                                 "mt7601_usb", "watchdog", "mem_total_kb", "wdt_regs", "uboot_image_uploaded")} \
+        | {"unstable_block_count": len(unstable)}
 
 
 def need_diag(state: Path) -> tuple:
@@ -222,6 +265,43 @@ def cmd_probe(args, state: Path) -> dict:
     out = write_action(args.out, "probe-arm", {"env-probe.img": img}, diag["envlive"], diag["uboot"],
                        {"built_from": "diag env (E0)"})
     return out | {"probe": report}
+
+
+# ---- wdtgate ------------------------------------------------------------------------------------
+def cmd_wdtgate(args, state: Path) -> dict:
+    need_diag(state)
+    uploads = private_dir(args.uploads, create=False)
+    kv = {}
+    for line in newest_upload(uploads, "wdtgate-info").decode("ascii", "replace").splitlines():
+        key, _, val = line.strip().partition(" ")
+        kv.setdefault(key, val.strip())
+    num = lambda v: float(v) if re.fullmatch(r"\d+(\.\d+)?", v or "") else None  # noqa: E731
+    hold = int(kv["hold"]) if re.fullmatch(r"\d+", kv.get("hold", "")) else None
+    t = {k: num(kv.get("uptime-" + k)) for k in ("start", "quiesced", "held", "resumed")}
+    w = {k: parse_wdt(kv.get(k)) for k in ("before", "quiesced", "held", "after")}
+    held = t["held"] - t["quiesced"] if t["held"] is not None and t["quiesced"] is not None else None
+    saved = w["quiesced"]["saved"] if w["quiesced"] else None
+    checks = {
+        "hold_long_enough": hold is not None and hold >= MIN_GATE_HOLD,
+        "held_in_one_boot": None not in t.values() and t["start"] <= t["quiesced"] <= t["held"] <= t["resumed"]
+                            and held >= MIN_GATE_HOLD,
+        "registers_readable": all(w.values()),
+        "state_saved_while_quiesced": saved is not None,
+        "off_while_quiesced": all(w[k] and w[k]["ctrl"] & 3 == 0 for k in ("quiesced", "held")),
+        "network_while_quiesced": kv.get("quiesced-upload") == "ok",   # final exports the mdat backups then
+        "resumed": kv.get("resume") == "ok",
+        "rearmed_after": bool(w["after"]) and saved is not None and w["after"]["ctrl"] & 3 == saved & 3
+                         and w["after"]["saved"] is None,
+    }
+    out = {"ok": all(checks.values()), "checks": checks, "hold_seconds": hold,
+           "held_seconds": round(held, 1) if held is not None else None, "min_hold_seconds": MIN_GATE_HOLD,
+           "watchdog_enabled_before": bool(w["before"]["ctrl"] & 3) if w["before"] else None,
+           "watchdog_load": w["before"]["load"] if w["before"] else None,
+           "sp805_identified": sp805(w["before"]),
+           "counter_frozen_while_held": w["quiesced"]["value"] == w["held"]["value"]
+           if w["quiesced"] and w["held"] else None}
+    save_json(state, "wdtgate.json", out)
+    return out
 
 
 # ---- collect ------------------------------------------------------------------------------------
@@ -404,13 +484,17 @@ def cmd_final(args, state: Path) -> dict:
     if not trial.get("ok"):
         bad = [k for k, v in trial.get("checks", {}).items() if not v]
         raise StateError("the one-shot trial did not pass: " + ",".join(bad))
+    gate = load_json(state, "wdtgate.json", "wdtgate")
+    if not gate.get("ok"):
+        bad = [k for k, v in gate.get("checks", {}).items() if not v]
+        raise StateError("the watchdog gate did not pass: " + ",".join(bad))
     fw = Path(args.firmware).read_bytes()
     if sha(fw) != FIRMWARE_SHA256:
         raise StateError("firmware differs from the pinned OpenIPC image")
     fplan = sl.plan(fw)["firmware"]
     final, report = sl.build_final(base)
     out = write_action(args.out, "final", {"env-final.img": final}, trial["envlive"], diag["uboot"],
-                       {"built_from": "diag env (E0)", "trial": "passed"})
+                       {"built_from": "diag env (E0)", "trial": "passed", "wdtgate": "passed"})
     return out | {"final_env": report, "kernel_slot_margin_bytes": fplan["kernel_slot_margin_bytes"],
                   "rootfs_slot_margin_bytes": fplan["rootfs_slot_margin_bytes"]}
 
@@ -454,7 +538,7 @@ def cmd_plan(args, state=None) -> dict:
 
 def cmd_status(args, state: Path) -> dict:
     out = {}
-    for name in ("diag", "probe", "trial-build", "trial"):
+    for name in ("diag", "wdtgate", "probe", "trial-build", "trial"):
         try:
             d = json.loads((state / f"{name}.json").read_text())
         except (OSError, json.JSONDecodeError):
@@ -472,6 +556,8 @@ def main(argv=None) -> int:
     p = sub.add_parser("diag")
     p.add_argument("--uploads", type=Path, required=True)
     p.add_argument("--spi-dump", type=Path, required=True)
+    p = sub.add_parser("wdtgate")
+    p.add_argument("--uploads", type=Path, required=True)
     p = sub.add_parser("probe")
     p.add_argument("--out", type=Path, required=True)
     p = sub.add_parser("collect")
@@ -504,7 +590,7 @@ def main(argv=None) -> int:
     os.umask(0o077)
     try:
         state = private_dir(args.state) if args.cmd != "plan" else None
-        result = {"diag": cmd_diag, "probe": cmd_probe, "collect": cmd_collect, "trial": cmd_trial,
+        result = {"diag": cmd_diag, "wdtgate": cmd_wdtgate, "probe": cmd_probe, "collect": cmd_collect, "trial": cmd_trial,
                   "final": cmd_final, "restore": cmd_restore, "status": cmd_status, "plan": cmd_plan}[args.cmd](
             args, state)
     except (StateError, ta.AuthError, sl.LayoutError, make_env.EnvError, BundleError, OSError, UnicodeDecodeError) as exc:

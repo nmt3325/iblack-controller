@@ -78,7 +78,7 @@ CHANGED_PATHS = [APP_DIR_NAME, APP_DIR_NAME + "/migrate.conf", APP_DIR_NAME + "/
 # Applets phase2, the installer and the hook call through the RAM BusyBox
 # (ash builtins such as echo/printf/test/kill use the same implementations).
 RUNTIME_APPLETS = ("awk", "base64", "cat", "cmp", "cp", "crc32", "dd", "df", "dmesg", "echo", "flash_eraseall",
-                   "grep", "head", "kill", "ls", "mkdir", "mknod", "mv", "od", "pidof", "ps", "readlink", "reboot",
+                   "devmem", "grep", "head", "kill", "ls", "mkdir", "mknod", "mv", "od", "pidof", "ps", "readlink", "reboot",
                    "rm", "sh", "sha256sum", "sleep", "sync", "tail", "test", "timeout", "tr", "true", "uname", "wc",
                    "wget")
 # Commands the stock BusyBox 1.18.4 lacks; phase1 (and the header it sources) must not use them.
@@ -118,7 +118,8 @@ CONF_DEFAULTS = {
     "OM_RETRY_SLEEP": "5", "OM_HOLD_MAX": "0", "OM_STOCK_BB": "/bin/busybox", "OM_IDLE_MAX": "180",
 }
 CONF_KEYS = ("OM_HOST", "OM_PORT", "OM_RUN_ID", *CONF_DEFAULTS, *CONF_PINS, "OM_STAGE2_SHA256")
-TEST_ONLY_KEYS = ("OM_SIM_DIR", "OM_SIM_MTD_PROC", "OM_SIM_FAULT", "OM_QUIESCE_PROCS", "OM_WATCHDOG_DEV")
+TEST_ONLY_KEYS = ("OM_SIM_DIR", "OM_SIM_MTD_PROC", "OM_SIM_FAULT", "OM_QUIESCE_PROCS", "OM_WATCHDOG_DEV",
+                  "OM_DEVMEM", "OM_SIM_GATE_HOLD")
 NUMERIC_KEYS = ("OM_PORT", "OM_POLL_INTERVAL", "OM_POLL_MAX", "OM_MIN_AVAIL_KB", "OM_MIN_DIRFREE_KB",
                 "OM_RETRY_SLEEP", "OM_HOLD_MAX", "OM_IDLE_MAX")
 INSTALLER_PHRASES = {"probe-arm": ("PROBE_PHRASE", "PROBE_REBOOT"), "trial-arm": ("TRIAL_PHRASE", "TRIAL_REBOOT"),

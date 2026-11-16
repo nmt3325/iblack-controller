@@ -308,6 +308,25 @@ class HTTPBehaviour(Base):
         self.assertEqual(srv.uploads, {})
         self.assertEqual([p.name for p in self.backups.iterdir()], [])
 
+    def test_uboot_image_and_watchdog_gate_uploads(self):
+        srv, _, base = self.serve("diagnose", backup_dir=self.backups)
+        img = rbytes(9, sl.UBOOT_LEN)
+        self.assertEqual(http("POST", self.url(base, "upload/diag-uboot"), base64.encodebytes(img)),
+                         (200, (hashlib.sha256(img).hexdigest() + "\n").encode()))      # BusyBox 76-col base64
+        self.assertEqual(http("POST", self.url(base, "upload/diag-uboot"), base64.encodebytes(img[:-1]))[0], 422)
+        self.assertEqual(http("POST", self.url(base, "upload/wdtgate-info"), base64.b64encode(b"hold 300\n"))[0], 403)
+        self.assertEqual([p.read_bytes() for p in self.backups.glob("diag-uboot-*.bin")], [img])
+        srv2, _, base2 = self.serve("wdtgate", backup_dir=self.backups)
+        info = b"hold 300\nuptime-start 12.34\n"
+        self.assertEqual(http("POST", self.url(base2, "upload/wdtgate-info"), base64.b64encode(info))[0], 200)
+        self.assertEqual(http("POST", self.url(base2, "upload/wdtgate-info"),
+                              base64.b64encode(b"x" * (16 * 1024 + 1)))[0], 422)
+        self.assertEqual(http("POST", self.url(base2, "upload/diag-uboot"), base64.encodebytes(img))[0], 403)
+        self.assertEqual(http("POST", self.url(base2, "upload/log-wdtgate"),
+                              base64.b64encode(b"[stockboot:wdtgate] resume ok\n"))[0], 200)
+        self.assertEqual([p.read_bytes() for p in self.backups.glob("wdtgate-info-*.bin")], [info])
+        self.assertEqual(sorted(srv2.uploads), ["log-wdtgate", "wdtgate-info"])
+
     def test_trial_reports_its_log_in_trial_arm_mode(self):
         srv, _, base = self.serve("trial-arm", backup_dir=self.backups, action_dir=self.action_dir("trial-arm"),
                                   write_confirm=sm.ACTIONS["trial-arm"][0])
@@ -376,7 +395,8 @@ class PhraseConsistency(unittest.TestCase):
                 if phrase:
                     self.assertNotIn(phrase, hook)
                     self.assertNotIn(phrase, s2)                   # stage2 copies them from the manifest
-        self.assertEqual(set(sm.ACTIONS) - {"diagnose", "collect"}, set(names))
+        self.assertEqual(set(sm.ACTIONS) - {"diagnose", "collect", "wdtgate"}, set(names))
+        self.assertEqual(sm.ACTIONS["wdtgate"], (None, None, ()))     # read-only: no phrase, no action set
 
     def test_camera_events_fit_the_server_event_syntax(self):
         events = set()

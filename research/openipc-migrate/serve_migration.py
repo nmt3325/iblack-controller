@@ -15,6 +15,8 @@ seq and withdrawn as soon as the camera reports that it started it):
   standby / abort   the camera keeps polling / stops polling on stock firmware
   diagnose          read-only: device info, per-block hashes, vendor env
   collect           read-only: trial-log mailbox, vendor env, block hashes
+  wdtgate           flash untouched: every process stopped and the SP805 watchdog
+                    off for minutes, then resumed (proves the watchdog fix)
   probe-arm         vendor env <- saveenv probe (needs --write-confirm)
   trial-arm         bakfs <- trial image, vendor env <- armed env (one-shot
                     OpenIPC kernel trial); also receives the trial's reports
@@ -53,6 +55,7 @@ GO_PHRASE = "yes-stage-openipc-migration"
 ACTIONS = {
     "diagnose": (None, None, ()),
     "collect": (None, None, ()),
+    "wdtgate": (None, None, ()),
     "probe-arm": ("yes-arm-saveenv-probe", "yes-reboot-for-saveenv-probe", ("env-probe.img",)),
     "trial-arm": ("yes-arm-one-shot-openipc-trial", "yes-reboot-into-openipc-trial", ("trial.img", "env-armed.img")),
     "restore-env": ("yes-restore-stock-uboot-env", None, ("env-base.img",)),
@@ -86,6 +89,8 @@ DRAIN_MAX = 1024 * 1024  # a refused upload body is read (and dropped) up to thi
 UPLOADS = {
     "diag-info": ("diagnose", None, 512 * 1024, "b64"), "diag-blocks": ("diagnose", None, 64 * 1024, "b64"),
     "diag-env": ("diagnose", sl.SENV_LEN, sl.SENV_LEN, "b64"),
+    "diag-uboot": ("diagnose", sl.UBOOT_LEN, sl.UBOOT_LEN, "b64"),
+    "wdtgate-info": ("wdtgate", None, 16 * 1024, "b64"),
     "collect-info": ("collect", None, 16 * 1024, "b64"), "collect-tl": ("collect", sl.TL_LEN, sl.TL_LEN, "b64"),
     "collect-env": ("collect", sl.SENV_LEN, sl.SENV_LEN, "b64"),
     "mdat1": ("final", 0x20000, 0x20000, "b64"), "mdat2": ("final", 0x20000, 0x20000, "b64"),
@@ -108,6 +113,8 @@ NOTES = {
     "idle-exit": "camera stopped polling (no new action); stock firmware continues",
     "diagnose-done": "read-only diagnose finished; next: build_stockboot.py diag",
     "collect-done": "read-only collect finished; next: build_stockboot.py collect",
+    "wdtgate-quiesced": "every camera process stopped and the watchdog off: holding (flash untouched)",
+    "wdtgate-done": "watchdog gate held and resumed; next: build_stockboot.py wdtgate",
     "rebooting-probe-arm": "camera reboots into the saveenv probe (stock comes back); then run collect",
     "rebooting-trial-arm": "camera reboots into the one-shot OpenIPC trial; wait for trial reports, then collect",
     "trial-network-up": "trial kernel reached the LAN host over Wi-Fi",
@@ -408,7 +415,8 @@ class _Handler(http.server.BaseHTTPRequestHandler):
         except ValueError:
             self._send(411, b"length required\n")
             return
-        if not 0 < length <= (3 * limit if enc == "form" else limit * 4 // 3 + 4096):
+        # BusyBox base64 wraps its output every 76 characters (57 input bytes).
+        if not 0 < length <= (3 * limit if enc == "form" else limit * 4 // 3 + limit // 57 + 4096):
             self._refuse(413, b"bad length\n")
             return
         body = self.rfile.read(length)

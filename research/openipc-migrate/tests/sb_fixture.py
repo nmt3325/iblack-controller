@@ -166,7 +166,7 @@ class Camera:
             "#!/bin/sh\n# stand-in for the OpenIPC runtime BusyBox (offline tests)\n"
             f'case "${{1:-}}" in\n  --list) {BUSYBOX} --list; echo crc32; echo flash_eraseall; exit 0;;\n'
             f'  crc32) shift; exec python3 {crc} "$@";;\n'
-            '  flash_eraseall|reboot|poweroff|halt) echo "$1 must not run offline" >&2; exit 99;;\n'
+            '  flash_eraseall|reboot|poweroff|halt|devmem) echo "$1 must not run offline" >&2; exit 99;;\n'
             '  sync) exit 0;;\nesac\n'
             f'exec {BUSYBOX} "$@"\n')
         self.bb.chmod(0o755)

@@ -201,6 +201,10 @@ class Lab:
             "od_tx4": self.run(rt + ["od", "-An", "-tx4", "-N4", sample]).stdout.strip() ==
             "%08x" % struct.unpack("<I", data[:4])[0],
             "base64_binary": base64.b64decode(self.run(rt + ["base64", sample]).stdout) == data,
+            # migrate_hook.sh rd32/wdt_off: devmem hex words through the runtime sh arithmetic
+            "sh_arith_devmem_words": self.run(rt + ["sh", "-c", 'v=0x00000003; echo $((v)) $((v & 3)) '
+                                                  '$((0x20040FE0 + 12)) $((0x05F5E100))']).stdout.strip()
+            == "3 3 537137132 100000000",
         }
         orig = self.rtq / "dev/om/busybox.unpatched"
         orig.write_bytes(self.restored)

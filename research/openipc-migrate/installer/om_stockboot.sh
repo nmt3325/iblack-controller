@@ -10,9 +10,16 @@
 # pinned from the read-only diagnose run, before and after the writes.
 #
 # Actions:
-#   diagnose     read-only: device info, SHA-256 of all 128 erase blocks (3 passes
-#                over the MTD char devices), the weak block 0x6c0000 x16, the live
-#                vendor env x2. Uploads diag-info, diag-blocks, diag-env.
+#   diagnose     read-only: device info (incl. the watchdog registers), SHA-256 of
+#                all 128 erase blocks (3 passes over the MTD char devices), the weak
+#                block 0x6c0000 x16, the live vendor env x2, the vendor U-Boot image
+#                (for an SPI recovery image). Uploads diag-info, diag-blocks,
+#                diag-env, diag-uboot.
+#   wdtgate      flash untouched: quiesce all (every process stopped and the SP805
+#                watchdog switched off by the hook), hold GATE_HOLD seconds, resume.
+#                Proves the camera survives a quiesced final far longer than the
+#                watchdog period before final depends on it. Uploads wdtgate-info
+#                (uptimes and watchdog register snapshots).
 #   collect      read-only: trial-log mailbox (0x70000) x2, live vendor env x2.
 #                Uploads collect-tl, collect-env, collect-info.
 #   probe-arm    vendor env <- env-probe.img: the next boot restores the stock
@@ -60,7 +67,8 @@ STOCK="boot:0x200000 rootfs:0xc0000 appfs:0x280000 mdat1:0x20000 mdat2:0x20000 b
 UBOOT_LEN=$((0x40000)); SENV_BLK=4; SENV_LEN=$((0x20000)); OENV_BLK=6; TL_BLK=7
 FW_BLK=7; FW_LEN=$((0x6b0000)); FW_KERNEL_LEN=$((0x1d0000)); OENV_LEN=$((0x10000))
 TRIAL_LEN=$((0x280000)); TK_LEN=$((0x1d0000)); BAKFS_OFF=$((0x580000)); WEAK_OFF=$((0x6c0000))
-APPLETS="awk base64 cat cmp crc32 dd flash_eraseall grep head ls mkdir mknod od readlink reboot rm sha256sum sleep sync tail timeout tr wc wget"
+GATE_HOLD=300   # wdtgate: seconds held with every process stopped (unit 1's watchdog fired after ~44 s)
+APPLETS="awk base64 cat cmp crc32 dd devmem flash_eraseall grep head ls mkdir mknod od readlink reboot rm sha256sum sleep sync tail timeout tr wc wget"
 
 ACTION=${1:-}; [ $# -gt 0 ] && shift
 BB=busybox; STAGE=""; HOOK=""; PAY=""; MANIFEST=""; SIM=""; FW_SHA=""; OENV_SHA=""
@@ -105,12 +113,12 @@ while [ $# -gt 0 ]; do
 done
 
 case "$ACTION" in
-  diagnose|collect) KIND=read;;
+  diagnose|collect|wdtgate) KIND=read;;
   probe-arm) KIND=write; PHRASE=$PROBE_PHRASE; RPHRASE=$PROBE_REBOOT;;
   trial-arm) KIND=write; PHRASE=$TRIAL_PHRASE; RPHRASE=$TRIAL_REBOOT;;
   restore-env) KIND=write; PHRASE=$RESTORE_PHRASE; RPHRASE="";;
   final) KIND=write; PHRASE=$FINAL_PHRASE; RPHRASE=$FINAL_REBOOT;;
-  *) echo "usage: om_stockboot.sh diagnose|collect|probe-arm|trial-arm|restore-env|final --stage DIR ..."; exit 1;;
+  *) echo "usage: om_stockboot.sh diagnose|collect|wdtgate|probe-arm|trial-arm|restore-env|final --stage DIR ..."; exit 1;;
 esac
 [ -n "$STAGE" ] || { echo "om_stockboot: --stage DIR is required"; exit 1; }
 "$BB" mkdir -p "$STAGE" || exit 1
@@ -277,12 +285,17 @@ check_mtd0_free(){ [ -n "$SIM" ] && return 0
   "$BB" grep -q 'mtdblock0' /proc/mounts && die "mtdblock0 is mounted"
   return 0; }
 reboot_now(){ log "reboot authorized: sync + reboot -f"; progress "rebooting-$ACTION"
+  # Watchdog back on as quiesce found it: should the reboot hang, the SoC is still reset.
+  if hook wdt-rearm >/dev/null 2>&1; then log "watchdog re-armed for the reboot"; else log "watchdog re-arm failed"; fi
   if [ -n "$SIM" ]; then log "SIMULATION: reboot skipped"; return 0; fi
   hook_best upload "log-$ACTION" "$LOGF"
   "$BB" sync; "$BB" sleep 1; "$BB" reboot -f; "$BB" sleep 5
   if [ -w /proc/sysrq-trigger ]; then echo b > /proc/sysrq-trigger; fi
   "$BB" sleep 5; log "the authorized reboot did not happen; power-cycle the camera"; finish 3; }
-quiesce(){ hook quiesce "$@" || die "hook quiesce failed; nothing written"; QUIESCED=1; log "stock processes stopped"; }
+quiesce(){ qo=$(hook quiesce "$@" 2>&1); qr=$?
+  echo "$qo" | while IFS= read -r l; do if [ -n "$l" ]; then log "$l"; fi; done
+  [ "$qr" -eq 0 ] || die "hook quiesce failed; nothing written"
+  QUIESCED=1; log "stock processes stopped"; }
 fail_env(){ log "STOP: $*"; log "vendor env is neither the old nor the new image: the vendor default env (stock layout) will boot stock"
   progress "stopped-env-unverified"; finish 2; }
 env_key(){ env_lines "$1" | "$BB" grep -q "^$2="; }
@@ -322,6 +335,8 @@ act_diagnose(){
   sec df "$BB" df
   sec ps "$BB" ps
   sec watchdog "$BB" ls -l /dev/watchdog /dev/watchdog0 /sys/class/watchdog
+  sec devmem "$BB" ls -l /dev/mem
+  sec wdt hook wdt-status
   echo "== mtd-holders" >> "$I"
   for f in /proc/[0-9]*/fd/*; do l=$("$BB" readlink "$f" 2>/dev/null) || continue
     case "$l" in *mtd*) p=${f#/proc/}; p=${p%%/*}; echo "$p $("$BB" cat "/proc/$p/comm" 2>/dev/null) $l" >> "$I";; esac; done
@@ -347,6 +362,11 @@ act_diagnose(){
   r=1; while [ $r -le 3 ]; do echo "u $r $(rd_hash 0 0 4)" >> "$B"; r=$((r+1)); done
   read_live_env; echo "e 1 $LIVE_SHA" >> "$B"; echo "e 2 $(SHA "$TMP/live2.env")" >> "$B"
   upload diag-blocks "$B"; upload diag-env "$TMP/live1.env"
+  # The vendor U-Boot itself (2 of up to 3 reads agree): the host's SPI recovery image needs every byte.
+  if read2 0 0 4 "$TMP/diag-uboot" && [ "$(SIZE "$TMP/diag-uboot")" -eq $UBOOT_LEN ]; then
+    if hook upload diag-uboot "$TMP/diag-uboot" >/dev/null 2>&1; then log "uploaded diag-uboot"
+    else log "diag-uboot not confirmed by the host (optional)"; fi
+  else log "vendor U-Boot did not read back stably; diag-uboot not uploaded"; fi
   progress "diagnose-done"; log "diagnose finished (read-only)"; finish 0; }
 
 act_collect(){
@@ -358,6 +378,34 @@ act_collect(){
   if read2 0 $SENV_BLK 2 "$TMP/collect-env"; then echo "env stable" >> "$C"; else echo "env unstable" >> "$C"; fi
   upload collect-info "$C"; upload collect-tl "$TMP/collect-tl"; upload collect-env "$TMP/collect-env"
   progress "collect-done"; log "collect finished (read-only)"; finish 0; }
+
+act_wdtgate(){
+  # Flash untouched. Unit 1 was reset by the SP805 watchdog ~44 s into a quiesced final (its only
+  # feeder, cmsMain.out, was stopped). Here the hook stops everything and switches the watchdog off,
+  # the camera is held far longer than that, then the watchdog is re-armed and every process continued.
+  hold=$GATE_HOLD
+  if [ -n "$SIM" ] && [ -n "${OM_SIM_GATE_HOLD:-}" ]; then hold=$OM_SIM_GATE_HOLD; fi
+  case "$hold" in ""|*[!0-9]*) die "bad watchdog gate hold";; esac
+  step=10; if [ "$hold" -lt 10 ]; then step=1; fi
+  G="$TMP/wdtgate-info"; : > "$G"
+  gi(){ echo "$1" >> "$G"; }
+  up(){ "$BB" awk '{print $1}' /proc/uptime 2>/dev/null; }
+  ws(){ hook wdt-status 2>/dev/null | "$BB" tail -n 1; }
+  gi "hold $hold"; gi "uptime-start $(up)"; gi "before $(ws)"
+  log "watchdog gate: stop every process, watchdog off, hold ${hold}s, resume (flash untouched)"
+  quiesce all
+  gi "uptime-quiesced $(up)"; gi "quiesced $(ws)"
+  progress "wdtgate-quiesced"
+  t=0; while [ $t -lt "$hold" ]; do "$BB" sleep $step; t=$((t+step)); progress "wdtgate-held-$t"; done
+  gi "uptime-held $(up)"; gi "held $(ws)"
+  # final needs the network while quiesced (mdat backups are exported after quiesce all)
+  if hook upload wdtgate-info "$G" >/dev/null 2>&1; then gi "quiesced-upload ok"; log "wdtgate-info confirmed while quiesced"
+  else gi "quiesced-upload failed"; log "wdtgate-info not confirmed while quiesced"; fi
+  if hook resume >/dev/null 2>&1; then gi "resume ok"; log "resume ok"; else gi "resume failed"; log "resume failed"; fi
+  QUIESCED=0
+  gi "uptime-resumed $(up)"; gi "after $(ws)"
+  upload wdtgate-info "$G"
+  progress "wdtgate-done"; log "watchdog gate held ${hold}s and resumed (flash untouched)"; finish 0; }
 
 act_probe(){
   pinned env-probe.img; check_env_img env-probe.img $SENV_LEN
@@ -410,7 +458,9 @@ finp(){ off=$(poff "$1")
   if [ "$CONT" -eq 1 ] && verify_part "$@"; then log "  mtd$1 already verified"; return 0; fi
   rewrite_part "$@" && return 0
   for b in $BADBLKS; do deg $((off/BS+b)); done; return 1; }
-fin_plan(){ fin0 "$F" 1 8 24; finp 5 "$F" 81 26; finp 4 "$F" 79 2; finp 3 "$F" 77 2; finp 2 "$F" 37 40; finp 1 "$F" 25 12; }
+fin_plan(){ progress final-w-m0; fin0 "$F" 1 8 24; progress final-w-m5; finp 5 "$F" 81 26
+  progress final-w-m4; finp 4 "$F" 79 2; progress final-w-m3; finp 3 "$F" 77 2
+  progress final-w-m2; finp 2 "$F" 37 40; progress final-w-m1; finp 1 "$F" 25 12; }
 fin_sweep(){ SWEEP=""
   vblock "$(f_hash "$O" 0 1)" 0 $OENV_BLK || SWEEP="$SWEEP oenv"
   k=0; while [ $k -lt 25 ]; do vblock "$(f_hash "$F" $k 1)" 0 $((FW_BLK+k)) || SWEEP="$SWEEP m0"; k=$((k+1)); done
@@ -453,7 +503,7 @@ act_final(){
     CONT=1; fin0 "$O" 0 $OENV_BLK 1; fin0 "$F" 0 $FW_BLK 1; fin_plan
     fin_sweep || log "still unverified after repair:$SWEEP"; fi
   DEGRADED=""; if [ -n "$SWEEP" ]; then fin_sweep_deg; fi
-  log "writing env-final.img to the vendor env (last)"
+  log "writing env-final.img to the vendor env (last)"; progress final-w-env
   MAX_REWRITES=4; write0 "$E" 0 $SENV_BLK 2 || deg $FAILED; MAX_REWRITES=2
   got=$(stable_hash3 0 0 4 2); [ -n "$got" ] && [ "$got" = "$UBOOT_SHA" ] || { log "vendor U-Boot region changed or unstable!"; deg 0; }
   if [ -n "$DEGRADED" ]; then
@@ -472,6 +522,7 @@ fin_sweep_deg(){ for s in $SWEEP; do case "$s" in oenv) deg 6;;
 case "$ACTION" in
   diagnose) act_diagnose;;
   collect) act_collect;;
+  wdtgate) act_wdtgate;;
   probe-arm) act_probe;;
   trial-arm) act_trial;;
   restore-env) act_restore;;

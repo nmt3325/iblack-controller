@@ -89,12 +89,16 @@ Linuxホストで `mac80211_hwsim` を使って確かめた（root、専用の�
 
 出力は0600で作り、上書きしない。MACアドレスやWi-Fiの鍵を含むので、Gitには入れない。合成ツールの単体テストは `tests/test_compose_spi_image.py`（合成データだけを使う）。
 
-#### 次のネットワーク移行の前に必要なこと
+#### watchdog対策（実装済み、オフライン検証のみ）
 
-- `quiesce all` の直後に、RAMランタイムから純正 `wdstop` と同じ手順（`+0xC00` に解除値、WdogControlに0、再ロック）でwatchdogを止め、WdogControlを読み戻して0でなければ書かない。または、quiesceが止めないRAMランタイムの給餌ループ（WdogIntClr）で給餌を続ける。「レジスターへの直接書込みは行わない」という前述の方針は、純正 `wdstop` と同じ手順に限って改める。
-- finalの前に、読取り専用の実機ゲートを足す。`quiesce all` とwatchdog停止の状態で120秒以上保ち、再開して報告する。
-- PONR後も区画ごとに進捗を送る（届かなくても続行する）。失敗した位置が分かるようにする。
-- ホストでは、final中にNetworkManagerが家庭用の接続へ自動で戻らないようにする。
+1台目の結果から必要とした対策を実装した。検証は「watchdog対策の検証（オフライン）」にある。
+
+- **停止**：`migrate_hook.sh` は `quiesce` の直後に、RAM上のOpenIPC BusyBoxの `devmem` で、純正 `wdstop` と同じ手順（`+0xC00` に解除値、WdogControlに0、再ロック）でSP805を止める。止める前のWdogControlを保存し、読み戻して止まっていなければ、止めたプロセスを再開して中止する。「レジスターへの直接書込みは行わない」という前述の方針は、この手順に限って改めた。
+- **再始動**：`resume`（中止を含む）と、許可された再起動の直前に、保存した値でwatchdogを再始動する（`wdt-rearm`）。再起動が固まってもwatchdogがリセットする。
+- **実機ゲート `wdtgate`**（書込みなし）：全プロセスを止めてwatchdogを停止した状態で300秒保ち、止めたままホストへ報告を送ってから再開する。`build_stockboot.py wdtgate` は、1回の起動の中で240秒以上保てたこと、停止中にwatchdogが止まっていたこと、停止中の報告が届いたこと、再開後に元の状態へ戻ったことを確かめる。finalは、試験起動とこのゲートの両方が通っていなければ作らない。
+- **進捗**：finalはPONR後も区画ごとに進捗を送る（届かなくても続行する）。
+- **diagnose**：SP805のレジスターが `devmem` で読めることも確かめる。純正U-Boot（`0x000000`–`0x03FFFF`）の読み戻しを `diag-uboot` として送り（任意）、ホストはカメラが読んだハッシュと照合する。U-Bootの末尾を伏せたダンプから復旧用のSPIイメージを組むときに使う。
+- **ホスト**：final中にNetworkManagerが家庭用の接続へ自動で戻らないようにする（運用手順）。
 
 ## 前提と方式
 
@@ -141,19 +145,21 @@ Linuxホストで `mac80211_hwsim` を使って確かめた（root、専用の�
 ## 流れ
 
 ```text
-（未実装・要承認）純正TCP3508の 0x96 で移行appfsを届ける：appfsとbakfsを書き換えて再起動
+純正TCP3508の 0x96 で移行appfsを届ける（リポジトリ外の私的な送信ツール）：appfsとbakfsを書き換えて再起動
                                   ↓
 純正firmwareが起動 → runapp.sh末尾の起動行 → stage2.sh phase1（純正sh）がホストのmanifestを確認
                                   ↓ run id、GO語句
 phase2（RAM上のOpenIPC BusyBox）：manifestのseqが変わるたびに om_stockboot.sh を1回だけ実行
   1. diagnose     読取りのみ         → build_stockboot.py diag（SPIダンプと照合）
-  2. probe-arm    純正env ← probe env、再起動 → 純正U-Bootが純正bootcmdを書き戻してsaveenv → 純正で起動
+  2. wdtgate      書込みなし：全プロセス停止＋watchdog停止で300秒保持 → 再開
+                  → build_stockboot.py wdtgate
+  3. probe-arm    純正env ← probe env、再起動 → 純正U-Bootが純正bootcmdを書き戻してsaveenv → 純正で起動
                   → collect          → build_stockboot.py collect --stage probe
-  3. trial-arm    bakfs ← 試験イメージ、最後に純正env ← 試験用env、再起動
+  4. trial-arm    bakfs ← 試験イメージ、最後に純正env ← 試験用env、再起動
                   → 純正U-BootがsaveenvしてからOpenIPC kernelを一度だけ起動
                   → trial.sh（純正ユーザーランド）がWi-Fiで接続してホストへ報告 → 再起動で純正へ
                   → collect          → build_stockboot.py collect --stage trial
-  4. final        OpenIPC env → firmware → overlay消去 → 最後に純正env、再起動でOpenIPC
+  5. final        OpenIPC env → firmware → overlay消去 → 最後に純正env、再起動でOpenIPC
   （final前なら restore-env で、diagnose時に読んだ純正envへいつでも戻せる）
 ```
 
@@ -171,7 +177,7 @@ phase2（RAM上のOpenIPC BusyBox）：manifestのseqが変わるたびに om_st
 | `validate_online_qemu.py` | 実ARMバイナリを `qemu-arm` で動かす検証 | ホスト |
 | `tests/` | ユニット、模擬フラッシュでのインストーラー、E2E | ホスト |
 
-**移行appfsを届ける部分（純正TCP3508の `0x96` 更新）は実装していない。** 既存の `research/sysupdate-offline/pack_update.py` のガードも変えていない。`0x96` はappfsとbakfsを両方書き換えて再起動するので、それ自体に別の承認が要る。trial-armの後はbakfsに純正appfsの控えが残らない。そこから先の復旧手段はSPIダンプになる。
+**移行appfsを届ける部分（純正TCP3508の `0x96` 更新）はリポジトリに入れていない。** 実機では、所有者の承認のもとリポジトリ外の私的な送信ツールを使った。既存の `research/sysupdate-offline/pack_update.py` のガードは変えていない。`0x96` はappfsとbakfsを両方書き換えて再起動する。trial-armの後はbakfsに純正appfsの控えが残らない。そこから先の復旧手段はSPIダンプになる。
 
 ## 運用順（実機で行う場合）
 
@@ -181,6 +187,8 @@ phase2（RAM上のOpenIPC BusyBox）：manifestのseqが変わるたびに om_st
 python3 serve_migration.py --bundle "$B" --mode standby                       # 届くことだけ確認
 python3 serve_migration.py --bundle "$B" --mode diagnose --backup-dir "$UP"   # 読取りのみ
 python3 build_stockboot.py --state "$ST" diag --uploads "$UP" --spi-dump "$SPI_DUMP"
+python3 serve_migration.py --bundle "$B" --mode wdtgate --backup-dir "$UP"    # 書込みなし。約5分止まる
+python3 build_stockboot.py --state "$ST" wdtgate --uploads "$UP"
 python3 build_stockboot.py --state "$ST" probe --out "$A/probe"
 python3 serve_migration.py --bundle "$B" --mode probe-arm --action-dir "$A/probe" --backup-dir "$UP" \
   --write-confirm yes-arm-saveenv-probe --reboot-confirm yes-reboot-for-saveenv-probe
@@ -207,12 +215,12 @@ python3 serve_migration.py --bundle "$B" --mode final --action-dir "$A/final" --
 - **run idと語句**：run idは既定でビルドごとに128ビットの乱数を作り、appfsに焼き込む。run idが合わない要求には何も配らない。phase1はmanifestに正確なGO語句がなければ何もしない。書込みには段階ごとの書込み語句（サーバ側は `--write-confirm`）が要り、再起動にはさらに再起動語句（`--reboot-confirm`）が要る。
 - **1回だけ**：サーバは各actionを乱数のseqで1回だけ出し、カメラが開始を報告したら取り下げる。
 - **ピン**：phase1は純正の `sha1sum` と `md5sum` の両方で照合し、phase2はSHA-256で照合する。action一式はmanifestが示すSHA-256で取得する。`firmware.bin` と `env-openipc.img` は、`migrate.conf` に焼き込んだピンでしか取得しない。サーバも起動時に全ファイルを再ハッシュし、action一式を `stock_layout.py` で検査し直してから、メモリ上の内容だけを配る。
-- **ホスト側の順序**：`build_stockboot.py` は前の段階が通っていなければ次を作らない。diagnoseは、全ブロックの読出しが安定していること、16回読んだ弱いブロックが一致すること、純正U-BootがSPIダンプと一致すること、純正envが純正どおりであること、MTD表が純正の6区画であること、MT7601（`148f:7601`）があること、watchdogデバイスがないことを確かめる。試験起動は、nonce、マーカー付きの起動、MTD表、モジュールのロード、Wi-Fiインターフェース、DHCP、ホストへの到達、U-Bootの `saveenv`、純正env、U-Bootの不変、読出しの安定をすべて確かめる。
+- **ホスト側の順序**：`build_stockboot.py` は前の段階が通っていなければ次を作らない。diagnoseは、全ブロックの読出しが安定していること、16回読んだ弱いブロックが一致すること、純正U-BootがSPIダンプと一致すること、純正envが純正どおりであること、MTD表が純正の6区画であること、MT7601（`148f:7601`）があること、watchdogデバイスがないこと、SP805のレジスターが `devmem` で読めることを確かめる。finalは、試験起動とwdtgateの両方が通っていなければ作らない。試験起動は、nonce、マーカー付きの起動、MTD表、モジュールのロード、Wi-Fiインターフェース、DHCP、ホストへの到達、U-Bootの `saveenv`、純正env、U-Bootの不変、読出しの安定をすべて確かめる。
 - **書く前の照合**：書込みactionごとに、純正U-BootのSHA-256がdiagnose時の値と一致することを、書く前と書いた後に確かめる。純正envが、ホストがactionを作ったときのenvと一致しなければ書かない。
 - **書込みと照合**：mtd1–mtd5は区画全体を消去してcharデバイスへ書く。mtd0（env）は64 KiBごとに `mtdblock0` 経由で書き、ほかのプロセスが `mtdblock0` を開いていないときだけ書く。照合は、ページキャッシュを避けるためMTDのcharデバイスを最大3回読み、2回一致で判定する。
 - **書く順序**：trial-armはbakfs、最後に純正env。finalは `0x060000` のenvと `0x070000` の先頭ブロック（ここまでは純正が使わない領域で、中止しても純正のまま）、次に `0x080000` 以降（ここから後戻りできない）、最後に純正env。後戻りできない点を越えたら中止せず、失敗したブロックを再試行して記録し、純正envは必ず最後に書く。その後の実行で再試行できる。
 - **試験起動の分岐**：runapp.shの分岐は、`/proc/cmdline` に ` omtrial=1` があり、`/proc/mtd` に試験用の `tp` 行が正確にある場合だけ動く。分岐に入るとすぐ900秒のタイマーを起動し、時間が来たら `reboot -f` する。trial.shが書くのは `tl`（ログ）だけで、`saveenv` が失敗していた場合に限り純正envを書き戻す。Wi-Fiの設定は記録しない。
-- **停止とwatchdog**：書く前に `cmsMain.out` と `SysUpdate` をSIGSTOPで止める（finalは全プロセス）。watchdogデバイスがあれば停止を拒否する。この版はハードウェアwatchdogを止めないため、finalは書込み途中でリセットされた（「5回目の試験起動と本番移行の結果」）。空きRAMの推定値が12 MiB以上、作業用の空きが10 MiB以上でなければ始めない。通常の容量管理されたファイルシステムでは `df` の空きを使う。純正のtiny-shmemカーネルは `/dev` をtmpfsとしてマウントしても実体がRAMFSで、`df` は総容量・空きとも0になる。`stat -f` の表示がRAMFS（純正BusyBoxでは誤って `romfs`）で全ブロック数0、かつ `/proc/mounts` で正規化した作業ディレクトリを最長一致する一意な `ramfs` / `tmpfs` が `rw`（`ro` なし）である場合だけ、空きRAM推定値から別途2 MiBを残した値を作業用の空きとして使う。RAMFSのページを再利用可能と誤算しないよう `Shmem` と `Unevictable` を引く（両項目がない場合は `MemFree + Buffers` のみ）。本当に満杯のtmpfs、未知の形式、不正な出力では緩和しない。
+- **停止とwatchdog**：書く前に `cmsMain.out` と `SysUpdate` をSIGSTOPで止める（finalとwdtgateは全プロセス）。watchdogデバイスがあれば停止を拒否する。止めた直後にSP805を純正 `wdstop` と同じ手順で止め、読み戻して確かめる（止まらなければ再開して中止）。再開時と許可された再起動の直前に、元の状態へ戻す。以前の版はハードウェアwatchdogを止めなかったため、1台目のfinalは書込み途中でリセットされた（「5回目の試験起動と本番移行の結果」）。空きRAMの推定値が12 MiB以上、作業用の空きが10 MiB以上でなければ始めない。通常の容量管理されたファイルシステムでは `df` の空きを使う。純正のtiny-shmemカーネルは `/dev` をtmpfsとしてマウントしても実体がRAMFSで、`df` は総容量・空きとも0になる。`stat -f` の表示がRAMFS（純正BusyBoxでは誤って `romfs`）で全ブロック数0、かつ `/proc/mounts` で正規化した作業ディレクトリを最長一致する一意な `ramfs` / `tmpfs` が `rw`（`ro` なし）である場合だけ、空きRAM推定値から別途2 MiBを残した値を作業用の空きとして使う。RAMFSのページを再利用可能と誤算しないよう `Shmem` と `Unevictable` を引く（両項目がない場合は `MemFree + Buffers` のみ）。本当に満杯のtmpfs、未知の形式、不正な出力では緩和しない。
 - **終了コード**：0は完了、1は純正U-Bootの起動対象を変えずに拒否・失敗、2は書込み途中で照合が終わっていない（電源を保ったままfinalを再試行するか、SPIで復旧）、3は照合済みだが許可された再起動が起きなかった。finalで後戻りできない点を越えた後は、stage2が終了せず、finalの再試行とcollectだけを受け付ける。
 - テスト用のキー（`OM_SIM_*` など）は `render_conf(allow_test_keys=True)` のときだけ受け付ける。ビルダーはappfsに書かない。
 
@@ -279,7 +287,7 @@ finalの後戻りできない区間は、firmware約6.6 MiBの消去・書込み
 
 ## 未検証のことと実機の前に必要なこと
 
-- `0x96` の送信は未実装。appfsとbakfsを両方書き換えて再起動するので、それ自体に別の承認が要る。
+- `0x96` の送信はリポジトリに入れていない（実機ではリポジトリ外の私的な送信ツールを使った）。appfsとbakfsを両方書き換えて再起動する。
 - 純正U-Bootが、こちらのenvを実際に実行して `saveenv` できるか（probe）。純正U-Bootのコマンド解釈はバイナリから読み取ってモデル化しただけで、実機では動かしていない。
 - OpenIPC kernelがこの基板で起動するか。SPIフラッシュ素子の認識、純正rootfs（xz）のマウント、`mtdparts` の解釈が分かるのは試験起動のときだけ。kernelがユーザーランドに着く前に止まった場合は、900秒のタイマーが動かないので、手で電源を入れ直す（純正に戻る）。
 - MT7601を、OpenIPCのモジュールと純正ユーザーランドで接続できるか（qemuでは模擬）。移行後のOpenIPCはwpa_supplicantを使うので、その経路は試験起動では確かめられない。移行後にWi-Fiでつながらなければ、戻る手段はSPIだけになる。
@@ -304,6 +312,17 @@ diagnoseでは純正アプリ・ネットワークサービスを停止しない
 基本情報（uptimeを含む）を最初に送信・確認してから全ブロックのハッシュを計算し、3巡それぞれの区画開始を通知する。後段で中断しても、先に届いた基本情報と進捗を原因調査に使える。standbyでも `--backup-dir` を指定すれば受信イベントを私的なログへ保存するが、GO・ファイル配布・アップロード受入れ・書込み・再起動の許可は与えない。更新送信後はstandbyで起動が落ち着くのを待ってから、読取り専用診断を開始する。
 
 オフライン検証は単体・結合170件（新規回帰8件）、隣接25件、qemu-arm 9項目がPASS。純正ARMバイナリのオンライン経路16件・容量判定23件もPASSし、appfsは2,613,248 / 2,621,432 bytes（余り8,184 bytes）。記録は [`results/diagnostic-liveness-validation.json`](results/diagnostic-liveness-validation.json)。これは実機での診断・saveenv・OpenIPC試験起動の成功を意味しない。
+
+## watchdog対策の検証（オフライン）
+
+カメラにもフラッシュにも触れていない。結果は [`results/wdtgate-offline-qa.json`](results/wdtgate-offline-qa.json) と [`results/online-qemu-validation.json`](results/online-qemu-validation.json)。
+
+- `tests/test_migrate_hook_wdt.py`（10件）：模擬SP805（ロック、WdogControl、カウンター）に対して `migrate_hook.sh` を動かす。停止と再始動、再起動前の再始動でプロセスを止めたままにすること、二重の停止で保存値を上書きしないこと、もともと止まっていたwatchdogを動かさないこと、止まらない・読めないときに停止を取り消すこと、`devmem` の不正な出力や壊れた保存値を書かないこと、watchdogデバイスがあれば何も触らないこと。
+- `tests/test_build_stockboot.py`：diagnoseがwatchdogのレジスターと `diag-uboot` を記録すること、wdtgateの合否、wdtgateなしではfinalを作らないこと。
+- `tests/test_e2e_online.py`：模擬フラッシュと模擬SP805で、wdtgateを含む全段階をネットワーク越しに通す。watchdogが止まらない、または読めない場合は純正のまま止まる。
+- 単体・結合テスト220件（失敗・スキップなし）、隣接するopenipc-portの25件が成功。
+- qemu-arm（9項目すべてPASS）：実バイナリのE2E 18件（watchdog関連の3件を含む）、容量判定23件。純正rootfs上のパッチ済みOpenIPC BusyBox（227アプレット）で、`devmem` が返す形の16進数をシェル算術で扱えること（`sh_arith_devmem_words`）も確かめた。
+- SP805を実際に止められるか、止めた状態でWi-Fiが保てるかは、実機のwdtgateで初めて分かる。
 
 ## 再実行
 

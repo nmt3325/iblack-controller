@@ -6,9 +6,10 @@ and camera/trial.sh against the synthetic camera of sb_fixture (stock MTD files,
   * phase1 and trial.sh run under BusyBox sh with a PATH that offers only the applets of the stock
     BusyBox 1.18.4 (logging wrappers; dangerous ones are blocked, kernel/network tools of the trial stubbed);
   * phase2, the installer and the hook run under a stand-in for the OpenIPC runtime BusyBox (the host
-    BusyBox plus crc32; flash_eraseall, reboot, mknod and mount refuse to run);
+    BusyBox plus crc32; flash_eraseall, reboot, mknod, mount and devmem refuse to run); the SoC's SP805
+    watchdog is the file-backed om_testlib.FakeSP805 behind OM_DEVMEM;
   * build_stockboot.py turns the uploads the server stored into the next action set, as the operator
-    does: diagnose -> probe-arm -> collect -> trial-arm -> (trial boot) -> collect -> final.
+    does: diagnose -> wdtgate -> probe-arm -> collect -> trial-arm -> (trial boot) -> collect -> final.
 The vendor U-Boot is modelled by sb_fixture.uboot_saved (it runs the armed bootcmd up to saveenv). The
 real ARM userlands are exercised separately under qemu by validate_online_qemu.py.
 """
@@ -27,10 +28,11 @@ import subprocess
 import sys
 import unittest
 from pathlib import Path
+from unittest import mock
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from om_testlib import (HOOK, INSTALLER, ROOT, STAGE2, STOCK_WGET_SAFE, free_port, make_bundle,  # noqa: E402
-                        private_tmp, rmtree, sm, start_server, write_action_set)
+from om_testlib import (HOOK, INSTALLER, ROOT, STAGE2, STOCK_WGET_SAFE, FakeSP805, free_port,  # noqa: E402
+                        make_bundle, private_tmp, rmtree, sm, start_server, write_action_set)
 import sb_fixture as fx  # noqa: E402
 from sb_fixture import sha, sl  # noqa: E402
 
@@ -89,7 +91,7 @@ MDAT = {"mdat1": (0x540000, 0x20000), "mdat2": (0x560000, 0x20000)}
 
 
 def runtime_standin(crc: Path) -> str:
-    guard = ('  flash_eraseall|reboot|poweroff|halt|mknod|mount|umount|insmod) echo "$1 must not run offline" >&2;'
+    guard = ('  flash_eraseall|reboot|poweroff|halt|mknod|mount|umount|insmod|devmem) echo "$1 must not run offline" >&2;'
              " exit 99;;\n  sync) exit 0;;\n")
     if RUNTIME_BB:
         return ("#!/bin/sh\n# qemu launcher of the real OpenIPC runtime BusyBox (offline validation).\n"
@@ -135,6 +137,7 @@ class OnlineChain(unittest.TestCase):
                                       stderr=subprocess.DEVNULL, start_new_session=True)
         self.addCleanup(self.kill_dummy)
         self.port, self.srv, self.bundle_n = free_port(), None, 0
+        self.wdt = FakeSP805(self.tmp)  # armed (ctrl 3) and write-locked, as cmsMain.out leaves it
         self.addCleanup(self.stop_server)
         old = bs.FIRMWARE_SHA256
         bs.FIRMWARE_SHA256 = sha(self.fw)  # the synthetic image instead of the pinned build
@@ -184,7 +187,7 @@ class OnlineChain(unittest.TestCase):
               "OM_POLL_INTERVAL": 1, "OM_POLL_MAX": 3, "OM_IDLE_MAX": 2, "OM_MIN_AVAIL_KB": 1, "OM_MIN_DIRFREE_KB": 1,
               "OM_RETRY_SLEEP": 1, "OM_HOLD_MAX": 2, "OM_STOCK_BB": STOCK_BB, "OM_SIM_DIR": self.cam.sim,
               "OM_SIM_MTD_PROC": self.cam.sim / "proc_mtd", "OM_QUIESCE_PROCS": self.dummy_name,
-              "OM_WATCHDOG_DEV": self.tmp / "no-watchdog"}
+              "OM_WATCHDOG_DEV": self.tmp / "no-watchdog", "OM_DEVMEM": self.wdt.script, "OM_SIM_GATE_HOLD": 2}
         ov.update(overrides or {})
         self.bundle_n += 1
         self.bundle = self.tmp / f"bundle-{self.bundle_n}"
@@ -323,6 +326,10 @@ class OnlineChain(unittest.TestCase):
         missing = [w for w in want if not any(g == w for g in it)]
         self.assertFalse(missing, f"{missing} not in order in {got}")
 
+    def assertWatchdogArmed(self):
+        st = self.wdt.get()
+        self.assertEqual((st["ctrl"], st["locked"]), (3, True), st)
+
     def assertFlashUnchanged(self):
         self.assertEqual(sha(self.cam.flash()), sha(self.cam.original))
 
@@ -447,10 +454,29 @@ class OnlineChain(unittest.TestCase):
                             ("2", "action-start-diagnose"), ("installer", "diagnose-done"),
                             ("2", "action-rc-diagnose-0"), ("2", "idle-exit")], ev)
         self.assertFlashUnchanged()
-        self.assertEqual(sorted(self.srv.uploads), ["diag-blocks", "diag-env", "diag-info", "log-diagnose"])
+        self.assertEqual(sorted(self.srv.uploads), ["diag-blocks", "diag-env", "diag-info", "diag-uboot",
+                                                    "log-diagnose"])
+        self.assertEqual(self.srv.uploads["diag-uboot"], [sha(self.cam.original[:sl.UBOOT_LEN])])
+        self.assertEqual(self.wdt.get()["writes"], [])  # diagnose only reads the watchdog
         self.assertEqual(self.srv.served, {rel: 1 for rel in sm.RUNTIME_FILES})  # no payload outside final
         self.fix_diag_info()
-        self.assertTrue(self.bs("diag", "--uploads", str(self.uploads), "--spi-dump", str(dump))["ok"])
+        res = self.bs("diag", "--uploads", str(self.uploads), "--spi-dump", str(dump))
+        self.assertTrue(res["ok"], res)
+        # 1b. wdtgate: every stock process stopped and the SP805 off for the hold, then re-armed and resumed
+        ev = self.action("wdtgate")
+        self.assertInOrder([("2", "action-start-wdtgate"), ("installer", "wdtgate-quiesced"),
+                            ("installer", "wdtgate-held-1"), ("installer", "wdtgate-held-2"),
+                            ("installer", "wdtgate-done"), ("2", "action-rc-wdtgate-0"), ("2", "idle-exit")], ev)
+        self.assertFlashUnchanged()
+        self.assertNotEqual(proc_state(self.dummy.pid), "T")
+        self.assertWatchdogArmed()
+        self.assertEqual(len(self.srv.uploads["wdtgate-info"]), 2)  # while quiesced, and after the resume
+        self.assertEqual(self.srv.served, {rel: 1 for rel in sm.RUNTIME_FILES})
+        with mock.patch.object(bs, "MIN_GATE_HOLD", 1):
+            res = self.bs("wdtgate", "--uploads", str(self.uploads))
+        self.assertTrue(res["ok"], res)
+        self.assertEqual((res["watchdog_enabled_before"], res["sp805_identified"], res["counter_frozen_while_held"]),
+                         (True, True, True))
         # 2. probe-arm: the vendor env gets the saveenv probe; the "reboot" is the probe boot
         out = self.tmp / "act-probe"
         self.bs("probe", "--out", str(out))
@@ -461,6 +487,7 @@ class OnlineChain(unittest.TestCase):
         self.assertEqual(self.cam.senv(), probe)
         self.assertEqual(self.cam.flash()[sl.SENV_OFF + sl.SENV_LEN:], self.cam.original[sl.SENV_OFF + sl.SENV_LEN:])
         self.assertNotEqual(proc_state(self.dummy.pid), "T")  # the stock app was resumed
+        self.assertWatchdogArmed()  # re-armed before the reboot
         self.set_flash(sl.SENV_OFF, fx.uboot_saved(probe))  # U-Boot: setenv stock bootcmd, saveenv, boot stock
         self.action("collect")
         self.assertTrue(self.bs("collect", "--uploads", str(self.uploads), "--stage", "probe")["ok"])
@@ -514,6 +541,8 @@ class OnlineChain(unittest.TestCase):
                                            "action/env-final.img": 1})
         self.assertEqual(self.flash_state(), "final")
         self.assertEqual(proc_state(self.dummy.pid), "T")  # stock writers stay stopped on the migrated flash
+        self.assertWatchdogArmed()  # back on for the reboot into OpenIPC
+        self.assertIn("watchdog off (ctrl was 3, counter frozen)", self.action_out())
         self.assertFalse((self.om_dir / "payload").exists())
         self.assertToolDiscipline()
         self.assertTrue({"wget", "sha1sum", "md5sum", "expr"} <= set(self.traced("p1")))
@@ -751,6 +780,28 @@ class OnlineChain(unittest.TestCase):
         self.start("probe-arm", self.probe_set(), reboot=True)
         self.boot()
         self.check_clean_stop("probe-arm", "hook quiesce failed; nothing written")
+
+    def test_watchdog_that_does_not_stop_keeps_stock(self):
+        self.setup_bundle()
+        self.wdt.set(mode="stuck")
+        self.start("probe-arm", self.probe_set(), reboot=True)
+        self.boot()
+        self.check_clean_stop("probe-arm", "hook quiesce failed; nothing written")
+        self.assertIn("the watchdog did not stop (ctrl 3)", self.action_out())
+        self.assertWatchdogArmed()
+        self.assertNotEqual(self.cam.senv(), sl.build_probe(self.cam.e0)[0])
+
+    def test_unreadable_watchdog_keeps_stock(self):
+        self.setup_bundle()
+        self.wdt.set(mode="noread")
+        self.start("final", self.action_set("final", {"env-final.img": sl.build_final(self.cam.e0)[0]}),
+                   reboot=True)
+        self.boot()
+        self.check_clean_stop("final", "hook quiesce failed; nothing written")
+        self.assertIn("hook: cannot read the watchdog", self.action_out())
+        self.assertNotIn("ponr", self.events("installer"))
+        self.assertEqual(sorted(self.srv.uploads), ["log-final"])  # no mdat backup was even taken
+        self.assertEqual(self.wdt.get()["writes"], [])
 
 
 if __name__ == "__main__":

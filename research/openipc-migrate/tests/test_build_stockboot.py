@@ -25,9 +25,16 @@ import auth_fixture as af  # noqa: E402
 MKSQ = os.environ.get("OM_MKSQUASHFS")
 SSID, PASS = "dummy-ssid-for-test", "dummy-pass-for-test"
 HOOK = """#!/bin/sh
+W="$OMT_UP/../wdt.off"; ID="id=5,24,20,0 cid=13,240,5,177"
 case "$1" in
   upload) n=$(ls "$OMT_UP" | wc -l); n=$(printf %02d "$n")
     cp "$3" "$OMT_UP/$2-20250101T0000$n-0$n.bin";;
+  quiesce) if [ -n "${OMT_WDT_STUCK:-}" ]; then echo "hook: watchdog still enabled; quiesce undone"; exit 1; fi
+    [ -f "$W" ] || echo 3 > "$W"; echo "hook: watchdog off (ctrl was 3, counter frozen)";;
+  resume|wdt-rearm) rm -f "$W";;
+  wdt-status) if [ -n "${OMT_WDT_NOREAD:-}" ]; then echo "wdt unreadable"; exit 1; fi
+    if [ -f "$W" ]; then echo "wdt ctrl=0 value=5 load=9 lock=1 ris=0 $ID saved=$(cat "$W")"
+    else echo "wdt ctrl=3 value=5 load=9 lock=1 ris=0 $ID saved=none"; fi;;
 esac
 exit 0
 """
@@ -75,15 +82,16 @@ class Flow(unittest.TestCase):
         self.assertIsNone(re.search(r"[0-9a-f]{64}", text), text)
         return json.loads(out.getvalue()) if rc == 0 else text
 
-    def camera(self, action):
-        rc, out = self.cam.run(action, extra=("--hook", str(self.tmp / "hook.sh")), env={"OMT_UP": str(self.up)})
-        self.assertEqual(rc, 0, out)
+    def camera(self, action, rc=0, **env):
+        got, out = self.cam.run(action, extra=("--hook", str(self.tmp / "hook.sh")), env={"OMT_UP": str(self.up), **env})
+        self.assertEqual(got, rc, out)
+        return out
 
     def newest(self, name) -> Path:
         return sorted(self.up.glob(f"{name}-*.bin"))[-1]
 
-    def diagnose(self, tamper=None):
-        self.camera("diagnose")
+    def diagnose(self, tamper=None, **env):
+        self.camera("diagnose", **env)
         info = self.newest("diag-info")
         secs, cur = [], None
         for line in info.read_text().splitlines():
@@ -144,6 +152,18 @@ class Flow(unittest.TestCase):
         self.camera("collect")
         self.assertTrue(self.bs("collect", "--uploads", str(self.up), "--stage", "probe")["ok"])
 
+    def diag(self):
+        self.diagnose()
+        res = self.bs("diag", "--uploads", str(self.up), "--spi-dump", str(self.dump))
+        self.assertTrue(res["ok"], res)
+        return res
+
+    def watchdog_gate(self, **env):
+        """The real wdtgate action (2 s hold instead of 300 s) + the host step with a 1 s minimum."""
+        out = self.camera("wdtgate", **{"OM_SIM_GATE_HOLD": "2", **env})
+        with mock.patch.object(bs, "MIN_GATE_HOLD", 1):
+            return self.bs("wdtgate", "--uploads", str(self.up)), out
+
     def trial(self, **kw):
         return self.action("trial", "--firmware", str(self.tmp / "firmware.bin"), "--oipc-rootfs",
                            str(self.oipc_rootfs(**kw)), "--wifi-vars", str(self.wifi_vars()), "--mksquashfs", MKSQ)
@@ -154,8 +174,97 @@ class Flow(unittest.TestCase):
                      ("final", "--firmware", str(self.tmp / "firmware.bin"), "--out", str(self.tmp / "x"))):
             self.assertIn("missing: run", self.bs(*argv, rc=2))
         self.assertFalse((self.tmp / "x").exists())
-        self.assertEqual(self.bs("status"), {"diag": "missing", "probe": "missing", "trial-build": "missing",
-                                             "trial": "missing"})
+        self.assertEqual(self.bs("status"), {"diag": "missing", "wdtgate": "missing", "probe": "missing",
+                                             "trial-build": "missing", "trial": "missing"})
+        self.assertIn("diag.json missing", self.bs("wdtgate", "--uploads", str(self.up), rc=2))
+
+    def test_diag_records_watchdog_registers_and_uboot_image(self):
+        res = self.diag()
+        self.assertEqual((res["wdt_regs"], res["uboot_image_uploaded"]), ({"enabled": True, "load": 9, "sp805": True}, True))
+        p = self.newest("diag-uboot")
+        self.assertEqual(p.read_bytes(), self.cam.original[:sl.UBOOT_LEN])
+        data = bytearray(p.read_bytes())
+        data[5] ^= 1                                          # not the boot loader the camera hashed
+        p.write_bytes(bytes(data))
+        res = self.bs("diag", "--uploads", str(self.up), "--spi-dump", str(self.dump))
+        self.assertFalse(res["ok"])
+        self.assertEqual(res["problems"], ["diag-uboot upload does not match the vendor U-Boot read on the camera"])
+        p.unlink()                                            # optional upload: hash-only check is still a pass
+        res = self.bs("diag", "--uploads", str(self.up), "--spi-dump", str(self.dump))
+        self.assertTrue(res["ok"] and not res["uboot_image_uploaded"], res)
+        self.assertIn("no diag-uboot upload (the vendor U-Boot was checked by its hash only)", res["notes"])
+
+    def test_diag_refuses_unreadable_watchdog_registers(self):
+        self.diagnose(OMT_WDT_NOREAD="1")
+        self.assertIn("== wdt\nwdt unreadable\n", self.newest("diag-info").read_text())
+        res = self.bs("diag", "--uploads", str(self.up), "--spi-dump", str(self.dump))
+        self.assertFalse(res["ok"])
+        self.assertIsNone(res["wdt_regs"])
+        self.assertEqual(res["problems"], ["SP805 watchdog registers not readable through devmem "
+                                           "(the hook could not switch it off)"])
+
+    def test_watchdog_gate(self):
+        self.diag()
+        res, out = self.watchdog_gate()
+        self.assertTrue(res["ok"], res)
+        for line in ("hook: watchdog off (ctrl was 3, counter frozen)", "resume ok", "watchdog gate held 2s and resumed"):
+            self.assertIn(line, out)
+        self.assertFalse((self.tmp / "wdt.off").exists())   # watchdog re-armed, processes continued
+        self.assertEqual((res["hold_seconds"], res["watchdog_enabled_before"], res["sp805_identified"],
+                          res["counter_frozen_while_held"], res["watchdog_load"]), (2, True, True, True, 9))
+        self.assertGreaterEqual(res["held_seconds"], 1)
+        self.assertTrue(self.bs("status")["wdtgate"]["ok"])
+        res = self.bs("wdtgate", "--uploads", str(self.up))  # the production minimum refuses a 2 s hold
+        self.assertFalse(res["ok"])
+        self.assertEqual(sorted(k for k, v in res["checks"].items() if not v), ["held_in_one_boot", "hold_long_enough"])
+        self.diag()
+        self.assertEqual(self.bs("status")["wdtgate"], "missing")   # a new diag needs a new gate
+
+    def test_watchdog_gate_rejects_bad_evidence(self):
+        self.diag()
+        self.watchdog_gate()
+        info = self.newest("wdtgate-info")
+        good = info.read_text()
+        cases = [
+            ("off_while_quiesced", lambda t: t.replace("\nheld wdt ctrl=0 ", "\nheld wdt ctrl=1 ")),
+            ("resumed", lambda t: t.replace("resume ok", "resume failed")),
+            ("network_while_quiesced", lambda t: t.replace("quiesced-upload ok", "quiesced-upload failed")),
+            ("held_in_one_boot", lambda t: re.sub(r"^uptime-held .*$", "uptime-held 0.5", t, flags=re.M)),
+            ("registers_readable", lambda t: re.sub(r"^before .*$", "before wdt unreadable", t, flags=re.M)),
+            ("rearmed_after", lambda t: t.replace("\nafter wdt ctrl=3 ", "\nafter wdt ctrl=0 ")),
+            ("state_saved_while_quiesced", lambda t: re.sub(r"^(quiesced wdt .*)saved=3$", r"\1saved=none", t,
+                                                            flags=re.M)),
+        ]
+        for check, tamper in cases:
+            bad = tamper(good)
+            self.assertNotEqual(bad, good, check)
+            info.write_text(bad)
+            with mock.patch.object(bs, "MIN_GATE_HOLD", 1):
+                res = self.bs("wdtgate", "--uploads", str(self.up))
+            self.assertFalse(res["ok"], check)
+            self.assertFalse(res["checks"][check], check)
+        info.write_text(good)
+        with mock.patch.object(bs, "MIN_GATE_HOLD", 1):
+            self.assertTrue(self.bs("wdtgate", "--uploads", str(self.up))["ok"])
+
+    def test_watchdog_gate_stops_cleanly_when_the_watchdog_stays_on(self):
+        self.diag()
+        out = self.camera("wdtgate", rc=1, OM_SIM_GATE_HOLD="2", OMT_WDT_STUCK="1")
+        self.assertIn("hook: watchdog still enabled; quiesce undone", out)
+        self.assertIn("hook quiesce failed; nothing written", out)
+        self.assertEqual(list(self.up.glob("wdtgate-info-*")), [])
+        self.assertIn("no wdtgate-info upload", self.bs("wdtgate", "--uploads", str(self.up), rc=2))
+
+    def test_final_requires_the_watchdog_gate(self):
+        self.diag()
+        fw, out = str(self.tmp / "firmware.bin"), self.tmp / "f"
+        bs.save_json(self.state, "trial.json", {"ok": True, "checks": {}, "envlive": "0" * 64})
+        self.assertIn("wdtgate.json missing: run `wdtgate` first", self.bs("final", "--firmware", fw, "--out", str(out),
+                                                                           rc=2))
+        bs.save_json(self.state, "wdtgate.json", {"ok": False, "checks": {"hold_long_enough": True, "resumed": False}})
+        self.assertIn("the watchdog gate did not pass: resumed", self.bs("final", "--firmware", fw, "--out", str(out),
+                                                                         rc=2))
+        self.assertFalse(out.exists())
 
     def test_trial_requires_matching_watchdog_module(self):
         root = self.oipc_rootfs()
@@ -251,7 +360,11 @@ class Flow(unittest.TestCase):
         res = self.bs("collect", "--uploads", str(self.up), "--stage", "trial")
         self.assertTrue(res["ok"], res)
         self.assertEqual(res["log_source"], "tl mailbox")
+        self.assertIn("wdtgate.json missing", self.bs("final", "--firmware", str(self.tmp / "firmware.bin"),
+                                                      "--out", str(self.tmp / "f1"), rc=2))
+        self.assertTrue(self.watchdog_gate()[0]["ok"])
         res, meta, out = self.action("final", "--firmware", str(self.tmp / "firmware.bin"))
+        self.assertEqual(meta["evidence"], {"built_from": "diag env (E0)", "trial": "passed", "wdtgate": "passed"})
         env = dict(sl.parse_env((out / "env-final.img").read_bytes()))
         self.assertEqual((env["bootcmd"], env["verify"]), (sl.FINAL_BOOTCMD, "y"))
         self.assertEqual(env["ipaddr"], "192.0.2.10")         # built from E0: vendor keys kept

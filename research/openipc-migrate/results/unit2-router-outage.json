@@ -1,0 +1,53 @@
+{
+  "schema": "iblack-openipc-unit2-router-outage/1",
+  "date_utc": "2026-11-16",
+  "unit": 2,
+  "base_revision": "7d6574a026708b0d9a693d5018a896157b23b9b7",
+  "uboot_written": false,
+  "firmware_written": false,
+  "camera_changes": {
+    "env": "none",
+    "overlay_files": [],
+    "runtime_only": "trial script, trial wpa_supplicant config and trial log under /tmp (tmpfs); the script and the config were removed after the test"
+  },
+  "method": "wifi/wifi-switch-trial.sh with WAIT=540: wlan0 was pointed (RAM only) at a test AP on the host that did not exist yet, standing in for a router that is off. The env network (the home router) was left as it was, so the camera returns to it by itself after 540 s.",
+  "results": {
+    "no_ap": {
+      "seconds_without_any_network": 181,
+      "lease_after_ap_up_s": 11,
+      "ping_after_ap_up_s": 11,
+      "ssh_host_key": "same",
+      "reboot": false,
+      "majestic": "running"
+    },
+    "ap_down_while_associated": {
+      "down_s": 60,
+      "answers_after_ap_back_s": 4,
+      "reboot": false
+    },
+    "auto_revert_to_home_router": {
+      "after_trial_start_s": 568,
+      "lease_after_wait_s": 28,
+      "gateway": "reachable",
+      "reboot": false
+    },
+    "uptime": "continuous through the whole test (no reboot)"
+  },
+  "why_it_recovers": "wpa_supplicant keeps scanning for the configured SSID, and udhcpc runs with -b (-t 5 -T 1 -A 0), so it goes to the background and keeps asking for a lease",
+  "reset_button": {
+    "stock": "the stock app (appfs cmsMain.out) watched the button and switched the radio to AP mode by loading mt7601Uap.ko (log string: 3518 keydown time(%d),do cmsChangeWifiDevice2AP)",
+    "openipc": "the migration replaced that app. No init script, cron entry or daemon reads the button, the Wi-Fi driver in use is mt7601sta (station only) and there is no hostapd, so the button is not expected to do anything",
+    "stock_ap_driver_on_openipc": "not tried: mt7601Uap.ko has the same vermagic (3.0.8 mod_unload ARMv5) as the OpenIPC modules and 105 undefined symbols; whether it loads and works on the OpenIPC kernel is unknown"
+  },
+  "host_side": "while the host was on its test AP, another device on the router network started answering for the host's fixed IPv4 address on that network (most likely handed out by the router's DHCP). NetworkManager's address conflict check then refused the fixed-address profile. The host was put back on the router network with a temporary DHCP profile kept under /run (not saved to disk).",
+  "not_tested": [
+    "starting the camera while the router is off (same wpa_supplicant and udhcpc -b path; expected to join when the router comes back)",
+    "pressing the reset button on OpenIPC"
+  ],
+  "kept_outside_git": [
+    "camera and host addresses",
+    "MAC addresses",
+    "SSH host key",
+    "Wi-Fi SSIDs and passphrases"
+  ]
+}

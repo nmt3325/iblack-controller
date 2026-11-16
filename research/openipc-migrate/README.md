@@ -167,7 +167,7 @@ phase2（RAM上のOpenIPC BusyBox）：manifestのseqが変わるたびに om_st
 | --- | --- | --- |
 | `stock_layout.py` | 配置、純正env（128 KiB）の符号化、純正U-Boot 2010.06のコマンド解釈器とLinux 3.0.8 `cmdlinepart` のモデル、probe／試験／本番／復元envの生成と検査 | ホスト |
 | `build_stockboot.py` | ホスト側の状態機械。diagnoseとcollectの結果を検査し、各段階の私的なaction一式を作る。前の段階が通っていなければ拒否する。`plan` は容量報告 | ホスト |
-| `make_env.py` | OpenIPC U-Bootの既定envから、移行後の `0x060000` に置く64 KiBのenv画像（Wi-Fi設定入り）を作る | ホスト |
+| `make_env.py` | OpenIPC U-Bootの既定envから、移行後の `0x060000` に置く64 KiBのenv画像（Wi-Fi設定入り）を作る。既定で `sensor=ar0141` と、届かない `upgrade` のURLも入れる | ホスト |
 | `build_migration_appfs.py` | 純正appfsに `openipc-migrate/{stage2.sh,migrate.conf}`、起動行、試験起動の分岐を加えた移行appfsとbundleを作る | ホスト |
 | `serve_migration.py` | bundleとaction一式だけを配るLAN側HTTPサーバ。1プロセス1モード | ホスト |
 | `camera/stage2.sh` | カメラ側ドライバ。phase1は純正sh、phase2はRAM上のOpenIPC BusyBox | カメラ |
@@ -175,6 +175,8 @@ phase2（RAM上のOpenIPC BusyBox）：manifestのseqが変わるたびに om_st
 | `camera/trial.sh`、`camera/trial_dhcp.sh` | 試験起動でのWi-Fi接続、DHCP、報告、`tl` へのログ記録 | カメラ（試験起動） |
 | `camera/migrate_hook.sh` | 純正アプリの停止・再開、送信、進捗 | カメラ（phase2） |
 | `validate_online_qemu.py` | 実ARMバイナリを `qemu-arm` で動かす検証 | ホスト |
+| `easy/easy_migrate.py`、`easy/post_setup.py` | 移行の全段階を、止まっても再開できる1つのコマンドにしたものと、移行後の設定・更新ガードの導入（[easy/README.md](easy/README.md)） | ホスト（SSHでカメラ） |
+| `update/sysupgrade-guard.sh`、`update/check_update.py` | 固定の区画を壊す更新を止めるガードと、更新が区画に収まるかの判定（[update/README.md](update/README.md)） | カメラ／ホスト |
 | `tests/` | ユニット、模擬フラッシュでのインストーラー、E2E | ホスト |
 
 **移行appfsを届ける部分（純正TCP3508の `0x96` 更新）はリポジトリに入れていない。** 実機では、所有者の承認のもとリポジトリ外の私的な送信ツールを使った。既存の `research/sysupdate-offline/pack_update.py` のガードは変えていない。`0x96` はappfsとbakfsを両方書き換えて再起動する。trial-armの後はbakfsに純正appfsの控えが残らない。そこから先の復旧手段はSPIダンプになる。
@@ -208,7 +210,7 @@ python3 serve_migration.py --bundle "$B" --mode final --action-dir "$A/final" --
 
 途中でやめるときは `build_stockboot.py restore` と `serve_migration.py --mode restore-env --write-confirm yes-restore-stock-uboot-env` で、diagnose時の純正envへ戻す。
 
-移行後は、OpenIPCの `sysupgrade -u`（U-Boot更新）を使わない。`boot` 区画は読取り専用にしてあるが、この区画には純正U-Bootと純正envがあり、ここを書くと起動しなくなる。kernelとrootfsの更新も、上の容量に収まるものに限る。OpenIPC側の `fw_setenv` は `0x060000` のenvを書くだけで、純正U-Bootの起動設定は変わらない。
+移行後は、OpenIPCの `sysupgrade -u`（U-Boot更新）を使わない。`boot` 区画は読取り専用にしてあるが、この区画には純正U-Bootと純正envがあり、ここを書くと起動しなくなる。kernelとrootfsの更新も、上の容量に収まるものに限る。標準のオンライン更新（Web UIのGitHubからの更新、`sysupgrade -k -r`、自動更新）は分割版の `firmware.bin` を `0x070000` から一続きに書いてこの配置を壊すので使わない。移行後のカメラには、これを止める更新ガードを入れる（[update/README.md](update/README.md)）。OpenIPC側の `fw_setenv` は `0x060000` のenvを書くだけで、純正U-Bootの起動設定は変わらない。
 
 ## 安全ゲート
 
@@ -247,17 +249,29 @@ finalの後戻りできない区間は、firmware約6.6 MiBの消去・書込み
 
 ### x86ホスト
 
-`python3 -m unittest discover -s tests -v`：**135件が成功**（失敗0、スキップなし、実ツールの `mksquashfs`／`unsquashfs` あり、約6分）。
+`python3 -m unittest discover -s tests -v`：**301件が成功**（失敗0、スキップ2、2026-11-16。実ツールの `mksquashfs`／`unsquashfs` あり、約4分）。スキップの2件は、私的な認証ランタイムとqemu-armが要る `test_trial_auth` の実ランタイム試験。最初にまとめたときは135件だった。
 
 | モジュール | 件数 | 内容 |
 | --- | --- | --- |
 | `test_stock_layout` | 21 | 配置と容量、純正env（128 KiB）の符号化、純正U-Bootのコマンド解釈と `_do_setenv`、`cmdlinepart`、probe／試験／本番／復元env、`0x050000` にuImageヘッダがないこと |
-| `test_build_stockboot` | 18 | 段階の順序、diagnoseとcollectの判定（不安定なブロック、16回読む弱いブロック、別個体のダンプ）、試験用SquashFSの容量とtlの雛形、純正BusyBoxで動かないスクリプトを試験用SquashFSに入れないこと、action一式 |
+| `test_build_stockboot` | 25 | 段階の順序、diagnoseとcollectの判定（不安定なブロック、16回読む弱いブロック、別個体のダンプ）、試験用SquashFSの容量とtlの雛形、純正BusyBoxで動かないスクリプトを試験用SquashFSに入れないこと、action一式 |
 | `test_om_stockboot` | 12 | 模擬フラッシュ上の `om_stockboot.sh`：diagnoseとcollectは読取りのみ、probe-armは純正envだけを書く、語句と計画どおりのenvが要る、env書込みの失敗で元に戻す、試験イメージの失敗ではenvを書かない、finalの一時的な読み書き不良・後戻りできない点の前後の失敗・再試行 |
 | `test_build_migration_appfs` | 37 | 移行appfsの組立てと容量、runapp.shの起動行と試験起動の分岐（純正shで実行）、stage2.shと `trial.sh` が純正BusyBoxの範囲に収まること（`dd` の引数、`grep -x` を含む）、bundle |
-| `test_serve_migration` | 23 | bundleとaction一式の検査、モードごとのmanifest、1回だけのaction、run id、受信物（純正 `wget --post-data` の%XX形式の試験ログを元に戻すこと、受信を断るときも本文を読み切ってから応答すること）、語句の一致 |
-| `test_make_env` | 16 | OpenIPC U-Bootの既定env抽出、許可キー、`0x060000` 用の配置、私的ファイルの扱い |
-| `test_e2e_online` | 12 | phase1→phase2→installer→試験起動の `trial.sh` をHTTP越しに通す（Debian版BusyBox。`dd` と `grep` は純正と同じ引数だけ通し、`wget --post-data` は純正と同じ%XX形式で送る。模擬フラッシュ）。`tl` の中身、ホストが受け取った試験ログ、`saveenv` が失敗していた場合の純正envの書き戻しも確かめる |
+| `test_serve_migration` | 24 | bundleとaction一式の検査、モードごとのmanifest、1回だけのaction、run id、受信物（純正 `wget --post-data` の%XX形式の試験ログを元に戻すこと、受信を断るときも本文を読み切ってから応答すること）、語句の一致 |
+| `test_make_env` | 17 | OpenIPC U-Bootの既定env抽出、許可キー、`0x060000` 用の配置、私的ファイルの扱い、envの `sensor`・`upgrade` の既定値 |
+| `test_e2e_online` | 18 | phase1→phase2→installer→試験起動の `trial.sh` をHTTP越しに通す（Debian版BusyBox。`dd` と `grep` は純正と同じ引数だけ通し、`wget --post-data` は純正と同じ%XX形式で送る。模擬フラッシュ）。`tl` の中身、ホストが受け取った試験ログ、`saveenv` が失敗していた場合の純正envの書き戻しも確かめる |
+| `test_phase1_capacity` | 23 | 純正shとawkでのRAMFS容量判定（デバイスに触れない） |
+| `test_diagnose_liveness` | 8 | 読取り専用の診断が純正のサービスを止めないこと、大きな読出しの前のメタデータ確認、待機中の状態が見えること |
+| `test_migrate_hook_wdt` | 10 | `migrate_hook.sh` とSP805 watchdog（下の「watchdog対策の検証（オフライン）」） |
+| `test_trial_auth` | 20 | 試験起動だけのWPA2設定とARM実行環境の取り決め |
+| `test_compose_spi_image` | 6 | `compose_spi_image.py`（合成したフラッシュ内容だけ） |
+| `test_vicheck` | 8 | `video/S96vicheck`（[video/README.md](video/README.md)） |
+| `test_lightsensor` | 9 | `night/S94lightsensor`（[night/README.md](night/README.md)） |
+| `test_wifi_switch_trial` | 6 | `wifi/wifi-switch-trial.sh`（[wifi/README.md](wifi/README.md)） |
+| `test_post_setup` | 13 | `easy/post_setup.py`（[easy/README.md](easy/README.md)） |
+| `test_easy_migrate` | 15 | `easy/easy_migrate.py`（模擬カメラ相手。[easy/README.md](easy/README.md)） |
+| `test_sysupgrade_guard` | 20 | `update/sysupgrade-guard.sh`（[update/README.md](update/README.md)） |
+| `test_check_update` | 9 | `update/check_update.py`（[update/README.md](update/README.md)） |
 
 ### qemu-arm（ユーザーモード、`-cpu arm926`）
 
@@ -338,7 +352,9 @@ diagnoseでは純正アプリ・ネットワークサービスを停止しない
 - 映像（続き）: envの `sensor` を `ar0141` にし、AR0141のini、`isp.blkCnt: 9`、起動直後と動作中の映像を見張る `S96vicheck` を入れて、720pのH.264が約27 fpsでRTSP(554)から出るようになった（[video/README.md](video/README.md)、[results/unit2-video.json](results/unit2-video.json)）。
 - 暗視: IRカットフィルター（GPIO0_2）、赤外LED（GPIO6_4）、明るさセンサー（ADCのチャネル1）を見つけ、majesticの `nightMode` と、センサーをmajesticに読ませる `S94lightsensor` で、昼と夜を自動で切り替えるようにした。Web画面とAPIからも切り替えられる（[night/README.md](night/README.md)、[results/unit2-night.json](results/unit2-night.json)）。
 - Wi-Fi: つなぎ先を、ホストのAPから自宅のルーター（Aterm）の2.4 GHzに変えた。フラッシュに書かない試験（残す印がなければ300秒で戻る）でつながることを確かめてから、envの `wlanssid` と `wlanpass` を `fw_setenv` で書き換えた。再起動後も同じところにつながり、時計はNTPで合うようになった（[wifi/README.md](wifi/README.md)、[results/unit2-home-wifi.json](results/unit2-home-wifi.json)）。
-- 次の機体では、finalで rootfs_data の先頭に `/init` の持ち込み（`OPENIPC-OVL1`）を置き、`etc/modules` に `wdt` を入れておけば、初回起動からwatchdogを給餌できる見込み（未実装）。
+- 次の機体では、`make_env.py` が既定でenvに `sensor=ar0141` を入れるので、初回起動から `load_hisilicon` が `wdt.ko` まで読み込み、watchdogに給餌できる見込み（次の機体で確かめる）。finalで rootfs_data の先頭に `/init` の持ち込み（`OPENIPC-OVL1`）を置いて `etc/modules` に `wdt` を入れる案は未実装。
+- 更新: OpenIPC標準のオンライン更新は固定の区画を壊すので、更新ガード（`/usr/sbin/sysupgrade` の置き換え）とenvの `upgrade`（届かないURL）で止めた。ガードの判定は2台目の上で28件確かめた（書き込みなし）。区画に収まる版だけを `--kernel`／`--rootfs` で入れる手順は [update/README.md](update/README.md)（版の入れ替えは未実施）。結果は [results/unit2-update-guard.json](results/unit2-update-guard.json)。
+- まとめ: ここまでの手作業を [easy/README.md](easy/README.md) の2つのコマンドにした。`post_setup.py`（移行後の設定と更新ガード）は2台目で確かめた。`easy_migrate.py`（移行全体）は模擬カメラ相手のオフライン試験だけ。
 
 ## 再実行
 

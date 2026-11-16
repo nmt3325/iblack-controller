@@ -22,6 +22,18 @@ Why: erasing the env leaves the OpenIPC network scripts without wlandev /
 wlanssid / wlanpass, so a unit that is only reachable over Wi-Fi would come
 up unreachable after the migration.
 
+Two more keys are added by default (--sensor / --upgrade-url, "" leaves one out):
+  sensor=ar0141   the iBlack's image sensor. load_hisilicon reads it to pick the
+                  sensor driver; without it, it stops before loading the
+                  watchdog module and majestic finds no sensor.
+  upgrade=https://iblack-fixed-slots.invalid/...   the URL OpenIPC's updater
+                  downloads from when it is started without one (the Web UI's
+                  GitHub update, sysupgrade -k -r). The package it would fetch
+                  is the split layout, which overruns this camera's fixed slots;
+                  .invalid never resolves, so such an update stops before it
+                  writes. The env survives a factory reset, unlike the overlay
+                  that holds update/sysupgrade-guard.sh.
+
 Secret values are never printed or written to the summary (key names, sizes,
 CRC status and the image sha256 only).
 """
@@ -48,6 +60,8 @@ LAYOUTS = ("stockboot", "openipc-uboot")
 STOCKBOOT_OVERRIDES = {**stock_layout.OIPC_ENV_LAYOUT, "bootcmd": stock_layout.FINAL_BOOTCMD,
                        "bootargs": stock_layout.FINAL_BOOTARGS}
 DEFAULT_WLANDEV = "mt7601u-hi3518ev100-camhi"
+DEFAULT_SENSOR = "ar0141"
+NO_ONLINE_UPDATE_URL = "https://iblack-fixed-slots.invalid/no-online-update.tgz"
 ALLOWED_KEYS = ("wlandev", "wlanssid", "wlanpass", "wlanmac", "ethaddr", "netaddr_fallback")
 SECRET_KEYS = ("wlanssid", "wlanpass")
 REQUIRED_DEFAULT_KEYS = ("bootcmd", "bootdelay", "baudrate", "ipaddr", "serverip", "mtdparts")
@@ -182,6 +196,10 @@ def main(argv=None) -> int:
     ap.add_argument("--uboot-sha256", default=PINNED_UBOOT_SHA256)
     ap.add_argument("--private-vars", type=Path, help="key=value file (0600) with wlanssid/wlanpass etc.")
     ap.add_argument("--wlandev", default=DEFAULT_WLANDEV)
+    ap.add_argument("--sensor", default=DEFAULT_SENSOR, help='env "sensor" (default %(default)s; "" to leave it out)')
+    ap.add_argument("--upgrade-url", default=NO_ONLINE_UPDATE_URL,
+                    help='env "upgrade" (default: an unresolvable URL, so an unguarded online update stops '
+                         'before it writes; "" to leave it out)')
     ap.add_argument("--allow-no-wifi", action="store_true", help="permit an image without wlanssid/wlanpass")
     ap.add_argument("--layout", choices=LAYOUTS, default="stockboot",
                     help="stockboot: env partition 0x60000 of the stock-U-Boot plan (default)")
@@ -196,6 +214,11 @@ def main(argv=None) -> int:
         if out == root or root in out.parents:
             raise EnvError("refusing to write the env image inside the repository")
         additions = {"wlandev": args.wlandev}
+        for key, value in (("sensor", args.sensor), ("upgrade", args.upgrade_url)):
+            if value and not all(0x21 <= ord(c) < 0x7f for c in value):
+                raise EnvError(f"--{key.replace('upgrade', 'upgrade-url')} must be printable ASCII without spaces")
+            if value:
+                additions[key] = value
         if args.private_vars:
             additions.update(parse_private_vars(args.private_vars))
         if not all(k in additions for k in SECRET_KEYS) and not args.allow_no_wifi:
@@ -222,6 +245,7 @@ def main(argv=None) -> int:
             "added_or_overridden_keys": sorted(additions),
             "secret_keys_present": {k: k in additions for k in SECRET_KEYS},
             "total_keys": len(parsed), "wlandev": parsed.get("wlandev"),
+            "sensor": parsed.get("sensor"), "upgrade": parsed.get("upgrade"),
         }
         sum_path.write_text(json.dumps(summary, indent=2, sort_keys=True) + "\n")
         os.chmod(sum_path, 0o600)

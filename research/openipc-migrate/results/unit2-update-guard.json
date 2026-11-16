@@ -1,0 +1,161 @@
+{
+  "schema": "iblack-openipc-unit2-update-guard/1",
+  "date_utc": "2026-11-16",
+  "unit": 2,
+  "base_revision": "35cb1c6257050262408c410e688f741390175653",
+  "uboot_written": false,
+  "firmware_written": false,
+  "real_update_performed": false,
+  "camera": {
+    "openipc": "2.6.11.13 lite (GITHUB_VERSION master+a0f341e, 2026-11-13)",
+    "updater": "/rom/usr/sbin/sysupgrade v1.0.84",
+    "proc_mtd": {
+      "boot": [
+        "0x000000",
+        "0x60000"
+      ],
+      "env": [
+        "0x060000",
+        "0x10000"
+      ],
+      "kernel": [
+        "0x070000",
+        "0x1d0000"
+      ],
+      "rootfs": [
+        "0x240000",
+        "0x4e0000"
+      ],
+      "rootfs_data": [
+        "0x720000",
+        "0xe0000"
+      ]
+    },
+    "layout_source": "the vendor U-Boot's bootargs; Linux cannot change it",
+    "installed_images": {
+      "uImage_bytes": 1864732,
+      "uImage_name": "Linux-3.0.8-hi3518ev100",
+      "squashfs_bytes_used": 5100346
+    },
+    "tmp_tmpfs_kb": 14388,
+    "ram_total_kb": 28780,
+    "state_when_recorded": "majestic running, wdt loaded, uptime 5:28, guard active"
+  },
+  "camera_changes": {
+    "overlay_files": [
+      "/usr/sbin/sysupgrade = update/sysupgrade-guard.sh (GUARD_VERSION 1, md5 d23acf8928c54011b0b0a99c9e972d02, same as the repository file); the original updater stays at /rom/usr/sbin/sysupgrade"
+    ],
+    "env": {
+      "upgrade": "https://iblack-fixed-slots.invalid/no-online-update.tgz (fw_setenv)"
+    },
+    "runtime_only": "guard copy and dry-run fixtures under /tmp, and the post_setup fake root under /tmp; all removed afterwards"
+  },
+  "why_the_standard_update_breaks_this_camera": [
+    "the online update (Web UI GitHub update, sysupgrade -k -r without --archive, --url, --channel, --build, auto-update) takes the -split.tgz package when it exists and writes its firmware.bin from 0x070000 in one piece",
+    "firmware.bin of the installed version is 7012352 bytes and ends at 0x720000 only because its kernel rounds up to exactly the 0x1d0000 slot; nightly 4cc6476 is 7077888 bytes and ends at 0x730000, so its squashfs runs past the rootfs slot into rootfs_data",
+    "the plain package of nightly 4cc6476 has a 5124096-byte rootfs, 12288 bytes more than the 5111808-byte rootfs slot (its 1864788-byte kernel fits)",
+    "without -z the updater first replaces itself with OpenIPC master's",
+    "-u rewrites U-Boot; -f and --force_* turn off the updater's own checks; --no_ramfs flashes the running system"
+  ],
+  "layers": {
+    "guard": "passes on only --kernel/--rootfs images of this SoC that fit their slots and are whole, --archive with a plain package whose images fit (never firmware.bin, no extra files), -k -r only with --archive, -n -x -s -z --web --insecure, and read-only -h --help --history --list-builds; always adds -z; refuses every write when /rom's updater is not a version that was read (1.0.84); refusals go to logger -t sysupgrade-guard",
+    "env_upgrade": "the updater uses it only when no --url, --channel or --build is given; .invalid never resolves, so the Web UI update button, sysupgrade -k -r and auto-update fetch nothing even without the guard; --channel and --build are not covered",
+    "factory_reset": "sysupgrade -n, firstboot and the Web UI reset wipe the overlay and the guard with it; the env stays; run easy/post_setup.py again after the owner's first login"
+  },
+  "guard_status": [
+    "sysupgrade-guard 1: active; the updater is /rom/usr/sbin/sysupgrade (v1.0.84)",
+    "flash layout: fixed slots (kernel 1856K, rootfs 4992K, rootfs_data 896K)",
+    "updater version: known",
+    "refused: -k/-r without --archive, --url, --channel, --build, -u, -f/--force_*, --no_ramfs, split images",
+    "env upgrade: https://iblack-fixed-slots.invalid/no-online-update.tgz"
+  ],
+  "guard_dry_run_on_camera": {
+    "method": "guard copy in /tmp run with SYSUPGRADE_GUARD_DRYRUN=1 against the real /rom updater version and /proc/mtd; the updater was never started; nothing left in /tmp",
+    "cases": 28,
+    "as_expected": 28,
+    "archive_cases": {
+      "fixtures": "synthetic packages from tests/update_fixture.py",
+      "accepted": [
+        "fitting package with -k -r --web",
+        "fitting package alone"
+      ],
+      "refused": [
+        "rootfs 5124096 bytes",
+        "kernel 1900545 bytes",
+        "firmware.bin inside",
+        "uImage built for hi3518cv100",
+        "extra file inside",
+        "--force_ver",
+        "-n --force_ver",
+        "-k -r --web without --archive",
+        "-k -r -n --web without --archive",
+        "--build=latest",
+        "missing file"
+      ]
+    },
+    "image_cases": {
+      "fixtures": "sparse files carrying the real headers of the installed kernel and rootfs (no RAM used for the body)",
+      "accepted": [
+        "--kernel --rootfs",
+        "--kernel --rootfs -x",
+        "--rootfs only",
+        "-n"
+      ],
+      "refused": [
+        "kernel 1900545 bytes (slot + 1)",
+        "rootfs 5115904 bytes (slot + 4 KiB)",
+        "squashfs cut short",
+        "uImage cut short",
+        "kernel and rootfs swapped",
+        "--archive together with --kernel/--rootfs",
+        "--no_ramfs",
+        "-f",
+        "-u",
+        "--url",
+        "--channel"
+      ]
+    }
+  },
+  "check_update": {
+    "installed_version_plain_package": {
+      "kernel": 1864732,
+      "kernel_spare": 35812,
+      "rootfs": 5103616,
+      "rootfs_spare": 8192,
+      "exit": 0
+    },
+    "nightly_4cc6476_plain_package": {
+      "kernel": 1864788,
+      "kernel_spare": 35756,
+      "rootfs": 5124096,
+      "rootfs_spare": -12288,
+      "exit": 1
+    }
+  },
+  "post_setup_on_camera": {
+    "fake_root_first_run": "7 changed: guard, /etc/modules wdt, wdt load, AR0141 720p ini, majestic.yaml (isp.blkCnt and nightMode keys), S94lightsensor, S96vicheck; env upgrade and sensor already set",
+    "fake_root_second_run": "no file or env change; only the wdt load step repeats, because the fake root has no proc/modules",
+    "real_root": "nothing to change: unit 2 had been set up by hand with the same content"
+  },
+  "offline_tests": {
+    "tests/test_sysupgrade_guard.py": 20,
+    "tests/test_check_update.py": 9,
+    "tests/test_post_setup.py": 13,
+    "tests/test_easy_migrate.py": 15,
+    "tests/test_make_env.py": 17,
+    "full_suite": "301 tests OK, 2 skipped (test_trial_auth real-runtime cases need the private auth runtime and qemu-arm), real mksquashfs/unsquashfs, 247 s"
+  },
+  "not_verified": [
+    "writing a kernel and rootfs through the guard's --kernel/--rootfs route",
+    "the Web UI upload (--archive) on the camera; /tmp may be too small for the archive and its unpacked images at once",
+    "the updater's memory handling on this camera (it stops majestic when RAM is short)",
+    "easy/easy_migrate.py end to end on a unit that still runs the stock firmware"
+  ],
+  "kept_outside_git": [
+    "camera and host addresses",
+    "MAC addresses",
+    "SSH host key",
+    "root password",
+    "Wi-Fi SSID and passphrase"
+  ]
+}

@@ -166,6 +166,25 @@ class TestCli(unittest.TestCase):
         self.assertEqual(rc2, 1)
         self.assertIn("overwrite", err2)
 
+    def test_sensor_and_no_online_update_url_by_default(self):
+        base = ["--uboot", str(self.ub), "--uboot-sha256", self.sha, "--private-vars", str(self.vars)]
+        rc, _, err = self.run_main(base + ["--output-dir", str(self.out)])
+        self.assertEqual(rc, 0, err)
+        env = me.parse_env_image((self.out / "env-openipc.img").read_bytes())
+        self.assertEqual((env["sensor"], env["upgrade"]), ("ar0141", me.NO_ONLINE_UPDATE_URL))
+        self.assertTrue(me.NO_ONLINE_UPDATE_URL.split("/")[2].endswith(".invalid"))
+        summary = (self.out / "env-openipc-summary.json").read_text()
+        self.assertIn('"sensor": "ar0141"', summary)
+        other = Path(self.tmp.name) / "out2"
+        rc, _, err = self.run_main(base + ["--sensor", "", "--upgrade-url", "", "--output-dir", str(other)])
+        self.assertEqual(rc, 0, err)
+        env = me.parse_env_image((other / "env-openipc.img").read_bytes())
+        self.assertNotIn("sensor", env)
+        self.assertNotIn("upgrade", env)
+        rc, _, err = self.run_main(base + ["--sensor", "ar 0141", "--output-dir", str(Path(self.tmp.name) / "o3")])
+        self.assertEqual(rc, 1)
+        self.assertIn("--sensor", err)
+
     def test_legacy_layout_keeps_its_names_and_values(self):
         rc, _, err = self.run_main(["--uboot", str(self.ub), "--uboot-sha256", self.sha, "--layout", "openipc-uboot",
                                     "--private-vars", str(self.vars), "--output-dir", str(self.out)])

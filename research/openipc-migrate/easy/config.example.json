@@ -1,0 +1,22 @@
+{
+  "comment": "Example for easy_migrate.py. Copy it outside the Git repository, chmod 600, replace every placeholder. Relative paths are relative to the copy. Hooks run with /bin/sh in the work directory, with EASY_STEP, EASY_WORK, EASY_BUNDLE, EASY_SPI_DUMP, EASY_WIFI_VARS, EASY_HOST and EASY_PORT set (easy/README.md). 192.0.2.10 stands for the --host the bundle was built with; wlan0 for your Wi-Fi interface.",
+  "bundle": "bundle",
+  "work": "work",
+  "spi_dump": "spi-dump-8m.bin",
+  "firmware": "public/firmware.bin.hi3518ev100",
+  "oipc_rootfs": "public/rootfs",
+  "auth_runtime": "auth/wpa_supplicant",
+  "wifi_vars": "wifi.vars",
+  "mksquashfs": "mksquashfs",
+  "camera_ssh": "ssh root@{ip}",
+  "hooks": {
+    "camera_ap_up": "nmcli connection down id iblack-host-ap >/dev/null 2>&1; nmcli --wait 45 connection up id iblack-camera-ap",
+    "camera_ap_check": "nmcli -t -f NAME connection show --active | grep -qx iblack-camera-ap",
+    "backup": "/path/to/private/read-spi-over-ap \"$EASY_SPI_DUMP\"",
+    "deliver": "/path/to/private/send-migration-appfs \"$EASY_BUNDLE\"",
+    "trial_ap_up": "nmcli connection down id iblack-camera-ap; nmcli --wait 45 connection up id iblack-host-ap",
+    "trial_ap_down": "nmcli connection down id iblack-host-ap; nmcli --wait 45 connection up id iblack-camera-ap",
+    "final_ap_up": "nmcli connection down id iblack-camera-ap >/dev/null 2>&1; nmcli --wait 45 connection up id iblack-host-ap",
+    "camera_address": "tail -n 1 /var/lib/NetworkManager/dnsmasq-wlan0.leases | cut -d ' ' -f 3"
+  }
+}

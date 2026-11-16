@@ -20,7 +20,7 @@
 
 | 項目 | 結果 | 限界 |
 | --- | --- | --- |
-| 配置 | 純正U-Boot（`0x000000`）と純正env（`0x040000`、128 KiB）は残す。OpenIPCのenvは `0x060000`、公開firmwareは加工せずに `0x070000`、overlayは896 KiB。kernelの余裕は35,812 B、rootfsの余裕は11,462 B | 標準と違う配置なので、移行後も `sysupgrade -u` は使えない |
+| 配置 | 純正U-Boot（`0x000000`）と純正env（`0x040000`、128 KiB）は残す。OpenIPCのenvは `0x060000`、公開firmwareは加工せずに `0x070000`、overlayは896 KiB。kernelの余裕は35,812 B、rootfsの余裕は11,462 B | 標準と違う配置なので、移行後も `sysupgrade -u` と標準のオンライン更新は使えない（[更新ガード](../research/openipc-migrate/update/README.md)） |
 | 移行appfs | 2,613,248 B。`0x96` 経路の上限2,621,432 Bに対して余裕は8,184 B。純正の既存58項目のうち変更は `runapp.sh` だけ（起動行と試験起動の分岐） | 送信部は未実装。`0x96` はbakfsも書き換える |
 | 段階 | diagnose（読取りのみ）→ probe（純正U-Bootがenvを実行して `saveenv` できるか）→ 試験起動（bakfs領域からOpenIPC kernelを1回だけ起動し、次は純正）→ final。前の段階が通っていなければ、ホストは次の段階を作らない | 各段階に個別の承認が要る |
 | 純正U-Bootのモデル | 純正U-Boot 2010.06のコマンド解釈（`CONFIG_SYS_CBSIZE` 1024、引数16個まで）と `_do_setenv`、Linux 3.0.8の `cmdlinepart` を、バイナリとソースから読み取ってモデル化した。試験用 `bootcmd` は417文字（上限1,023文字） | モデルであり、実機では動かしていない |
@@ -165,7 +165,7 @@ finalでは、firmwareと2つのenv画像（64 KiB＋128 KiB）の7,208,960 Bを
 
 final前なら、diagnose時に読んだ純正envへいつでも戻せる（`restore-env`）。どの段階でも、最後の復旧手段はSPIとダンプである。
 
-移行後は、OpenIPCの `sysupgrade -u`（U-Boot更新）を使わない。`boot` 区画は読取り専用にしてあるが、ここには純正U-Bootと純正envがあり、書くと起動しなくなる。kernelとrootfsの更新は `sysupgrade -k -r`（区画を名前で探す）を候補とするが、この配置では未検証で、上の枠（kernel 1,856 KiB、rootfs 4,992 KiB）に収まるものに限る。設定はoverlayへ置き、意図しない `-n` を避ける。これは初回の純正→OpenIPC移行とは別工程である。
+移行後は、OpenIPCの `sysupgrade -u`（U-Boot更新）を使わない。`boot` 区画は読取り専用にしてあるが、ここには純正U-Bootと純正envがあり、書くと起動しなくなる。kernelとrootfsの更新は、上の枠（kernel 1,856 KiB、rootfs 4,992 KiB）に収まる通常版パッケージを `sysupgrade --kernel=… --rootfs=…` で入れるものに限る。アーカイブを伴わない `sysupgrade -k -r` やWeb UIのGitHubからの更新は、分割版の `firmware.bin` を `0x070000` から一続きに書いてこの配置を壊すので、移行後のカメラには更新ガードを入れる（[update/README.md](../research/openipc-migrate/update/README.md)。版の入れ替えは未実施）。設定はoverlayへ置き、意図しない `-n` を避ける。これは初回の純正→OpenIPC移行とは別工程である。
 
 ## 関連資料
 

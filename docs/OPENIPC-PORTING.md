@@ -48,7 +48,7 @@
 - **SoC：Hi3518EV100が最有力**。純正U-BootのDDR／PLL表はEV100 universal U-Bootと125/125項目一致したという前段調査に基づく。今回は再測定していない。チップ刻印は未確認。
 - RAM：64 MiB、NOR：8 MiBという前段調査を前提とする。Linuxが使えるRAMと空き容量は別であり、移行時の実測が必要。
 - センサー：AR0141。前段調査では純正初期化表とOpenIPC `libsns_ar0140.so` の表が一致。2台目のOpenIPCで映像を確認した（720pのH.264、約27 fps。Bayer配列はGRBG）。iniと設定は [`research/openipc-migrate/video`](../research/openipc-migrate/video/README.md)。
-- Wi-Fi：純正はMT7601系列。対象OpenIPC rootfsには `lib/modules/3.0.8/extra/mt7601sta.ko` がある。
+- Wi-Fi：純正はMT7601系列。対象OpenIPC rootfsには `lib/modules/3.0.8/extra/mt7601sta.ko` がある。2台目のOpenIPCは2.4 GHzだけでつながり、つなぎ先はenvの `wlanssid`・`wlanpass` で決まる。ホストのAPから自宅のルーターへつなぎ替えた記録は [`research/openipc-migrate/wifi`](../research/openipc-migrate/wifi/README.md)。
 - 外部接続：Wi-Fiだけ（UARTもEthernetもない）。SPIでの読み書きはでき、8 MiB全体のダンプがある（所有者が保管し、Gitには入れない）。
 
 ## 2. 純正アップデートを入口にする場合

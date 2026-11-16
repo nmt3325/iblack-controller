@@ -1,0 +1,162 @@
+{
+  "schema": "iblack-openipc-unit2-home-wifi/1",
+  "date_utc": "2026-11-16",
+  "unit": 2,
+  "base_revision": "ee788a57dca1f6929941205e10e0a42de5cc3282",
+  "uboot_written": false,
+  "firmware_written": false,
+  "camera_changes": {
+    "env": {
+      "wlanssid": "SSID of the home router's 2.4 GHz network (value kept outside Git)",
+      "wlanpass": "passphrase of that network (value kept outside Git)",
+      "how": "fw_setenv over SSH with the values on stdin; read back with fw_printenv"
+    },
+    "overlay_files": [],
+    "runtime_only": "trial script, trial wpa_supplicant config, trial log and keep flag under /tmp (tmpfs, gone after the reboot)"
+  },
+  "mechanism": {
+    "file": "/etc/network/interfaces.d/wlan0 (OpenIPC, unchanged)",
+    "pre_up": [
+      "wlan_conf \"$(fw_printenv -n wlanssid)\" \"$(fw_printenv -n wlanpass)\" > /tmp/wpa_supplicant.conf",
+      "wpa_supplicant -B -i wlan0 -D nl80211,wext -c /tmp/wpa_supplicant.conf"
+    ],
+    "address": "DHCP (udhcpc)",
+    "to_change_network": "set wlanssid and wlanpass, then reboot"
+  },
+  "network": {
+    "before": "host AP on the Linux host's Wi-Fi (NetworkManager profile openipc-final-host-ap on wlp1s0); NTP did not reach the camera",
+    "after": "home router (Aterm), 2.4 GHz, channel 11 (2.462 GHz), DHCP lease 86400 s; router settings untouched",
+    "radio": "MT7601, 2.4 GHz only"
+  },
+  "host": {
+    "why_wifi": "the host's wired LAN (default route) is on a different subnet from the router's Wi-Fi; the camera was not found from the wired side",
+    "wlp1s0": "client of the router's 2.4 GHz (NetworkManager profile iermu-home-uplink: static IPv4, never the default route, IPv6 off)",
+    "host_ap": "openipc-final-host-ap deactivated; profile kept with autoconnect off",
+    "autoconnect_restored": [
+      "iermu-home-uplink",
+      "iermu-home-uplink-5g"
+    ],
+    "wired_and_default_route": "unchanged"
+  },
+  "procedure": [
+    "record the camera's SSH ed25519 host key",
+    "trial without flash writes: wifi/wifi-switch-trial.sh with a 300 s window (wlan_conf output for the router under /tmp)",
+    "switch the host's Wi-Fi from the AP to the router and find the camera by its host key (wifi/find-by-hostkey.sh), then create the keep flag",
+    "fw_setenv wlanssid/wlanpass, read back, check that wlan_conf from the new env equals the trial config, reboot"
+  ],
+  "trial": {
+    "script": "wifi/wifi-switch-trial.sh (same logic as the copy that ran; the repository copy adds comments, neutral /tmp file names and overrides for the tests)",
+    "window_s": 300,
+    "flash_written": false,
+    "joined_after_s": 12.1,
+    "joined_note": "from the script's start line to the DHCP lease, including its own sleeps and the wait for the old wpa_supplicant to exit",
+    "lease_s": 86400,
+    "link": {
+      "frequency_ghz": 2.462,
+      "bit_rate_mbps": 65,
+      "signal_dbm": -49
+    },
+    "gateway_ping": "ok",
+    "ntp_step_s": 208451.197587,
+    "discovery": "not found from the wired LAN; found by its SSH ed25519 host key on the host's Wi-Fi after the host joined the router",
+    "keep_flag_seen_at_s": 125,
+    "log_contains_ssid_or_passphrase": false
+  },
+  "persist": {
+    "fw_printenv_matches": true,
+    "wlan_conf_from_env_equals_trial_config": true
+  },
+  "reboot": {
+    "first_ping_after_command_s": 47,
+    "camera_uptime_at_first_ping_s": 30.38,
+    "same_address": true,
+    "same_network": true,
+    "link": {
+      "frequency_ghz": 2.462,
+      "bit_rate_mbps": 65,
+      "signal_dbm": -50
+    },
+    "clock_vs_host_s": "within 1",
+    "running": [
+      "majestic",
+      "wpa_supplicant",
+      "udhcpc",
+      "ntpd"
+    ],
+    "vicheck": [
+      "VI configured but no frame (cold start); restarting majestic once",
+      "video input running after one restart"
+    ],
+    "night": {
+      "night_enabled": 1,
+      "ircut_enabled": 1,
+      "light_enabled": 1,
+      "night_mode_source": 3,
+      "night_adc_raw": 14,
+      "log": "Change mode to NIGHT"
+    },
+    "kernel_log": "NETDEV WATCHDOG: eth0 (hieth): transmit queue 0 timed out (eth0 has no PHY on this board; not investigated)"
+  },
+  "endpoints_after_reboot": {
+    "columns": [
+      "root password",
+      "no password",
+      "wrong password"
+    ],
+    "rtsp_describe_stream0": [
+      200,
+      401,
+      401
+    ],
+    "/image.jpg": [
+      200,
+      401,
+      401
+    ],
+    "/mjpeg": [
+      200,
+      401,
+      401
+    ],
+    "/api/v1/config.json": [
+      200,
+      401,
+      401
+    ],
+    "/cgi-bin/status.cgi": [
+      307,
+      401,
+      401
+    ],
+    "/metrics": "readable without a password (unchanged)",
+    "/": "redirects to /cgi-bin/live.cgi",
+    "image_jpeg_bytes": 30758,
+    "mjpeg_8s": {
+      "frames": 34,
+      "bytes": 1048673
+    }
+  },
+  "outbound": "no outbound TCP connections in 4 samples 13 min after the reboot; ntpd uses pool.ntp.org",
+  "revert": {
+    "to_host_ap": "while the camera is on the router: fw_setenv wlanssid/wlanpass back to the host AP values (kept outside Git), reboot, then bring up openipc-final-host-ap on the host within about 30 s",
+    "trial_only": "wifi/wifi-switch-trial.sh without the keep flag returns to the env network"
+  },
+  "offline_tests": {
+    "file": "tests/test_wifi_switch_trial.py",
+    "cases": 6,
+    "shell": "host BusyBox ash with stub network tools"
+  },
+  "open_issues": [
+    "the DHCP address is not reserved on the router (router settings untouched); find-by-hostkey.sh finds the camera if it changes",
+    "2.4 GHz only: if the router's 2.4 GHz SSID or passphrase changes, or 2.4 GHz is switched off, the camera cannot join; recover with a temporary AP that uses the camera's current SSID and passphrase",
+    "the camera can now reach the internet (needed for NTP); no ports opened on the router; /metrics stays readable without a password on the home network",
+    "long-term link stability (overnight) not yet observed"
+  ],
+  "kept_outside_git": [
+    "SSID and passphrase",
+    "previous host AP SSID and passphrase",
+    "camera, router and host addresses",
+    "MAC addresses",
+    "SSH host key"
+  ]
+}

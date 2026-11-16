@@ -336,6 +336,7 @@ diagnoseでは純正アプリ・ネットワークサービスを停止しない
 - 続けて `/etc/modules` に `wdt` を足して読み込み、1回再起動して123秒動き続けることを確かめた。以後DHCPの取り直しは止まり（確認時点で約6分）、ping・SSH(22)・HTTP(80)が応答する。SSHはパスワードを求める。
 - 接続に時間がかかる理由: TCP接続からdropbearのバナーまで約5.1秒かかる（起動処理の負荷）。鍵交換は約1.5秒で、既定のcurve25519+ed25519が最速だった（ECDH P-256は2.0〜2.2秒）。
 - 映像（続き）: envの `sensor` を `ar0141` にし、AR0141のini、`isp.blkCnt: 9`、起動直後と動作中の映像を見張る `S96vicheck` を入れて、720pのH.264が約27 fpsでRTSP(554)から出るようになった（[video/README.md](video/README.md)、[results/unit2-video.json](results/unit2-video.json)）。
+- 暗視: IRカットフィルター（GPIO0_2）、赤外LED（GPIO6_4）、明るさセンサー（ADCのチャネル1）を見つけ、majesticの `nightMode` と、センサーをmajesticに読ませる `S94lightsensor` で、昼と夜を自動で切り替えるようにした。Web画面とAPIからも切り替えられる（[night/README.md](night/README.md)、[results/unit2-night.json](results/unit2-night.json)）。
 - 次の機体では、finalで rootfs_data の先頭に `/init` の持ち込み（`OPENIPC-OVL1`）を置き、`etc/modules` に `wdt` を入れておけば、初回起動からwatchdogを給餌できる見込み（未実装）。
 
 ## 再実行

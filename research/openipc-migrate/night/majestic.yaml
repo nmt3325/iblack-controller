@@ -1,0 +1,14 @@
+# Managed by majestic. Comments and formatting are removed when settings change
+# via the web UI or API. Only settings that differ from this build's defaults
+# are kept, so a default that changes in a later version still reaches you.
+isp:
+  blkCnt: 9
+nightMode:
+  irCutSingleInvert: true
+  lightMonitor: true
+  irCutPin1: 2
+  backlightPin: 52
+  adcReadout: true
+  adcInvert: true
+  minThreshold: 100
+  maxThreshold: 150

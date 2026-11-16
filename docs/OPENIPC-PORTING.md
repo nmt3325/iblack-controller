@@ -142,7 +142,7 @@ OpenIPCのkernelは、`0x50000` にuImageヘッダ（続いてSquashFS）があ�
 
 ### センサー
 
-`load_hisilicon` は `ar0140 | ar0141` に24 MHzクロック設定を持つ。ライブラリだけでなく、AR0141用ini、I2C、解像度・フレームレート・GPIOを合わせて検証する必要がある。2台目では、envの `sensor=ar0141`、AR0141用ini（`libsns_ar0140.so`、GRBG）、`isp.blkCnt: 9` で映像が出た。起動して最初のmajesticだけはVIがフレームを受けない（センサーがスタンバイのうちにVIを有効にするため）ので、`S96vicheck` が1回起動し直す。暗視のGPIOは未確認。詳細は [`research/openipc-migrate/video`](../research/openipc-migrate/video/README.md)。
+`load_hisilicon` は `ar0140 | ar0141` に24 MHzクロック設定を持つ。ライブラリだけでなく、AR0141用ini、I2C、解像度・フレームレート・GPIOを合わせて検証する必要がある。2台目では、envの `sensor=ar0141`、AR0141用ini（`libsns_ar0140.so`、GRBG）、`isp.blkCnt: 9` で映像が出た。起動して最初のmajesticだけはVIがフレームを受けない（センサーがスタンバイのうちにVIを有効にするため）ので、`S96vicheck` が1回起動し直す。詳細は [`research/openipc-migrate/video`](../research/openipc-migrate/video/README.md)。暗視は、IRカットフィルターがGPIO0_2、赤外LEDがGPIO6_4、明るさセンサーがADCのチャネル1で、majesticの `nightMode` で昼と夜を自動で切り替える（[`research/openipc-migrate/night`](../research/openipc-migrate/night/README.md)）。
 
 ### RAM-rootとwatchdog
 

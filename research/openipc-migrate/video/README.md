@@ -70,7 +70,7 @@ ssh root@<カメラ> reboot
 ## 残っていること
 
 - IQはOpenIPCの `default.ini` のまま（AR0141向けの調整はしていない）。露出とホワイトバランスは自動で動く。
-- 暗視（IRカットフィルターと赤外LED）のGPIOは調べていない。
+- 暗視（IRカットフィルターと赤外LED）は [../night/README.md](../night/README.md) で設定した（`/etc/majestic.yaml` に `nightMode` を足した）。
 - PHYのないeth0が起動され、カーネルログに `tx timeout` が繰り返し出る。映像とWi-Fiには影響がないので、そのままにしている。
 - ホスト名に、初回起動で検出した誤ったセンサーIDが残っている（表示だけ）。
 - 動作中にI2Cでセンサーのレジスタを書くと（`ipctool i2cset` など）、映像が止まることがある。監視が戻すが、試験では気をつける。

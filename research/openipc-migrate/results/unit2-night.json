@@ -1,0 +1,317 @@
+{
+  "schema": "iblack-openipc-unit2-night/1",
+  "date_utc": "2026-11-16",
+  "unit": 2,
+  "base_revision": "0d6e56e8de8cd2fbe4d69a8ac324db01790d41bf",
+  "uboot_written": false,
+  "firmware_written": false,
+  "camera_changes": {
+    "overlay_files": {
+      "/etc/majestic.yaml": {
+        "repo": "night/majestic.yaml",
+        "sha256": "bc78aaac3f66599aef5f87a6e1d25b7a6099d2e9c7fa99929d20766381ae652c",
+        "note": "isp.blkCnt from video plus nightMode; written by majestic (POST /api/v1/config)"
+      },
+      "/etc/init.d/S94lightsensor": {
+        "repo": "night/S94lightsensor",
+        "sha256": "8a59a3d33e04861b6f07c23857111677925599f81c7c4d2616ef1ee6103931f7",
+        "mode": "0755"
+      }
+    },
+    "runtime_only": "/dev/ADC_CH0 -> ADC_CH1 symlink and /dev/ADC_CH0.orig (devtmpfs, recreated by S94lightsensor on every boot)"
+  },
+  "findings": {
+    "source": "stock cmsMain reverse engineering (BoardType 0x63002601), then checked on the camera",
+    "ircut": {
+      "gpio": 2,
+      "pin": "GPIO0_2",
+      "drive": "single pin, level held",
+      "day": 1,
+      "night": 0,
+      "majestic": "irCutPin1: 2 with irCutSingleInvert: true (majestic drives day low by default)"
+    },
+    "ir_led": {
+      "gpio": 52,
+      "pin": "GPIO6_4",
+      "on": 1,
+      "pad_mux": {
+        "reg": "0x200F0090",
+        "default": 1,
+        "default_function": "SDIO data0",
+        "gpio": 0
+      },
+      "majestic": "backlightPin: 52; majestic switches the pad to GPIO when it starts (checked by setting 1 and restarting)"
+    },
+    "light_sensor": {
+      "type": "photoresistor",
+      "adc_channel": 1,
+      "device": "/dev/ADC_CH1 (misc 10,43, open_adc)",
+      "direction": "higher reading = brighter",
+      "adc_channel0": "not connected, reads 10-60",
+      "sees_ir_led": "LED adds about 10 at dusk (89 off, 98-100 on) and gives 14 in the dark (0-2 off)"
+    },
+    "majestic_adc": {
+      "reads": "/dev/ADC_CH0 only",
+      "workaround": "S94lightsensor links /dev/ADC_CH0 to ADC_CH1 before S95majestic",
+      "check": "night_adc_raw matched a direct read of /dev/ADC_CH1"
+    },
+    "thresholds_with_adcInvert": {
+      "night_when": "adc < minThreshold",
+      "day_when": "adc > maxThreshold",
+      "between": "keeps the current mode",
+      "check_interval_s": 5,
+      "autoNightDelay_autoDayDelay": "not applied in ADC mode (switch within one check)"
+    },
+    "manual_while_automatic": "/night/off at night was undone by the next check (about 5 s) because the reading stayed below minThreshold",
+    "gpio0_5": "output high (Wi-Fi/USB power); not touched"
+  },
+  "settings": {
+    "irCutPin1": 2,
+    "irCutSingleInvert": true,
+    "backlightPin": 52,
+    "lightMonitor": true,
+    "adcReadout": true,
+    "adcInvert": true,
+    "minThreshold": 100,
+    "maxThreshold": 150,
+    "defaults_kept": {
+      "irCut": "auto",
+      "backlight": "auto",
+      "colorToGray": true,
+      "monitorDelay": 0
+    }
+  },
+  "control": {
+    "web_ui": {
+      "settings": "/cgi-bin/camera.cgi?tab=nightMode (Day / Night)",
+      "preview_switches": "Night, IR-cut and Lamp appear when Automatic day/night is off"
+    },
+    "api_auth_required": [
+      "/night/on",
+      "/night/off",
+      "/night/toggle",
+      "/night/ircut",
+      "/night/light",
+      "/api/v1/config"
+    ],
+    "api_no_auth": [
+      "/metrics"
+    ],
+    "metrics": [
+      "night_enabled",
+      "ircut_enabled",
+      "light_enabled",
+      "night_mode_source (3 = ADC, 0 = manual)",
+      "night_adc_raw"
+    ]
+  },
+  "verification": {
+    "manual": {
+      "night_on": {
+        "gpio2": 0,
+        "gpio52": 1,
+        "isp_exposure": [
+          2454,
+          902
+        ],
+        "jpeg_saturation_pct": 0
+      },
+      "night_off": {
+        "gpio2": 1,
+        "gpio52": 0,
+        "colour": "back"
+      },
+      "ircut_only_out": {
+        "jpeg_r_over_g": [
+          1.108,
+          1.187
+        ],
+        "isp_exposure": [
+          2337,
+          905
+        ]
+      }
+    },
+    "automatic_forced": {
+      "adc": 245,
+      "thresholds_300_400": "night after about 6 s",
+      "thresholds_100_150": "day after about 5 s"
+    },
+    "automatic_dusk": {
+      "switch_to_night_jst": "16:24",
+      "log": "Change mode to NIGHT",
+      "night_jpeg_saturation_pct": 0,
+      "isp_exposure_before_after": [
+        9718,
+        5032
+      ],
+      "led_effect_at_dusk": {
+        "adc_led_off": 89,
+        "adc_led_on": [
+          98,
+          100
+        ]
+      },
+      "samples": [
+        {
+          "time_jst": "16:06",
+          "adc": 285,
+          "night": false,
+          "ircut_gpio2": 1,
+          "led_gpio52": 0,
+          "analog_gain_x": 2.6,
+          "isp_exposure": 2454
+        },
+        {
+          "time_jst": "16:12",
+          "adc": 245,
+          "night": false,
+          "ircut_gpio2": 1,
+          "led_gpio52": 0,
+          "analog_gain_x": 3.5,
+          "isp_exposure": 3297
+        },
+        {
+          "time_jst": "16:16",
+          "adc": 210,
+          "night": false,
+          "ircut_gpio2": 1,
+          "led_gpio52": 0,
+          "analog_gain_x": 4.5,
+          "isp_exposure": 4164
+        },
+        {
+          "time_jst": "16:18",
+          "adc": 180,
+          "night": false,
+          "ircut_gpio2": 1,
+          "led_gpio52": 0,
+          "analog_gain_x": 5.4,
+          "isp_exposure": 5032
+        },
+        {
+          "time_jst": "16:20",
+          "adc": 142,
+          "night": false,
+          "ircut_gpio2": 1,
+          "led_gpio52": 0,
+          "analog_gain_x": 7.1,
+          "isp_exposure": 6595
+        },
+        {
+          "time_jst": "16:22",
+          "adc": 121,
+          "night": false,
+          "ircut_gpio2": 1,
+          "led_gpio52": 0,
+          "analog_gain_x": 9.7,
+          "isp_exposure": 9024
+        },
+        {
+          "time_jst": "16:22",
+          "adc": 112,
+          "night": false,
+          "ircut_gpio2": 1,
+          "led_gpio52": 0,
+          "analog_gain_x": 10.4,
+          "isp_exposure": 9718
+        },
+        {
+          "time_jst": "16:23",
+          "adc": 103,
+          "night": false,
+          "ircut_gpio2": 1,
+          "led_gpio52": 0,
+          "analog_gain_x": 10.4,
+          "isp_exposure": 9718
+        },
+        {
+          "time_jst": "16:24",
+          "adc": 107,
+          "night": true,
+          "ircut_gpio2": 0,
+          "led_gpio52": 1,
+          "analog_gain_x": 5.4,
+          "isp_exposure": 5032,
+          "note": "first sample after the automatic switch to night (adc fell below minThreshold 100)"
+        },
+        {
+          "time_jst": "16:26",
+          "adc": 89,
+          "night": true,
+          "ircut_gpio2": 0,
+          "led_gpio52": 1,
+          "analog_gain_x": 5.9,
+          "isp_exposure": 5553
+        },
+        {
+          "time_jst": "16:28",
+          "adc": 79,
+          "night": true,
+          "ircut_gpio2": 0,
+          "led_gpio52": 1,
+          "analog_gain_x": 7.4,
+          "isp_exposure": 6942
+        },
+        {
+          "time_jst": "16:30",
+          "adc": 67,
+          "night": true,
+          "ircut_gpio2": 0,
+          "led_gpio52": 1,
+          "analog_gain_x": 8.9,
+          "isp_exposure": 8330
+        }
+      ]
+    },
+    "reboot": {
+      "log": "lightsensor: ADC_CH0 now reads the light sensor (ADC_CH1)",
+      "pad_mux_0x200F0090": 0,
+      "night_mode_source": 3,
+      "video": "frames after the usual single S96vicheck restart"
+    },
+    "offline_test": {
+      "file": "tests/test_lightsensor.py",
+      "scenarios": 9,
+      "shell": "host BusyBox ash"
+    },
+    "dark": {
+      "time_jst": "17:00",
+      "adc_led_on": 14,
+      "adc_led_off": [
+        0,
+        2
+      ],
+      "led_on": {
+        "analog_gain_x": 17.1,
+        "digital_gain_x": 1.25,
+        "isp_exposure": 15967,
+        "isp_avelum": 61,
+        "jpeg_mean_luma": 177.9,
+        "jpeg_saturation_pct": 0
+      },
+      "led_off_by_night_light": {
+        "analog_gain_x": 19.3,
+        "digital_gain_x": 6.0,
+        "isp_exposure": 346557,
+        "isp_avelum": 1,
+        "jpeg_mean_luma": 1.1,
+        "night_enabled": 1,
+        "led_relit_by_automatic": false,
+        "watched_s": 13
+      },
+      "led_on_again_by_night_light": {
+        "adc": 14,
+        "isp_exposure": 16661,
+        "jpeg_mean_luma": 181.0
+      },
+      "note": "in the dark the IR LED is the only light in the picture and in the light sensor reading"
+    }
+  },
+  "open_issues": [
+    "thresholds come from one dusk; the switch back to day in the morning has not been observed",
+    "in ADC mode a switch follows the reading within one check (no delay), so a lamp at night that lifts the reading above 150 brings day back at once",
+    "the camera clock is not synced (no NTP), so switching by sun position or clock is not usable",
+    "S94lightsensor works around majestic reading only /dev/ADC_CH0"
+  ]
+}

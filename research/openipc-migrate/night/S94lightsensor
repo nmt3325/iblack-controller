@@ -1,0 +1,59 @@
+#!/bin/sh
+#
+# Light sensor for majestic's night mode on Hi3518EV100 (iErmu / iBlack).
+#
+# The photoresistor of this board is wired to channel 1 of the SAR ADC
+# (/dev/ADC_CH1, created by the open_adc module that S70vendor loads).
+# majestic's nightMode.adcReadout always opens /dev/ADC_CH0, which is not
+# connected here and only reads noise (about 10..60). This script moves the
+# channel-0 node aside to /dev/ADC_CH0.orig and makes /dev/ADC_CH0 a symlink
+# to ADC_CH1, so that majestic (S95majestic, started after this script) reads
+# the light sensor. /dev is a devtmpfs, so this has to be done on every boot.
+#
+# The LIGHTSENSOR_DEV variable exists only for the offline test
+# (tests/test_lightsensor.py).
+
+TAG=lightsensor
+DEV=${LIGHTSENSOR_DEV:-/dev}
+SENSOR=ADC_CH1
+
+start() {
+	if [ -L "$DEV/ADC_CH0" ]; then
+		echo "ADC_CH0 already points to $(readlink "$DEV/ADC_CH0")"
+		return 0
+	fi
+	if [ ! -c "$DEV/$SENSOR" ]; then
+		logger -t "$TAG" "$SENSOR not found (open_adc not loaded?); ADC_CH0 left as it is"
+		return 1
+	fi
+	if [ -e "$DEV/ADC_CH0" ] && ! mv "$DEV/ADC_CH0" "$DEV/ADC_CH0.orig"; then
+		logger -t "$TAG" "cannot move ADC_CH0 aside; ADC_CH0 left as it is"
+		return 1
+	fi
+	ln -s "$SENSOR" "$DEV/ADC_CH0" || return 1
+	logger -t "$TAG" "ADC_CH0 now reads the light sensor ($SENSOR)"
+}
+
+stop() {
+	[ -L "$DEV/ADC_CH0" ] || return 0
+	rm -f "$DEV/ADC_CH0"
+	if [ -e "$DEV/ADC_CH0.orig" ]; then
+		mv "$DEV/ADC_CH0.orig" "$DEV/ADC_CH0"
+	fi
+}
+
+case "$1" in
+	start)
+		start
+		;;
+	stop)
+		stop
+		;;
+	restart)
+		stop && start
+		;;
+	*)
+		echo "Usage: $0 {start|stop|restart}"
+		exit 1
+		;;
+esac

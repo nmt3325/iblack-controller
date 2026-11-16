@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """easy/post_setup.py: the generated camera script, run under host BusyBox against a fake camera root.
 
-The root is a temporary directory (POST_SETUP_ROOT) with proc/mtd, proc/modules, rom/usr/sbin/sysupgrade and an
-/etc like the camera's after a factory reset. PATH holds only BusyBox applets and stubs: fw_printenv/fw_setenv
+The root is a temporary directory (POST_SETUP_ROOT) with proc/mtd, proc/modules, rom/usr/sbin/sysupgrade,
+rom/etc/init.d/S95majestic and an /etc like the camera's after a factory reset. PATH holds only BusyBox applets and stubs: fw_printenv/fw_setenv
 work on a VAR=VALUE file, cli edits two-level YAML like the camera's yaml-cli (-i/-o/-g/-s, rc 1 for a missing
 key; checked against the real one on unit 2), modprobe adds a line to proc/modules, reboot and sync only log.
 """
@@ -31,6 +31,7 @@ FIXED_MTD = ('dev:    size   erasesize  name\nmtd0: 00060000 00010000 "boot"\nmt
 STOCK_MTD = ('dev:    size   erasesize  name\nmtd0: 00200000 00010000 "boot"\nmtd1: 000c0000 00010000 "rootfs"\n'
              'mtd2: 00280000 00010000 "appfs"\n')
 ROM_UPDATER = "#!/bin/sh\nscr_version=1.0.84\necho real updater\n"
+ROM_S95 = "#!/bin/sh\necho firmware majestic \"$@\"\n"
 
 STUBS = {
     "fw_printenv": r'''
@@ -108,12 +109,15 @@ class PostSetup(unittest.TestCase):
             (b / name).chmod(0o755)
         (self.d / "tmp").mkdir()
         self.root = r = self.d / "root"
-        for sub in ("proc", "rom/usr/sbin", "etc/init.d", "etc/sensors", "usr/sbin"):
+        for sub in ("proc", "rom/usr/sbin", "rom/etc/init.d", "etc/init.d", "etc/sensors", "usr/sbin", "usr/lib"):
             (r / sub).mkdir(parents=True)
         (r / "proc/mtd").write_text(FIXED_MTD)
         (r / "proc/modules").write_text("open_adc 2364 0 - Live 0xbf0f6000\nmt7601sta 728316 1 - Live 0xbf000000\n")
         for p in (r / "rom/usr/sbin/sysupgrade", r / "usr/sbin/sysupgrade"):  # overlayfs shows the rom file
             p.write_text(ROM_UPDATER)
+            p.chmod(0o755)
+        for p in (r / "rom/etc/init.d/S95majestic", r / "etc/init.d/S95majestic"):
+            p.write_text(ROM_S95)
             p.chmod(0o755)
         (r / "etc/modules").write_text("vfat\nexfat\n")
         (r / "etc/sensors/imx222_i2c_1080p.ini").write_text("[sensor]\n")
@@ -152,19 +156,24 @@ class PostSetup(unittest.TestCase):
         self.assertEqual(rc, 0, lines)
         st = self.states(lines)
         self.assertEqual(set(st), {"changed"}, lines)
-        self.assertEqual(len(st["changed"]), 9, lines)
-        self.assertEqual(lines[-1], "post_setup: result: 9 changed, reboot the camera to use them")
+        self.assertEqual(len(st["changed"]), 11, lines)
+        self.assertEqual(lines[-1], "post_setup: result: 11 changed, reboot the camera to use them")
         r = self.root
         for rel, src in (("usr/sbin/sysupgrade", "update/sysupgrade-guard.sh"),
                          ("etc/sensors/ar0141_i2c_720p.ini", "video/ar0141_i2c_720p.ini"),
                          ("etc/majestic.yaml", "night/majestic.yaml"),
                          ("etc/init.d/S94lightsensor", "night/S94lightsensor"),
-                         ("etc/init.d/S96vicheck", "video/S96vicheck")):
+                         ("etc/init.d/S96vicheck", "video/S96vicheck"),
+                         ("usr/lib/libmajaudiofix.so", "audio/libmajaudiofix.so"),
+                         ("etc/init.d/S95majestic", "audio/S95majestic")):
             self.assertEqual((r / rel).read_bytes(), (BASE / src).read_bytes(), rel)
-        for rel in ("usr/sbin/sysupgrade", "etc/init.d/S94lightsensor", "etc/init.d/S96vicheck"):
+        for rel in ("usr/sbin/sysupgrade", "etc/init.d/S94lightsensor", "etc/init.d/S96vicheck",
+                    "etc/init.d/S95majestic"):
             self.assertEqual((r / rel).stat().st_mode & 0o777, 0o755, rel)
         self.assertEqual((r / "etc/majestic.yaml").stat().st_mode & 0o777, 0o600)
+        self.assertEqual((r / "usr/lib/libmajaudiofix.so").stat().st_mode & 0o777, 0o644)
         self.assertEqual((r / "rom/usr/sbin/sysupgrade").read_text(), ROM_UPDATER)
+        self.assertEqual((r / "rom/etc/init.d/S95majestic").read_text(), ROM_S95)
         self.assertEqual((r / "etc/modules").read_text(), "vfat\nexfat\nwdt\n")
         self.assertIn("wdt 16384", (r / "proc/modules").read_text())
         env = self.envvars()
@@ -184,7 +193,7 @@ class PostSetup(unittest.TestCase):
         self.assertEqual(rc, 0, lines)
         st = self.states(lines)
         self.assertEqual(set(st), {"already"}, lines)
-        self.assertEqual(len(st["already"]), 9)
+        self.assertEqual(len(st["already"]), 11)
         self.assertEqual(lines[-1], "post_setup: result: nothing to change")
         self.assertEqual(tree(r), before)
         self.assertEqual(self.log.read_text(), "")
@@ -197,8 +206,8 @@ class PostSetup(unittest.TestCase):
         self.assertEqual(rc, 1, lines)
         st = self.states(lines)
         self.assertEqual(set(st), {"would change"}, lines)
-        self.assertEqual(len(st["would change"]), 9)
-        self.assertEqual(lines[-1], "post_setup: result: 9 would change, then a reboot")
+        self.assertEqual(len(st["would change"]), 11)
+        self.assertEqual(lines[-1], "post_setup: result: 11 would change, then a reboot")
         self.assertEqual(tree(self.root), before)
         self.assertEqual(self.env.read_text(), env)
         self.assertEqual(self.log.read_text(), "")
@@ -287,9 +296,44 @@ class PostSetup(unittest.TestCase):
         self.assertIn("post_setup: changed: /etc/init.d/S96vicheck (made executable)", lines)
         self.assertEqual(s96.stat().st_mode & 0o777, 0o755)
 
+    def test_microphone_fix_only_over_the_firmware_s95majestic(self):
+        s95 = self.root / "etc/init.d/S95majestic"
+        own = "#!/bin/sh\n# my own start of majestic\nexec /usr/bin/majestic\n"
+        s95.write_text(own)
+        rc, lines = self.run_script()
+        self.assertEqual(rc, 0, lines)
+        st = self.states(lines)
+        self.assertEqual(st["note"], ["/etc/init.d/S95majestic is not the firmware's; left as is (no microphone fix)"])
+        self.assertEqual(len(st["changed"]), 9, lines)
+        self.assertEqual(s95.read_text(), own)
+        self.assertFalse((self.root / "usr/lib/libmajaudiofix.so").exists())
+
+    def test_older_microphone_fix_is_replaced(self):
+        s95 = self.root / "etc/init.d/S95majestic"
+        s95.write_text("#!/bin/sh\nLD_PRELOAD=/usr/lib/libmajaudiofix.so exec sh /rom/etc/init.d/S95majestic \"$@\"\n")
+        rc, lines = self.run_script()
+        self.assertEqual(rc, 0, lines)
+        self.assertIn("post_setup: changed: /etc/init.d/S95majestic (microphone fix)", lines)
+        self.assertEqual(s95.read_bytes(), (BASE / "audio/S95majestic").read_bytes())
+        self.assertEqual(s95.stat().st_mode & 0o777, 0o755)
+
+    def test_missing_s95majestic_gets_no_microphone_fix(self):
+        note = "/etc/init.d/S95majestic or the firmware's copy in /rom is missing; left as is (no microphone fix)"
+        s95, rom = self.root / "etc/init.d/S95majestic", self.root / "rom/etc/init.d/S95majestic"
+        for gone in (s95, rom):
+            with self.subTest(gone=str(gone.relative_to(self.root))):
+                for p in (s95, rom):
+                    p.write_text(ROM_S95)
+                gone.unlink()
+                rc, lines = self.run_script()
+                self.assertEqual(rc, 0, lines)
+                self.assertIn("post_setup: note: " + note, lines)
+                self.assertFalse(gone.exists())
+                self.assertFalse((self.root / "usr/lib/libmajaudiofix.so").exists())
+
     def test_reboot_only_when_needed(self):
         rc, lines = self.run_script(reboot=True)
-        self.assertEqual((rc, lines[-1]), (0, "post_setup: result: 9 changed, rebooting now"))
+        self.assertEqual((rc, lines[-1]), (0, "post_setup: result: 11 changed, rebooting now"))
         self.assertEqual(self.log.read_text().splitlines()[-1], "reboot")
         self.log.write_text("")
         rc, lines = self.run_script(reboot=True)
@@ -313,7 +357,7 @@ class PostSetup(unittest.TestCase):
         r = subprocess.run([sys.executable, str(BASE / "easy/post_setup.py"), "--ssh", env, "--check"],
                            capture_output=True, text=True, timeout=60)
         self.assertEqual(r.returncode, 1, r.stdout + r.stderr)
-        self.assertIn("post_setup: result: 9 would change, then a reboot", r.stdout)
+        self.assertIn("post_setup: result: 11 would change, then a reboot", r.stdout)
         r = subprocess.run([sys.executable, str(BASE / "easy/post_setup.py"), "--ssh", "false"],
                            capture_output=True, text=True, timeout=60)
         self.assertEqual(r.returncode, 3)

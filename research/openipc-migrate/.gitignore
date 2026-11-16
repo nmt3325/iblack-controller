@@ -12,3 +12,5 @@ __pycache__/
 private/
 inputs/
 bundle*/
+# the microphone fix that easy/post_setup.py installs (built from audio/majaudiofix.S by audio/build.sh)
+!audio/libmajaudiofix.so

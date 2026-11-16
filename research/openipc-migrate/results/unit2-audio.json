@@ -1,0 +1,202 @@
+{
+  "schema": "iblack-openipc-unit2-audio/1",
+  "date_utc": "2026-11-16",
+  "unit": 2,
+  "base_revision": "7f3511e0dd10be3026e4444c00d3a1b95ac98d03",
+  "uboot_written": false,
+  "firmware_written": false,
+  "camera_changes": {
+    "overlay_files": {
+      "/usr/lib/libmajaudiofix.so": {
+        "repo": "audio/libmajaudiofix.so",
+        "sha256": "2af6ee3b35958013f8d88f843f322968335e5a88b4aa69eea3fe1b1f25f88150",
+        "mode": "0644",
+        "size": 4688
+      },
+      "/etc/init.d/S95majestic": {
+        "repo": "audio/S95majestic",
+        "sha256": "8cfbc23eaf5f2a405c337a2d940ff94ecccebf28dfc3911cde99bd32406f527c",
+        "mode": "0755",
+        "note": "puts the library into LD_PRELOAD and execs the firmware's /rom/etc/init.d/S95majestic (unchanged)"
+      }
+    },
+    "installed_by": "easy/post_setup.py (VERSION 2) over SSH: --check listed only these 2 files, --reboot wrote them and rebooted, --check afterwards: nothing to change",
+    "majestic_yaml": "not changed (audio.enabled: true had been set by the owner)",
+    "overlay_after": "rootfs_data 896 KiB, 252 KiB used"
+  },
+  "majestic": {
+    "version": "Lite HiSilicon (hi3516cv100), master+fa91671, 2026-11-13",
+    "sha256": "38d12fff28d1ee94353cf31699d80f74ad86dd65dbb74d87b8967051a2740f15",
+    "build_id": "9a0c53cd4d90060076b61053ce36c2a420520bd6"
+  },
+  "findings": {
+    "symptom": "microphone noisy in WebRTC, RTSP, /video.mp4, /audio.opus and /audio.m4a; /audio.pcm and /audio.alaw sound right",
+    "cause": {
+      "summary": "majestic gives the AI driver u32ChnCnt 2 and then builds its own audio pipeline with the same 2 channels, but feeds it only the mono AI channel 0; Opus and AAC take the mono samples as interleaved stereo",
+      "init_audio_in": "0x78dd8: AIO_ATTR_S on the stack, u32ChnCnt = 2 (mov r4, #2 at 0x78e28), rebuilt on every audio start",
+      "set_pub_attr": "0x78af0, the only call of HI_MPI_AI_SetPubAttr",
+      "pipeline": "ldrb r2, [sp, #56] at 0x790a0 hands the same u32ChnCnt to the pipeline created at 0x75730 as its channel count",
+      "opus": "SILK NB 10 ms stereo packets (TOC config 0, s=1) stamped as 20 ms: players get half of the sound, an octave too high (the room's 90 Hz tone came out at 180 Hz)",
+      "aac": "stereo, decodes to half the wall-clock length",
+      "pcm_alaw": "taken before the pipeline; correct",
+      "analog": "not the cause: PCM is clean at the default gain (no clipping, no jumps)",
+      "sdk": "hi_comm_aio.h documents u32ChnCnt as the channel number on the I2S frame, valid 2/4/8/16; 1 was not tried on the driver, which keeps getting 2"
+    },
+    "stock_firmware": {
+      "source": "cmsMain.out from the stock appfs dump (reverse engineering, not run)",
+      "ai": {
+        "sample_rate": 44100,
+        "bit_width": 16,
+        "work_mode": "I2S master",
+        "sound_mode": "mono",
+        "ex_flag": 1,
+        "frame_num": 30,
+        "points_per_frame": 884,
+        "chn_cnt": 2,
+        "clk_sel": 1,
+        "resampled_to_hz": 11025
+      },
+      "input": "AI channel 0 as mono, like majestic",
+      "acodec": {
+        "mic_gain": 27,
+        "boost": false
+      }
+    },
+    "majestic_defaults": {
+      "ai": {
+        "sample_rate": 8000,
+        "bit_width": 16,
+        "work_mode": "I2S master",
+        "sound_mode": "mono",
+        "ex_flag": 0,
+        "frame_num": 30,
+        "points_per_frame": 160,
+        "chn_cnt": 2,
+        "clk_sel": 0
+      },
+      "acodec": {
+        "mic_gain": 20,
+        "boost": true,
+        "reg_0x20050068": "0x00F25252"
+      }
+    },
+    "conclusion": "u32ChnCnt 2 is what the stock firmware gives the driver as well; only majestic's reuse of it for the encoders is wrong"
+  },
+  "fix": {
+    "library": "audio/libmajaudiofix.so, assembled from audio/majaudiofix.S with GNU as/ld 2.40 against the rootfs's musl libc.so; exports only HI_MPI_AI_SetPubAttr, imports only dlsym",
+    "logic": "calls the real HI_MPI_AI_SetPubAttr (dlsym RTLD_NEXT) with the attributes unchanged; only when it returned 0, enSoundmode is mono and u32ChnCnt is 2, sets the caller's u32ChnCnt to 1, which majestic then uses for its pipeline",
+    "driver": "still gets u32ChnCnt 2 (/proc/umap/ai: ChnCnt 2, channels 0 and 1 enabled, as before)",
+    "start": "overlay /etc/init.d/S95majestic adds the library to LD_PRELOAD and execs sh /rom/etc/init.d/S95majestic, so start, stop, restart, reload and the firmware's supervisor stay the firmware's",
+    "post_setup": "step 6: only over the firmware's S95majestic or an older one of ours; otherwise a note and no change"
+  },
+  "verification": {
+    "before": {
+      "audio_opus_7s": {
+        "opus_head_channels": 2,
+        "packets": 341,
+        "toc": "config 0 (SILK NB 10 ms), stereo",
+        "decoded_s": 3.41,
+        "decoded_per_wallclock": 0.487
+      },
+      "rtsp_opus_6s": {
+        "packets": 301,
+        "toc": "config 0, stereo",
+        "decoded_s": 3.01,
+        "decoded_per_wallclock": 0.502,
+        "granule_first_last": [
+          48968,
+          287999
+        ]
+      },
+      "opus_decoded_peaks_hz": [
+        180,
+        86,
+        199
+      ],
+      "video_mp4_7s_opus_decoded_s": 3.4,
+      "audio_m4a_6s": "AAC stereo, decoded 2.944 s",
+      "audio_pcm_6s": {
+        "rms": 22.8,
+        "dbfs": -63.1,
+        "peak": 97,
+        "clipped": 0,
+        "peaks_hz": [
+          90,
+          43,
+          23
+        ]
+      }
+    },
+    "after_install_and_reboot": {
+      "audio_opus_7s": {
+        "opus_head_channels": 1,
+        "packets": 341,
+        "toc": "config 1 (SILK NB 20 ms), mono",
+        "decoded_s": 6.82,
+        "decoded_per_wallclock": 0.974,
+        "ffmpeg_decoded_s": 6.82,
+        "decoded_peaks_hz": [
+          43,
+          90,
+          16,
+          133
+        ]
+      },
+      "rtsp_opus_6s": {
+        "packets": 300,
+        "toc": "config 1, mono",
+        "decoded_s": 6.0,
+        "decoded_per_wallclock": 1.0,
+        "granule_first_last": [
+          48000,
+          287040
+        ],
+        "decoded_peaks_hz": [
+          90,
+          39,
+          55,
+          129
+        ]
+      },
+      "video_mp4_7s": "H.264 1280x720, 180 frames; Opus mono, 339 packets, decoded 6.76 s",
+      "audio_m4a_6s": "AAC 8000 Hz mono, decoded 5.888 s",
+      "audio_pcm_6s": {
+        "rms": 22.2,
+        "dbfs": -63.4,
+        "peak": 86,
+        "clipped": 0,
+        "peaks_hz": [
+          90,
+          43,
+          16,
+          133
+        ]
+      },
+      "audio_alaw_6s_decoded_s": 5.98,
+      "image_jpg": "1280x720",
+      "process": "majestic maps /usr/lib/libmajaudiofix.so and has it in LD_PRELOAD; the firmware's supervisor (sh /rom/etc/init.d/S95majestic supervise) runs and matches the pidfile",
+      "vicheck": "the cold-start check restarted majestic once through the wrapper ('video input running after one restart'); the new majestic had the library",
+      "logs": "no audio or loader errors"
+    },
+    "sighup": "killall -HUP majestic: same process, still mono 20 ms (/audio.opus 6.82 s of 7 s, RTSP 6.00 s of 6 s)",
+    "restart": "/etc/init.d/S95majestic restart: new process with the library and LD_PRELOAD, supervisor running, mono 20 ms (6.82 s of 7 s, 6.00 s of 6 s)",
+    "gain_trial": {
+      "setting": "audio.volume 30 (cli -s, majestic restarted)",
+      "acodec": {
+        "mic_gain": 27,
+        "boost": false,
+        "reg_0x20050068": "0x00F26C6C"
+      },
+      "same_as_stock": true,
+      "quiet_room_pcm": {
+        "volume_30_rms": 5.6,
+        "volume_30_dbfs": -75.4,
+        "default_rms": 22.2,
+        "default_dbfs": -63.4
+      },
+      "undone": "majestic.yaml put back byte for byte (md5 checked), majestic restarted, register back to 0x00F25252; not part of the fix"
+    },
+    "offline_tests": "tests/test_majaudiofix.py (14), tests/test_post_setup.py (16)"
+  },
+  "undo": "rm /overlay/etc/init.d/S95majestic /overlay/usr/lib/libmajaudiofix.so, then reboot (not rm /etc/init.d/S95majestic: on this overlay that also hides the firmware's script)"
+}

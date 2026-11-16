@@ -1,0 +1,32 @@
+#!/bin/sh
+# /etc/init.d/S95majestic for an iBlack/iErmu camera (Hi3518EV100) on OpenIPC: the microphone fix.
+#
+# majestic hands u32ChnCnt=2 to HI_MPI_AI_SetPubAttr (the inner codec's I2S needs two channels also
+# in mono) and then runs its own audio pipeline with the same 2 channels, although it feeds only the
+# mono channel 0 into it. Opus and AAC (WebRTC, RTSP, MP4, /audio.opus, /audio.m4a) therefore carry
+# half of the sound, an octave too high. /usr/lib/libmajaudiofix.so wraps HI_MPI_AI_SetPubAttr: the
+# driver still gets 2, majestic then sees 1 (audio/README.md).
+#
+# This file only puts the library into LD_PRELOAD and hands over to the firmware's own script in
+# /rom, so the supervisor and every start, stop, restart and reload stay those of the firmware.
+# Without the library it is a plain pass-through.
+# Undo: rm /overlay/etc/init.d/S95majestic /overlay/usr/lib/libmajaudiofix.so, then reboot.
+# Not rm /etc/init.d/S95majestic: on the overlay that would also hide the script in /rom.
+R=${S95MAJESTIC_ROOT:-}
+FIX=$R/usr/lib/libmajaudiofix.so
+ROM_SCRIPT=$R/rom/etc/init.d/S95majestic
+
+if [ -f "$FIX" ]; then
+	case " $LD_PRELOAD " in
+	*" $FIX "*) ;;
+	*)
+		LD_PRELOAD="$FIX${LD_PRELOAD:+ $LD_PRELOAD}"
+		export LD_PRELOAD
+		;;
+	esac
+fi
+if [ ! -f "$ROM_SCRIPT" ]; then
+	echo "S95majestic: $ROM_SCRIPT is missing" >&2
+	exit 1
+fi
+exec sh "$ROM_SCRIPT" "$@"

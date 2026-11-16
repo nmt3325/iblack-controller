@@ -42,10 +42,11 @@ python3 easy/post_setup.py --print > post_setup.sh                # カメラで
 | `/etc/sensors/ar0141_i2c_720p.ini`、`/etc/majestic.yaml` の `isp.blkCnt` | 720pの映像（[../video/README.md](../video/README.md)） |
 | `majestic.yaml` の暗視設定、`S94lightsensor` | 昼夜の自動切替（[../night/README.md](../night/README.md)）。閾値は未設定のときだけ入れる |
 | `S96vicheck` | 冷えた状態からの起動で映像が出ないときにmajesticを再起動する |
+| `/usr/lib/libmajaudiofix.so`、`/etc/init.d/S95majestic` | マイクの音をOpusとAACで正しくする（[../audio/README.md](../audio/README.md)）。`S95majestic` がfirmwareのもの（`/rom` と同じ）か以前の版のときだけ入れ、違うものなら報告して残す |
 
 すでに正しい項目は飛ばす。envは未設定の変数だけを埋め、違う値は報告して残す。`/proc/mtd` が移行後の固定配置でない、`/rom/usr/sbin/sysupgrade` がない、`fw_printenv` が読めない、のどれかなら何も変えない。U-Boot・kernel・rootfs・Wi-Fi設定は書かず、更新処理も動かさない。終了コードは0（完了・変更なし）、1（`--check` で変える所あり）、2（エラー）、3（`--ssh` のコマンド自体の失敗）。
 
-2台目での確認：カメラの `/tmp` に作った仮のルートで、未設定の状態から7項目を入れ、2回目はファイルもenvも変えないことを確かめた（`wdt` の読込みだけは、仮のルートに `/proc/modules` がないので毎回行う）。実際のルートでは、手で入れてあった設定と一致し「変更なし」だった。
+2台目での確認：カメラの `/tmp` に作った仮のルートで、未設定の状態から7項目を入れ、2回目はファイルもenvも変えないことを確かめた（`wdt` の読込みだけは、仮のルートに `/proc/modules` がないので毎回行う）。実際のルートでは、手で入れてあった設定と一致し「変更なし」だった。マイクの修正（2ファイル）を足した版は、`--check` が変える所としてこの2つだけを挙げるのを見てから `--reboot` で入れ、再起動後の `--check` は「変更なし」だった（2026-11-17）。
 
 ## easy_migrate.py に必要なもの
 
@@ -147,4 +148,4 @@ cd research/openipc-migrate
 python3 -m unittest tests.test_easy_migrate tests.test_post_setup -v
 ```
 
-`test_easy_migrate`（15件）は、`serve_migration.py` のプロトコルを話す模擬カメラと、`build_stockboot.py` の模擬を相手に、全段階の通し・再開・1回限りの仕掛け・finalのPONR越えと再実行・`restore-env`・事前確認・古いenvの拒否・設定の検査・SPI参照イメージ・設定例の読込みを確かめる。`test_post_setup`（13件）は、生成したスクリプトをホストのBusyBoxで、工場出荷状態をまねた仮のルートと模擬の `fw_printenv`・`fw_setenv` を相手に動かす。
+`test_easy_migrate`（15件）は、`serve_migration.py` のプロトコルを話す模擬カメラと、`build_stockboot.py` の模擬を相手に、全段階の通し・再開・1回限りの仕掛け・finalのPONR越えと再実行・`restore-env`・事前確認・古いenvの拒否・設定の検査・SPI参照イメージ・設定例の読込みを確かめる。`test_post_setup`（16件）は、生成したスクリプトをホストのBusyBoxで、工場出荷状態をまねた仮のルートと模擬の `fw_printenv`・`fw_setenv` を相手に動かす（マイクの修正を、firmwareの `S95majestic` か以前の版の上にだけ入れることも確かめる）。

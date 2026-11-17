@@ -26,7 +26,7 @@
 
 | 場所 | 内容 | リポジトリ |
 |---|---|---|
-| `/etc/majestic.yaml` | 映像の `isp.blkCnt: 9` に `nightMode` を足した | [majestic.yaml](majestic.yaml) |
+| `/etc/majestic.yaml` | 映像の `isp.blkCnt: 9` に `nightMode` と、スピーカーのアンプのピン `audio.speakerPin: 63`（[../audio/README.md](../audio/README.md)）を足した | [majestic.yaml](majestic.yaml) |
 | `/etc/init.d/S94lightsensor`（755） | 起動のたびに、`/dev/ADC_CH0` を明るさセンサー（`ADC_CH1`）へのsymlinkにする | [S94lightsensor](S94lightsensor) |
 
 `nightMode` の中身:

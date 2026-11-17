@@ -1,0 +1,154 @@
+{
+  "schema": "iblack-openipc-unit2-speaker/1",
+  "date_utc": "2026-11-17",
+  "unit": 2,
+  "base_revision": "ba9004409e638c57cc82610433a06aaba17bf33d",
+  "uboot_written": false,
+  "firmware_written": false,
+  "camera_changes": {
+    "overlay_files": {
+      "/usr/lib/libmajaudiofix.so": {
+        "repo": "audio/libmajaudiofix.so",
+        "sha256": "2a7bc0d4aa9f3783a235ee2a7496e9cb74ddafe57eded70ad566fc4c5e56d120",
+        "mode": "0644",
+        "size": 4736,
+        "supersedes": "the microphone-only library of unit2-audio.json (sha256 2af6ee3b35958013f8d88f843f322968335e5a88b4aa69eea3fe1b1f25f88150, 4688 bytes)"
+      },
+      "/etc/init.d/S95majestic": {
+        "repo": "audio/S95majestic",
+        "sha256": "9301a67bf827e2fc4b44eb38b5f8dd136c2045f275f979538ca6a2d89f39d043",
+        "mode": "0755",
+        "note": "only the header comment changed (it now names the speaker volume too); the same commands as in unit2-audio.json"
+      }
+    },
+    "majestic_yaml": {
+      "audio.outputEnabled": true,
+      "audio.speakerPin": 63,
+      "audio.outputVolume": "not set (50, 0 dB)",
+      "note": "outputEnabled and speakerPin were set with cli for this check and kept on unit 2; easy/post_setup.py (VERSION 3) sets only audio.speakerPin"
+    },
+    "installed_by": "by hand over SSH (written under a temporary name, then mv), majestic restarted with /etc/init.d/S95majestic restart, then a reboot; easy/post_setup.py (VERSION 3) --check afterward: nothing to change"
+  },
+  "majestic": {
+    "version": "Lite HiSilicon (hi3516cv100), master+fa91671, 2026-11-13",
+    "sha256": "38d12fff28d1ee94353cf31699d80f74ad86dd65dbb74d87b8967051a2740f15",
+    "build_id": "9a0c53cd4d90060076b61053ce36c2a420520bd6"
+  },
+  "findings": {
+    "path": {
+      "inputs": [
+        "POST /play_audio: raw PCM (Content-Type audio/L16; rate=4000..192000; channels=1 or 2; s16le) or Ogg Opus",
+        "two-way talk (WebRTC): Opus",
+        "plugins: unix socket audio.player, at most 2048 bytes per write"
+      ],
+      "buffer": "262144-byte clip ring, taken out in 640-byte packets and resampled to 8 kHz mono (0x9fb7c)",
+      "output": "every input ends in sdk_speaker_write (0x77f8c) -> HI_MPI_ADEC_SendStream (LPCM, blocking) -> ADEC channel 0 bound to AO device 0 channel 0 at 8000 Hz; the stock cmsMain.out runs the AO at 44100 Hz",
+      "init_audio_out": "HI_MPI_ADEC_CreateChn (always PT_LPCM = 23) -> AO start -> bind -> speakerPin -> amplifier",
+      "amplifier": "GPIO63, active high (speakerPinInvert false); majestic sets it to 1 when sound starts and back to 0 after speakerPinHoldMs (default 2000 ms) without sound",
+      "verdict": "correct: the played sound has the right pitch, length and order, with low distortion"
+    },
+    "defaults": {
+      "audio.outputEnabled": false,
+      "audio.speakerPin": "not set: the amplifier stays off and nothing is heard",
+      "audio.speakerPinInvert": false,
+      "audio.speakerPinHoldMs": 2000,
+      "audio.outputVolume": 50
+    },
+    "problems": [
+      "audio.speakerPin is not set by default, so the speaker stays silent even with audio.outputEnabled true; easy/post_setup.py (VERSION 3) now sets it to 63 as a board key",
+      "audio.outputVolume changed nothing: majestic has no live speaker level for this vendor (a change only rebuilds the audio) and HI_MPI_AO_SetVolume returns 0xA0168008 (HI_ERR_AO_NOT_SUPPORT) in this SDK; the stock cmsMain.out scales the samples itself, (v - 50) * 0.6 dB"
+    ],
+    "acoustics": "500 Hz makes the housing rattle (everything else is 5 dB above the fundamental); 2 kHz comes out about 13 dB weaker than 1 kHz; this is the speaker and housing, not the processing"
+  },
+  "fix": {
+    "library": "audio/libmajaudiofix.so from audio/majaudiofix.S (GNU as/ld 2.40, against the musl libc.so of the rootfs); exports HI_MPI_AI_SetPubAttr (microphone, logic unchanged), HI_MPI_ADEC_CreateChn and HI_MPI_ADEC_SendStream; imports dlsym and syslog",
+    "create_chn": "after the real call succeeded for PT_LPCM: audio.outputVolume through majestic's config_get_int (dlsym RTLD_DEFAULT), not set -> 50, clamped to 0..100; Q16 gain 0 for 0, else round(65536 * 10^((v - 50) * 0.03)); syslog 'majaudiofix: speaker outputVolume %d -> gain %d/65536'; another type or no config_get_int -> 65536; a failed call keeps the previous gain",
+    "send_stream": "gain 65536: passed through untouched; else the samples are copied to the stack as (s * gain + 0x8000) >> 16, saturated to 16 bits, and libmpi gets a copy of the AUDIO_STREAM_S that points at them; the caller's struct and buffer are only read; empty, NULL or more than 8192 bytes: passed through; an odd last byte is copied as it is",
+    "live": "majestic rebuilds the audio output (HI_MPI_ADEC_CreateChn) whenever the audio settings change, so cli -s .audio.outputVolume N takes effect at once in the same process"
+  },
+  "verification": {
+    "method": "8 kHz mono s16le tones POSTed to /play_audio and recorded back with the camera's own microphone (/audio.pcm); daytime, 1 to 4.5 s, quiet",
+    "path": {
+      "tone_1k_m20dbfs_1s": {
+        "recorded_hz": 1000.0,
+        "dbfs": -29.1,
+        "h2_db": -54.1,
+        "h3_db": -57.6
+      },
+      "tones_500_1000_2000_m26dbfs_1_5s_each": {
+        "recorded_hz": [
+          500.5,
+          1000.0,
+          2000.0
+        ],
+        "dbfs": [
+          -34.8,
+          -35.0,
+          -48.4
+        ],
+        "total_s": 4.38
+      },
+      "amplifier_gpio63": "1 only while playing, back to 0 about 2 s after the sound",
+      "adec": "SendCnt 25 per 1 s clip (640 bytes each), SendFail 0"
+    },
+    "volume_1khz": {
+      "measure": "1 kHz peak of the recording",
+      "rows": [
+        {
+          "outputVolume": 50,
+          "sent_dbfs": -20,
+          "recorded_dbfs": -28.8,
+          "gain_db": 0.0,
+          "expected_db": 0
+        },
+        {
+          "outputVolume": 30,
+          "sent_dbfs": -20,
+          "recorded_dbfs": -40.8,
+          "gain_db": -12.0,
+          "expected_db": -12
+        },
+        {
+          "outputVolume": 0,
+          "sent_dbfs": -20,
+          "recorded": "no 1 kHz (900-1100 Hz band -85.8 dB, the noise floor)",
+          "expected": "mute"
+        },
+        {
+          "outputVolume": 70,
+          "sent_dbfs": -32,
+          "recorded_dbfs": -28.8,
+          "gain_db": 12.0,
+          "expected_db": 12
+        },
+        {
+          "outputVolume": 100,
+          "sent_dbfs": -50,
+          "recorded_dbfs": -28.8,
+          "gain_db": 30.0,
+          "expected_db": 30
+        }
+      ],
+      "note": "70 and 100 were sent that much quieter, so the speaker never played loud"
+    },
+    "syslog": [
+      "majaudiofix: speaker outputVolume 50 -> gain 65536/65536",
+      "majaudiofix: speaker outputVolume 100 -> gain 2072430/65536"
+    ],
+    "microphone": "unchanged: /audio.opus 1 channel, 20 ms frames, no stereo TOC, decoded 0.99 s per second",
+    "after_reboot": {
+      "majestic": "LD_PRELOAD has the library; the syslog gain line came at boot and again after the usual one restart by S96vicheck; the firmware supervisor runs",
+      "tone_1k_m20dbfs_1s": {
+        "recorded_hz": 1000.0,
+        "dbfs": -29.0,
+        "h2_db": -54.6,
+        "h3_db": -59.6
+      },
+      "microphone": "/audio.opus 1 channel, 20 ms frames, 198 packets in 4 s (0.99 s per second)",
+      "majestic_yaml_audio": "outputEnabled true, speakerPin 63, outputVolume not set"
+    },
+    "post_setup_check": "VERSION 3 --check on unit 2 before and after the reboot: nothing to change",
+    "offline": "tests/test_majaudiofix.py runs the three functions in tests/arm_emu.py (a small ARMv5 interpreter) against fake libmpi, majestic and syslog: volume to gain (not set, out of range, 0..100), pass-through at 0 dB, scaled copies of 640 and 2048 bytes, alignment and an odd byte, the cases left alone, a failed create, other decoders, missing functions, error codes"
+  },
+  "undo": "library and S95majestic: rm /overlay/etc/init.d/S95majestic /overlay/usr/lib/libmajaudiofix.so, then reboot (this removes the microphone fix too); settings: cli -d .audio.outputEnabled; cli -d .audio.speakerPin"
+}

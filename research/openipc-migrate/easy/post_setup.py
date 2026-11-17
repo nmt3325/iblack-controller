@@ -17,13 +17,15 @@ What the script puts in place; every step is skipped when it is already right, s
   /etc/modules + wdt module       the vendor U-Boot leaves the hardware watchdog running; wdt.ko keeps it fed
   env sensor=ar0141               lets load_hisilicon finish, which also loads wdt.ko
   /etc/sensors/ar0141_i2c_720p.ini  the 720p sensor setup (video/)
-  /etc/majestic.yaml              isp.blkCnt=9 and the night mode pins (night/); a missing file gets
-                                  night/majestic.yaml, an existing one only the keys that differ, and the
-                                  day/night thresholds only where they are not set (yours are kept)
+  /etc/majestic.yaml              isp.blkCnt=9, the night mode pins (night/) and the speaker amplifier pin
+                                  audio.speakerPin=63 (audio/); a missing file gets night/majestic.yaml, an
+                                  existing one only the keys that differ, and the day/night thresholds only
+                                  where they are not set (yours are kept)
   /etc/init.d/S94lightsensor      light sensor -> majestic's ADC readout (night/)
   /etc/init.d/S96vicheck          restarts majestic when the VI gets no frames after a cold start (video/)
-  /usr/lib/libmajaudiofix.so      makes majestic encode the microphone as mono; without it Opus and AAC
-                                  carry half of the sound, an octave too high (audio/)
+  /usr/lib/libmajaudiofix.so      makes majestic encode the microphone as mono (without it Opus and AAC
+                                  carry half of the sound, an octave too high) and applies
+                                  audio.outputVolume to the speaker (audio/)
   /etc/init.d/S95majestic         preloads that library and runs the firmware's script from /rom (audio/);
                                   both are left out when S95majestic is neither the firmware's nor ours
 The env steps only fill in unset variables; a different value is reported and left alone.
@@ -31,7 +33,7 @@ The env steps only fill in unset variables; a different value is reported and le
 The script stops before changing anything unless /proc/mtd shows the fixed slots of a migrated camera, the
 original updater is at /rom/usr/sbin/sysupgrade and fw_printenv can read the env. It never writes U-Boot, the
 kernel, the rootfs or the Wi-Fi settings, and never runs the updater. Changes to the sensor, majestic.yaml, the
-init scripts or the microphone fix take effect after a reboot.
+init scripts or the audio fix take effect after a reboot.
 
 Exit status (also of --ssh): 0 done or nothing to do, 1 --check found something to change, 2 error,
 3 the --ssh command itself failed.
@@ -51,7 +53,7 @@ BASE = HERE.parent
 sys.path.insert(0, str(BASE))
 from make_env import DEFAULT_SENSOR, NO_ONLINE_UPDATE_URL  # noqa: E402
 
-VERSION = 2
+VERSION = 3
 # (payload name, source in this directory tree)
 PAYLOADS = (("guard", BASE / "update" / "sysupgrade-guard.sh"),
             ("sensor_ini", BASE / "video" / "ar0141_i2c_720p.ini"),
@@ -63,7 +65,7 @@ PAYLOADS = (("guard", BASE / "update" / "sysupgrade-guard.sh"),
 # majestic.yaml keys that describe the board; set whenever they differ.
 BOARD_KEYS = ((".isp.blkCnt", "9"), (".nightMode.lightMonitor", "true"), (".nightMode.irCutSingleInvert", "true"),
               (".nightMode.irCutPin1", "2"), (".nightMode.backlightPin", "52"),
-              (".nightMode.adcReadout", "true"), (".nightMode.adcInvert", "true"))
+              (".nightMode.adcReadout", "true"), (".nightMode.adcInvert", "true"), (".audio.speakerPin", "63"))
 # majestic.yaml keys the owner may tune; set only where missing.
 DEFAULT_KEYS = ((".nightMode.minThreshold", "100"), (".nightMode.maxThreshold", "150"))
 EOF_MARK = "__POST_SETUP_PAYLOAD__"
@@ -268,16 +270,16 @@ fi
 put /etc/init.d/S94lightsensor "$T/s94" /etc/init.d/S94lightsensor 755 reboot
 put /etc/init.d/S96vicheck "$T/s96" /etc/init.d/S96vicheck 755 reboot
 
-# 6. microphone: the fix library, and the S95majestic that preloads it; only over the firmware's S95majestic
+# 6. audio: the fix library, and the S95majestic that preloads it; only over the firmware's S95majestic
 #    or one of ours (an older one of ours mentions the library)
 S95=$R/etc/init.d/S95majestic
 if [ ! -f "$R/rom/etc/init.d/S95majestic" ] || [ ! -f "$S95" ]; then
-	note "/etc/init.d/S95majestic or the firmware's copy in /rom is missing; left as is (no microphone fix)"
+	note "/etc/init.d/S95majestic or the firmware's copy in /rom is missing; left as is (no audio fix)"
 elif cmp -s "$S95" "$R/rom/etc/init.d/S95majestic" || grep -q libmajaudiofix "$S95"; then
 	put /usr/lib/libmajaudiofix.so "$T/audiofix" /usr/lib/libmajaudiofix.so 644 reboot
-	put "/etc/init.d/S95majestic (microphone fix)" "$T/s95" /etc/init.d/S95majestic 755 reboot
+	put "/etc/init.d/S95majestic (audio fix)" "$T/s95" /etc/init.d/S95majestic 755 reboot
 else
-	note "/etc/init.d/S95majestic is not the firmware's; left as is (no microphone fix)"
+	note "/etc/init.d/S95majestic is not the firmware's; left as is (no audio fix)"
 fi
 
 [ "$changed" -eq 0 ] || sync

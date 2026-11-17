@@ -214,20 +214,22 @@ class PostSetup(unittest.TestCase):
 
     def test_existing_majestic_yaml_keeps_owner_values(self):
         y = self.root / "etc/majestic.yaml"
-        y.write_text("isp:\n  blkCnt: 4\nvideo0:\n  fps: 20\nnightMode:\n  minThreshold: 80\n  irCutPin1: 2\n")
+        y.write_text("isp:\n  blkCnt: 4\nvideo0:\n  fps: 20\nnightMode:\n  minThreshold: 80\n  irCutPin1: 2\n"
+                     "audio:\n  outputEnabled: true\n  outputVolume: 70\n")
         y.chmod(0o600)
         rc, lines = self.run_script()
         self.assertEqual(rc, 0, lines)
         text = y.read_text()
         for want in ("  blkCnt: 9", "  fps: 20", "  minThreshold: 80", "  maxThreshold: 150", "  irCutPin1: 2",
                      "  lightMonitor: true", "  irCutSingleInvert: true", "  backlightPin: 52", "  adcReadout: true",
-                     "  adcInvert: true"):
+                     "  adcInvert: true", "  outputEnabled: true", "  outputVolume: 70", "  speakerPin: 63"):
             self.assertIn(want + "\n", text)
         self.assertNotIn("minThreshold: 100", text)
         line = [x for x in lines if "/etc/majestic.yaml" in x][0]
         self.assertEqual(line, "post_setup: changed: /etc/majestic.yaml: isp.blkCnt=9 nightMode.lightMonitor=true "
                                "nightMode.irCutSingleInvert=true nightMode.backlightPin=52 "
-                               "nightMode.adcReadout=true nightMode.adcInvert=true nightMode.maxThreshold=150")
+                               "nightMode.adcReadout=true nightMode.adcInvert=true audio.speakerPin=63 "
+                               "nightMode.maxThreshold=150")
         self.assertEqual(y.stat().st_mode & 0o777, 0o600)
         rc, lines = self.run_script("check")
         self.assertEqual(rc, 0, lines)
@@ -303,7 +305,7 @@ class PostSetup(unittest.TestCase):
         rc, lines = self.run_script()
         self.assertEqual(rc, 0, lines)
         st = self.states(lines)
-        self.assertEqual(st["note"], ["/etc/init.d/S95majestic is not the firmware's; left as is (no microphone fix)"])
+        self.assertEqual(st["note"], ["/etc/init.d/S95majestic is not the firmware's; left as is (no audio fix)"])
         self.assertEqual(len(st["changed"]), 9, lines)
         self.assertEqual(s95.read_text(), own)
         self.assertFalse((self.root / "usr/lib/libmajaudiofix.so").exists())
@@ -313,12 +315,12 @@ class PostSetup(unittest.TestCase):
         s95.write_text("#!/bin/sh\nLD_PRELOAD=/usr/lib/libmajaudiofix.so exec sh /rom/etc/init.d/S95majestic \"$@\"\n")
         rc, lines = self.run_script()
         self.assertEqual(rc, 0, lines)
-        self.assertIn("post_setup: changed: /etc/init.d/S95majestic (microphone fix)", lines)
+        self.assertIn("post_setup: changed: /etc/init.d/S95majestic (audio fix)", lines)
         self.assertEqual(s95.read_bytes(), (BASE / "audio/S95majestic").read_bytes())
         self.assertEqual(s95.stat().st_mode & 0o777, 0o755)
 
     def test_missing_s95majestic_gets_no_microphone_fix(self):
-        note = "/etc/init.d/S95majestic or the firmware's copy in /rom is missing; left as is (no microphone fix)"
+        note = "/etc/init.d/S95majestic or the firmware's copy in /rom is missing; left as is (no audio fix)"
         s95, rom = self.root / "etc/init.d/S95majestic", self.root / "rom/etc/init.d/S95majestic"
         for gone in (s95, rom):
             with self.subTest(gone=str(gone.relative_to(self.root))):

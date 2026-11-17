@@ -249,7 +249,7 @@ finalの後戻りできない区間は、firmware約6.6 MiBの消去・書込み
 
 ### x86ホスト
 
-`python3 -m unittest discover -s tests -v`：**318件中316件が成功**（失敗0、スキップ2、2026-11-17。実ツールの `mksquashfs`／`unsquashfs`、ARM用binutilsとOpenIPCのrootfsあり、約4分）。スキップの2件は、私的な認証ランタイムとqemu-armが要る `test_trial_auth` の実ランタイム試験。マイクの修正のライブラリを作り直す試験（1件）は、ARM用binutilsとrootfsがなければスキップする。最初にまとめたときは135件だった。
+`python3 -m unittest discover -s tests -v`：**330件中328件が成功**（失敗0、スキップ2、2026-11-17。実ツールの `mksquashfs`／`unsquashfs`、ARM用binutilsとOpenIPCのrootfsあり、約4分）。スキップの2件は、私的な認証ランタイムとqemu-armが要る `test_trial_auth` の実ランタイム試験。音声の修正のライブラリを作り直す試験（1件）は、ARM用binutilsとrootfsがなければスキップする。最初にまとめたときは135件だった。
 
 | モジュール | 件数 | 内容 |
 | --- | --- | --- |
@@ -267,7 +267,7 @@ finalの後戻りできない区間は、firmware約6.6 MiBの消去・書込み
 | `test_compose_spi_image` | 6 | `compose_spi_image.py`（合成したフラッシュ内容だけ） |
 | `test_vicheck` | 8 | `video/S96vicheck`（[video/README.md](video/README.md)） |
 | `test_lightsensor` | 9 | `night/S94lightsensor`（[night/README.md](night/README.md)） |
-| `test_majaudiofix` | 14 | `audio/` のマイクの修正（ライブラリのELFと命令列、`S95majestic`、`opusstat.py`。[audio/README.md](audio/README.md)） |
+| `test_majaudiofix` | 26 | `audio/` のマイクとスピーカーの音量の修正（ライブラリのELFと命令列、ARMのエミュレーターで動かす3つの関数、`S95majestic`、`opusstat.py`。[audio/README.md](audio/README.md)） |
 | `test_wifi_switch_trial` | 6 | `wifi/wifi-switch-trial.sh`（[wifi/README.md](wifi/README.md)） |
 | `test_post_setup` | 16 | `easy/post_setup.py`（[easy/README.md](easy/README.md)） |
 | `test_easy_migrate` | 15 | `easy/easy_migrate.py`（模擬カメラ相手。[easy/README.md](easy/README.md)） |
@@ -353,6 +353,7 @@ diagnoseでは純正アプリ・ネットワークサービスを停止しない
 - 映像（続き）: envの `sensor` を `ar0141` にし、AR0141のini、`isp.blkCnt: 9`、起動直後と動作中の映像を見張る `S96vicheck` を入れて、720pのH.264が約27 fpsでRTSP(554)から出るようになった（[video/README.md](video/README.md)、[results/unit2-video.json](results/unit2-video.json)）。
 - 暗視: IRカットフィルター（GPIO0_2）、赤外LED（GPIO6_4）、明るさセンサー（ADCのチャネル1）を見つけ、majesticの `nightMode` と、センサーをmajesticに読ませる `S94lightsensor` で、昼と夜を自動で切り替えるようにした。Web画面とAPIからも切り替えられる（[night/README.md](night/README.md)、[results/unit2-night.json](results/unit2-night.json)）。
 - マイク: 雑音だらけに聞こえたのは、majesticがモノラルのマイク（AIのチャネル0）を2チャネルとしてOpusとAACのエンコーダーに渡していたため。音が半分しか入らず、1オクターブ高くなっていた（PCMとA-lawは正しかった）。純正の `cmsMain.out` もAIを2チャネルで設定し、チャネル0だけを使う。`HI_MPI_AI_SetPubAttr` を包む小さなライブラリと、それを読み込ませる `S95majestic` で直し、RTSP・`/video.mp4`・`/audio.opus`・`/audio.m4a` の音が正しい長さと高さになった（[audio/README.md](audio/README.md)、[results/unit2-audio.json](results/unit2-audio.json)）。
+- スピーカー: 再生の経路（`/play_audio` → 8 kHzへのリサンプル → ADEC → AO）は正しく、送った音が正しい高さと長さで鳴った（カメラのマイクで録り直して確認）。ただし既定では鳴らない（`audio.outputEnabled` がfalse、アンプのピン `audio.speakerPin` が未設定。このボードではGPIO63で、`easy/post_setup.py` が入れる）。音量 `audio.outputVolume` はmajesticでは効かなかったので、同じライブラリで純正と同じ (音量−50)×0.6 dB の倍率を掛けるようにした（30で−12.0 dB、70で+12.0 dB、100で+30.0 dB、0で無音を実測）（[audio/README.md](audio/README.md)、[results/unit2-speaker.json](results/unit2-speaker.json)）。
 - Wi-Fi: つなぎ先を、ホストのAPから自宅のルーター（Aterm）の2.4 GHzに変えた。フラッシュに書かない試験（残す印がなければ300秒で戻る）でつながることを確かめてから、envの `wlanssid` と `wlanpass` を `fw_setenv` で書き換えた。再起動後も同じところにつながり、時計はNTPで合うようになった（[wifi/README.md](wifi/README.md)、[results/unit2-home-wifi.json](results/unit2-home-wifi.json)）。
 - ルーターの停止: カメラは自分でつなぎ直す。APがない181秒のあと、APが立ってから11秒でアドレスを受けた。つながっている間に60秒止めたときは、戻ってから4秒で応答した（再起動なし）。リセットボタンのAPモードは純正のアプリの機能で、OpenIPCでは使えない（[wifi/README.md](wifi/README.md)、[results/unit2-router-outage.json](results/unit2-router-outage.json)）。
 - 次の機体では、`make_env.py` が既定でenvに `sensor=ar0141` を入れるので、初回起動から `load_hisilicon` が `wdt.ko` まで読み込み、watchdogに給餌できる見込み（次の機体で確かめる）。finalで rootfs_data の先頭に `/init` の持ち込み（`OPENIPC-OVL1`）を置いて `etc/modules` に `wdt` を入れる案は未実装。

@@ -12,3 +12,5 @@ nightMode:
   adcInvert: true
   minThreshold: 100
   maxThreshold: 150
+audio:
+  speakerPin: 63

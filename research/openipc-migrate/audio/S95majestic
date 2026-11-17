@@ -1,11 +1,13 @@
 #!/bin/sh
-# /etc/init.d/S95majestic for an iBlack/iErmu camera (Hi3518EV100) on OpenIPC: the microphone fix.
+# /etc/init.d/S95majestic for an iBlack/iErmu camera (Hi3518EV100) on OpenIPC: the audio fix.
 #
 # majestic hands u32ChnCnt=2 to HI_MPI_AI_SetPubAttr (the inner codec's I2S needs two channels also
 # in mono) and then runs its own audio pipeline with the same 2 channels, although it feeds only the
 # mono channel 0 into it. Opus and AAC (WebRTC, RTSP, MP4, /audio.opus, /audio.m4a) therefore carry
 # half of the sound, an octave too high. /usr/lib/libmajaudiofix.so wraps HI_MPI_AI_SetPubAttr: the
-# driver still gets 2, majestic then sees 1 (audio/README.md).
+# driver still gets 2, majestic then sees 1. It also wraps HI_MPI_ADEC_CreateChn and
+# HI_MPI_ADEC_SendStream so that audio.outputVolume sets the speaker level, which majestic leaves
+# alone on this chip (audio/README.md).
 #
 # This file only puts the library into LD_PRELOAD and hands over to the firmware's own script in
 # /rom, so the supervisor and every start, stop, restart and reload stay those of the firmware.

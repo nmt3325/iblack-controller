@@ -358,6 +358,7 @@ class FullRun(Base):
         self.assertEqual(self.em("owner-done"), 0, self.out)
         self.assertEqual(self.post, ["127.0.0.1"])
         self.assertIn("done: the camera runs OpenIPC at 127.0.0.1", self.out)
+        self.assertIn("ssh root@127.0.0.1 'cli -s .audio.outputEnabled true'", self.out)
         self.assertEqual(self.em("run"), 0, self.out)
         self.assertEqual(self.post, ["127.0.0.1"])
         self.assertEqual(self.em("status"), 0, self.out)
@@ -449,6 +450,19 @@ class Preflight(Base):
     def test_check_ok(self):
         self.assertEqual(self.em("check"), 0, self.out)
         self.assertIn("preflight ok", self.out)
+        self.assertIn(f"post_setup {em.ps.VERSION} with all its files", self.out)
+
+    def test_post_setup_files(self):
+        # the last step runs post_setup.py: a file it puts on the camera (here the audio fix) is missing
+        gone = self.tmp / "no-libmajaudiofix.so"
+        payloads = tuple((n, gone if n == "audiofix" else p) for n, p in em.ps.PAYLOADS)
+        with mock.patch.object(em.ps, "PAYLOADS", payloads):
+            self.assertEqual(self.em("check"), 2, self.out)
+            self.assertIn(f"problem: post_setup: [Errno 2] No such file or directory: '{gone}'", self.out)
+            self.assertEqual(self.em("run"), 2, self.out)
+            self.assertIn("1 preflight problem(s)", self.out)
+        self.assertEqual(self.hooks(), [])
+        self.assertEqual(self.em("check"), 0, self.out)
 
     def test_wifi_vars_must_be_private(self):
         self.wifi.chmod(0o644)

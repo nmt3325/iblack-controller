@@ -175,7 +175,7 @@ phase2（RAM上のOpenIPC BusyBox）：manifestのseqが変わるたびに om_st
 | `camera/trial.sh`、`camera/trial_dhcp.sh` | 試験起動でのWi-Fi接続、DHCP、報告、`tl` へのログ記録 | カメラ（試験起動） |
 | `camera/migrate_hook.sh` | 純正アプリの停止・再開、送信、進捗 | カメラ（phase2） |
 | `validate_online_qemu.py` | 実ARMバイナリを `qemu-arm` で動かす検証 | ホスト |
-| `easy/easy_migrate.py`、`easy/post_setup.py` | 移行の全段階を、止まっても再開できる1つのコマンドにしたものと、移行後の設定・更新ガードの導入（[easy/README.md](easy/README.md)） | ホスト（SSHでカメラ） |
+| `easy/easy_migrate.py`、`easy/post_setup.py` | 移行の全段階を、止まっても再開できる1つのコマンドにしたものと、移行後の設定・更新ガード・音声の修正の導入（[easy/README.md](easy/README.md)） | ホスト（SSHでカメラ） |
 | `update/sysupgrade-guard.sh`、`update/check_update.py` | 固定の区画を壊す更新を止めるガードと、更新が区画に収まるかの判定（[update/README.md](update/README.md)） | カメラ／ホスト |
 | `tests/` | ユニット、模擬フラッシュでのインストーラー、E2E | ホスト |
 
@@ -249,7 +249,7 @@ finalの後戻りできない区間は、firmware約6.6 MiBの消去・書込み
 
 ### x86ホスト
 
-`python3 -m unittest discover -s tests -v`：**330件中328件が成功**（失敗0、スキップ2、2026-11-17。実ツールの `mksquashfs`／`unsquashfs`、ARM用binutilsとOpenIPCのrootfsあり、約4分）。スキップの2件は、私的な認証ランタイムとqemu-armが要る `test_trial_auth` の実ランタイム試験。音声の修正のライブラリを作り直す試験（1件）は、ARM用binutilsとrootfsがなければスキップする。最初にまとめたときは135件だった。
+`python3 -m unittest discover -s tests -v`：**331件中329件が成功**（失敗0、スキップ2、2026-11-17。実ツールの `mksquashfs`／`unsquashfs`、ARM用binutilsとOpenIPCのrootfsあり、約4分）。スキップの2件は、私的な認証ランタイムとqemu-armが要る `test_trial_auth` の実ランタイム試験。音声の修正のライブラリを作り直す試験（1件）は、ARM用binutilsとrootfsがなければスキップする。最初にまとめたときは135件だった。
 
 | モジュール | 件数 | 内容 |
 | --- | --- | --- |
@@ -270,7 +270,7 @@ finalの後戻りできない区間は、firmware約6.6 MiBの消去・書込み
 | `test_majaudiofix` | 26 | `audio/` のマイクとスピーカーの音量の修正（ライブラリのELFと命令列、ARMのエミュレーターで動かす3つの関数、`S95majestic`、`opusstat.py`。[audio/README.md](audio/README.md)） |
 | `test_wifi_switch_trial` | 6 | `wifi/wifi-switch-trial.sh`（[wifi/README.md](wifi/README.md)） |
 | `test_post_setup` | 16 | `easy/post_setup.py`（[easy/README.md](easy/README.md)） |
-| `test_easy_migrate` | 15 | `easy/easy_migrate.py`（模擬カメラ相手。[easy/README.md](easy/README.md)） |
+| `test_easy_migrate` | 16 | `easy/easy_migrate.py`（模擬カメラ相手。[easy/README.md](easy/README.md)） |
 | `test_sysupgrade_guard` | 20 | `update/sysupgrade-guard.sh`（[update/README.md](update/README.md)） |
 | `test_check_update` | 9 | `update/check_update.py`（[update/README.md](update/README.md)） |
 
@@ -358,7 +358,7 @@ diagnoseでは純正アプリ・ネットワークサービスを停止しない
 - ルーターの停止: カメラは自分でつなぎ直す。APがない181秒のあと、APが立ってから11秒でアドレスを受けた。つながっている間に60秒止めたときは、戻ってから4秒で応答した（再起動なし）。リセットボタンのAPモードは純正のアプリの機能で、OpenIPCでは使えない（[wifi/README.md](wifi/README.md)、[results/unit2-router-outage.json](results/unit2-router-outage.json)）。
 - 次の機体では、`make_env.py` が既定でenvに `sensor=ar0141` を入れるので、初回起動から `load_hisilicon` が `wdt.ko` まで読み込み、watchdogに給餌できる見込み（次の機体で確かめる）。finalで rootfs_data の先頭に `/init` の持ち込み（`OPENIPC-OVL1`）を置いて `etc/modules` に `wdt` を入れる案は未実装。
 - 更新: OpenIPC標準のオンライン更新は固定の区画を壊すので、更新ガード（`/usr/sbin/sysupgrade` の置き換え）とenvの `upgrade`（届かないURL）で止めた。ガードの判定は2台目の上で28件確かめた（書き込みなし）。区画に収まる版だけを `--kernel`／`--rootfs` で入れる手順は [update/README.md](update/README.md)（版の入れ替えは未実施）。結果は [results/unit2-update-guard.json](results/unit2-update-guard.json)。
-- まとめ: ここまでの手作業を [easy/README.md](easy/README.md) の2つのコマンドにした。`post_setup.py`（移行後の設定と更新ガード）は2台目で確かめた。`easy_migrate.py`（移行全体）は模擬カメラ相手のオフライン試験だけ。
+- まとめ: ここまでの手作業を [easy/README.md](easy/README.md) の2つのコマンドにした。`post_setup.py`（移行後の設定、更新ガード、マイクとスピーカーの修正）は2台目で確かめた。音声の修正は、修正のない状態からとマイクだけの版からの両方で入れ直した。`easy_migrate.py`（移行全体）は模擬カメラ相手のオフライン試験だけで、2台目で動かしたのは最後の `post_setup` の段階だけ。マイクもスピーカーもmajesticの既定では切ってあり、`cli -s .audio.enabled true`（マイク）と `cli -s .audio.outputEnabled true`（スピーカー）ですぐ使える。`easy_migrate.py` は最後にこれを表示する。
 
 ## 再実行
 

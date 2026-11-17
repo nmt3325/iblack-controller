@@ -13,7 +13,7 @@ command goes on where it stopped (after a failure, a power cut or Ctrl-C):
   final       the migration itself, only with --yes-final; past its point of no return keep the camera powered
   boot        finds the camera on the network and checks SSH, HTTP and RTSP
   owner       your first login (Majestic EULA, root password): always typed by you, never automated
-  post_setup  board settings and the update guard over SSH (easy/post_setup.py)
+  post_setup  board settings, the update guard and the microphone/speaker fix over SSH (easy/post_setup.py)
 
     python3 easy/easy_migrate.py --config PRIVATE.json check              # preflight only
     python3 easy/easy_migrate.py --config PRIVATE.json run                # up to the trial; stops before final
@@ -57,6 +57,8 @@ import build_stockboot as bs  # noqa: E402
 import make_env  # noqa: E402
 import serve_migration as sm  # noqa: E402
 import stock_layout as sl  # noqa: E402
+sys.path.insert(0, str(HERE))
+import post_setup as ps  # noqa: E402
 
 SCHEMA = "iblack-easy-migrate/1"
 STEPS = ("backup", "deliver", "diagnose", "wdtgate", "probe", "trial", "final", "boot", "owner", "post_setup")
@@ -104,6 +106,11 @@ OWNER_TEXT = ("OpenIPC is up at {ip}. The first login is yours and is never auto
               "then run:  {cmd}")
 DONE_TEXT = ("done: the camera runs OpenIPC at {ip}\n"
              "  Web UI http://{ip}/   RTSP rtsp://{ip}:554/stream=0   SSH ssh root@{ip}\n"
+             "  Sound is off by default. post_setup fixed the microphone and the speaker; to use them (each takes "
+             "effect at once; audio/README.md):\n"
+             "    ssh root@{ip} 'cli -s .audio.enabled true'         # the microphone\n"
+             "    ssh root@{ip} 'cli -s .audio.outputEnabled true'   # and the speaker (/play_audio)\n"
+             "    ssh root@{ip} 'cli -s .audio.outputVolume 40'      # speaker volume 0-100; 50 plays as sent\n"
              "  Never use the Web UI firmware update or auto-update (update/README.md); after a factory reset run "
              "easy/post_setup.py again.")
 
@@ -617,6 +624,10 @@ class Flow:
                 problems.append("spi_dump: exists but is not an 8 MiB file (move it away)")
         elif "backup" not in c["hooks"]:
             problems.append("spi_dump: no 8 MiB SPI image and no backup hook to make one")
+        try:
+            ps.build_script("apply", reboot=True)   # reads every file post_setup puts on the camera
+        except (OSError, ValueError) as exc:
+            problems.append(f"post_setup: {exc}")
         return problems
 
     def require_preflight(self) -> None:
@@ -934,7 +945,7 @@ class Flow:
 
     def run_post_setup(self, ip: str) -> int:
         ssh = self.cfg["camera_ssh"].replace("{ip}", ip)
-        self.say(f"board settings and the update guard over SSH ({ssh}); ssh may ask for your password")
+        self.say(f"board settings, update guard and audio fix over SSH ({ssh}); ssh may ask for your password")
         return subprocess.run([sys.executable, str(POST_SETUP), "--ssh", ssh, "--reboot"]).returncode
 
     def step_post_setup(self, **_) -> None:
@@ -950,7 +961,8 @@ class Flow:
         if problems:
             return 2
         self.say(f"preflight ok: bundle for {self.bundle.host}:{self.bundle.port}, pinned firmware, env-openipc with "
-                 f"sensor and upgrade, SPI image {'present' if self.dump_ok() else 'to be made by the backup hook'}")
+                 f"sensor and upgrade, SPI image {'present' if self.dump_ok() else 'to be made by the backup hook'}, "
+                 f"post_setup {ps.VERSION} with all its files")
         return 0
 
     def apply_again(self, step: str) -> None:

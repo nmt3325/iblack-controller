@@ -9,6 +9,7 @@
 - マイクのゲインは変えていない（下の「マイクのゲイン」）。
 - スピーカー: `/play_audio` に送った音は、正しい高さと長さで鳴る（カメラのマイクで録り直して確かめた）。ただし既定の設定では鳴らない。`audio.outputEnabled` が既定でfalseで、アンプのピン `audio.speakerPin` も入っていない。[`easy/post_setup.py`](../easy/README.md) がピン（63）を入れる。鳴らすかどうか（`outputEnabled`）は使う人が決める。
 - スピーカーの音量 `audio.outputVolume` は、majesticでは何も変えなかった。ライブラリで純正と同じ効き方にした（50で等倍、0で無音、変えるとすぐ効く）。
+- マイクも既定では切ってある。`audio.enabled` が既定でfalseで、`/audio.opus` は501（`Server audio is not enabled`）を返す（2台目では所有者が入れてあった）。`audio.enabled` と `audio.outputEnabled` は `cli -s` で変えるとすぐ効き、majesticの再起動は要らない（下の「マイクとスピーカーを使う」）。
 
 ## カメラ上の変更
 
@@ -18,7 +19,7 @@
 | `/etc/init.d/S95majestic`（755） | 上のライブラリを `LD_PRELOAD` に入れて、firmwareの `/rom/etc/init.d/S95majestic` に渡す | [S95majestic](S95majestic) |
 | `/etc/majestic.yaml` の `audio` | `speakerPin: 63`（アンプのGPIO）。2台目では鳴らすので `outputEnabled: true` も入れた | [../night/majestic.yaml](../night/majestic.yaml)（`speakerPin` だけ） |
 
-マイクだけの最初の版は [`easy/post_setup.py`](../easy/README.md) で入れた。音量を足した版は手で入れ替え（下の「入れ方」）、`post_setup.py --check` が「変更なし」になるのを確かめた。
+マイクだけの最初の版は [`easy/post_setup.py`](../easy/README.md) で入れた。音量を足した版は、手で入れ替えて確かめた後、修正を外した状態とマイクだけの版の状態の両方から `post_setup.py`（版3）で入れ直した（下の「入れ方」）。
 
 ## マイク: 原因
 
@@ -141,15 +142,18 @@ majesticの再生の経路を逆アセンブルで追い、実機で確かめた
 - 入れ替えて再起動した後も、majesticはライブラリを読み込み（起動直後の `S96vicheck` による起動し直しの後も）、1 kHzは−29.0 dBFSで鳴り、マイクは20 msのモノラルのまま（4秒で198パケット）。`post_setup.py --check` は「変更なし」。
 - オフライン試験: [`tests/test_majaudiofix.py`](../tests/test_majaudiofix.py) は、ライブラリの3つの関数をARMv5の小さなエミュレーター（[`tests/arm_emu.py`](../tests/arm_emu.py)）で動かし、音量と倍率の対応、サンプルの計算、そのまま渡す場合、エラーを確かめる。
 
-## スピーカーを鳴らす
+## マイクとスピーカーを使う
+
+majesticの既定では、マイクもスピーカーも切ってある。`post_setup.py` は直すだけで、これは変えない。
 
 ```sh
-ssh root@<カメラ> 'cli -s .audio.outputEnabled true && cli -s .audio.speakerPin 63'
-ssh root@<カメラ> 'cli -s .audio.outputVolume 40'   # 任意。50で等倍、0で無音、100で+30 dB。すぐ効く
+ssh root@<カメラ> 'cli -s .audio.enabled true'         # マイク。falseの間、/audio.opus は501（Server audio is not enabled）
+ssh root@<カメラ> 'cli -s .audio.outputEnabled true'   # スピーカー。falseの間、/play_audio は501（Audio output is not enabled）
+ssh root@<カメラ> 'cli -s .audio.outputVolume 40'      # 任意。50で等倍、0で無音、100で+30 dB
 curl -u root:<パスワード> -H 'Content-Type: audio/L16; rate=8000; channels=1' --data-binary @a.raw http://<カメラ>/play_audio
 ```
 
-`a.raw` は8 kHz・16ビット・モノラルの生のPCM。大きい音量では、大きな音は16ビットで頭打ちになる。
+どれもmajesticを再起動せずにすぐ効く（2台目で確かめた）。スピーカーにはアンプのピン `audio.speakerPin: 63` も要る。`post_setup.py` が入れる（手でなら `cli -s .audio.speakerPin 63`）。`a.raw` は8 kHz・16ビット・モノラルの生のPCM。大きい音量では、大きな音は16ビットで頭打ちになる。
 
 ## 入れ方
 
@@ -161,6 +165,8 @@ python3 easy/post_setup.py --ssh 'ssh root@192.0.2.20' --reboot   # 入れて再
 ```
 
 `/etc/init.d/S95majestic` がfirmwareのもの（`/rom` と同じ）か、このディレクトリの以前の版のときだけ入れる。ほかの内容に置き換わっていれば、何も変えずにそう表示する。
+
+2台目では、修正を外して `audio.speakerPin` も消した状態からと、マイクだけの版を入れた状態からの両方で、`--check` が3つ（`audio.speakerPin`、ライブラリ、`S95majestic`）を挙げ、`--reboot` の後は「変更なし」になった。どちらも、再起動後のmajesticはライブラリを読み込み、マイクは20 msのモノラル、1 kHzは−29.1〜−29.2 dBFS、`outputVolume 30` で−41.1〜−41.2 dBFS（−12.0 dB）だった。`easy_migrate.py` の最後の段階（`post_setup`）から入れても同じだった（[../results/unit2-speaker.json](../results/unit2-speaker.json) の `post_setup_install`）。
 
 手で入れるときは、動いているmajesticが読み込んでいるファイルを上書きしないよう、別名で書いてから `mv` する。
 

@@ -27,7 +27,7 @@
       "audio.outputVolume": "not set (50, 0 dB)",
       "note": "outputEnabled and speakerPin were set with cli for this check and kept on unit 2; easy/post_setup.py (VERSION 3) sets only audio.speakerPin"
     },
-    "installed_by": "by hand over SSH (written under a temporary name, then mv), majestic restarted with /etc/init.d/S95majestic restart, then a reboot; easy/post_setup.py (VERSION 3) --check afterward: nothing to change"
+    "installed_by": "by hand over SSH (written under a temporary name, then mv), majestic restarted with /etc/init.d/S95majestic restart, then a reboot; easy/post_setup.py (VERSION 3) --check afterward: nothing to change; later installed again with easy/post_setup.py (VERSION 3) from two states and through the post_setup step of easy/easy_migrate.py (post_setup_install)"
   },
   "majestic": {
     "version": "Lite HiSilicon (hi3516cv100), master+fa91671, 2026-11-13",
@@ -149,6 +149,78 @@
     },
     "post_setup_check": "VERSION 3 --check on unit 2 before and after the reboot: nothing to change",
     "offline": "tests/test_majaudiofix.py runs the three functions in tests/arm_emu.py (a small ARMv5 interpreter) against fake libmpi, majestic and syslog: volume to gain (not set, out of range, 0..100), pass-through at 0 dB, scaled copies of 640 and 2048 bytes, alignment and an odd byte, the cases left alone, a failed create, other decoders, missing functions, error codes"
+  },
+  "post_setup_install": {
+    "date_utc": "2026-11-17",
+    "revision": "1a4d175b298e1c0b72c0e106300cb4ef58ffc037",
+    "command": "python3 easy/post_setup.py --ssh 'ssh root@<camera>' --check, then the same with --reboot",
+    "measure": {
+      "microphone": "/audio.opus for 4 s, counted with audio/opusstat.py",
+      "speaker": "1 s of 1 kHz at -20 dBFS POSTed to /play_audio and recorded back with the camera's microphone (/audio.pcm); level of the 1 kHz component in the best 1 s window (Hann-windowed Goertzel, 50 ms steps); audio.outputVolume not set (50), then 30 (gain 16462/65536, expected -12.0 dB)"
+    },
+    "runs": {
+      "fresh": {
+        "start": "both overlay files removed and audio.speakerPin deleted, then a reboot: /etc/init.d/S95majestic is the firmware's (sha256 1e8b65df77d5a132...), majestic runs without the library, /audio.opus has 2 channels in 10 ms frames and decodes to 0.495 s per second",
+        "check_before": "3 would change, then a reboot (exit 1): /etc/majestic.yaml audio.speakerPin=63, /usr/lib/libmajaudiofix.so, /etc/init.d/S95majestic (audio fix)",
+        "apply": "the other 6 items already; 3 changed, rebooting now (exit 0); the camera answered again after 32 s",
+        "check_after": "nothing to change (exit 0)",
+        "after": {
+          "microphone": {
+            "channels": 1,
+            "frame_ms": 20,
+            "packets_in_4_s": 187
+          },
+          "speaker_1khz_dbfs": {
+            "outputVolume_not_set": -29.1,
+            "outputVolume_30": -41.1
+          },
+          "step_db": -12.0
+        }
+      },
+      "upgrade_from_version_2": {
+        "start": "post_setup VERSION 2 (ba90044) installed the microphone-only library and its S95majestic (2 changed), audio.speakerPin deleted, then a reboot: library sha256 2af6ee3b35958013..., S95majestic 8cfbc23eaf5f2a40..., the library loaded, /audio.opus 1 channel in 20 ms frames (198 packets in 4 s)",
+        "check_before": "3 would change, then a reboot (exit 1): /etc/majestic.yaml audio.speakerPin=63, /usr/lib/libmajaudiofix.so, /etc/init.d/S95majestic (audio fix)",
+        "apply": "the other 6 items already; 3 changed, rebooting now (exit 0); the camera answered again after 32 s",
+        "check_after": "nothing to change (exit 0)",
+        "after": {
+          "microphone": {
+            "channels": 1,
+            "frame_ms": 20,
+            "packets_in_4_s": 198
+          },
+          "speaker_1khz_dbfs": {
+            "outputVolume_not_set": -29.2,
+            "outputVolume_30": -41.2
+          },
+          "step_db": -12.0
+        }
+      },
+      "easy_migrate_step": {
+        "how": "easy_migrate.Flow.step_post_setup run alone against unit 2: it calls run_post_setup, that is easy/post_setup.py --ssh CAMERA_SSH --reboot, with camera_ssh a plain ssh command; the earlier steps were not run (no camera on the stock firmware)",
+        "start": "as for fresh (the same 3 would change)",
+        "apply": "easy_migrate: board settings, update guard and audio fix over SSH (...); then post_setup: the other 6 items already; 3 changed, rebooting now (exit 0); the camera answered again after 32 s; the step returned without a stop",
+        "check_after": "nothing to change (exit 0)",
+        "after": {
+          "microphone": {
+            "channels": 1,
+            "frame_ms": 20,
+            "packets_in_4_s": 198
+          },
+          "speaker_1khz_dbfs": {
+            "outputVolume_not_set": -29.2,
+            "outputVolume_30": -41.1
+          },
+          "step_db": -12.0
+        }
+      }
+    },
+    "after_each_run": "library sha256 2a7bc0d4aa9f3783... and S95majestic 9301a67bf827e2fc... in /overlay; majestic maps the library; audio.speakerPin 63; syslog majaudiofix: speaker outputVolume 50 -> gain 65536/65536 at boot and again after the S96vicheck restart, and outputVolume 30 -> gain 16462/65536 after cli -s .audio.outputVolume 30",
+    "audio_defaults": {
+      "audio.enabled": "not set means false: /audio.opus answers HTTP 501 'Server audio is not enabled' (the owner had set it to true on unit 2)",
+      "audio.outputEnabled": "not set means false: /play_audio answers HTTP 501 'Audio output is not enabled'",
+      "live": "cli -s or cli -d of either takes effect at once in the same majestic process; post_setup sets neither"
+    },
+    "end_state": "VERSION 3 files; majestic.yaml audio: enabled true, outputEnabled true, speakerPin 63, outputVolume not set"
   },
   "undo": "library and S95majestic: rm /overlay/etc/init.d/S95majestic /overlay/usr/lib/libmajaudiofix.so, then reboot (this removes the microphone fix too); settings: cli -d .audio.outputEnabled; cli -d .audio.speakerPin"
 }

@@ -156,8 +156,8 @@ class PostSetup(unittest.TestCase):
         self.assertEqual(rc, 0, lines)
         st = self.states(lines)
         self.assertEqual(set(st), {"changed"}, lines)
-        self.assertEqual(len(st["changed"]), 11, lines)
-        self.assertEqual(lines[-1], "post_setup: result: 11 changed, reboot the camera to use them")
+        self.assertEqual(len(st["changed"]), 14, lines)
+        self.assertEqual(lines[-1], "post_setup: result: 14 changed, reboot the camera to use them")
         r = self.root
         for rel, src in (("usr/sbin/sysupgrade", "update/sysupgrade-guard.sh"),
                          ("etc/sensors/ar0141_i2c_720p.ini", "video/ar0141_i2c_720p.ini"),
@@ -165,13 +165,17 @@ class PostSetup(unittest.TestCase):
                          ("etc/init.d/S94lightsensor", "night/S94lightsensor"),
                          ("etc/init.d/S96vicheck", "video/S96vicheck"),
                          ("usr/lib/libmajaudiofix.so", "audio/libmajaudiofix.so"),
-                         ("etc/init.d/S95majestic", "audio/S95majestic")):
+                         ("etc/init.d/S95majestic", "audio/S95majestic"),
+                         ("usr/sbin/wifi-ap", "wifi/ap/wifi-ap"),
+                         ("usr/lib/wifi-ap/mt7601Uap.ko.xz", "wifi/ap/mt7601Uap.ko.xz"),
+                         ("etc/init.d/S97wifiap", "wifi/ap/S97wifiap")):
             self.assertEqual((r / rel).read_bytes(), (BASE / src).read_bytes(), rel)
         for rel in ("usr/sbin/sysupgrade", "etc/init.d/S94lightsensor", "etc/init.d/S96vicheck",
-                    "etc/init.d/S95majestic"):
+                    "etc/init.d/S95majestic", "usr/sbin/wifi-ap", "etc/init.d/S97wifiap"):
             self.assertEqual((r / rel).stat().st_mode & 0o777, 0o755, rel)
         self.assertEqual((r / "etc/majestic.yaml").stat().st_mode & 0o777, 0o600)
-        self.assertEqual((r / "usr/lib/libmajaudiofix.so").stat().st_mode & 0o777, 0o644)
+        for rel in ("usr/lib/libmajaudiofix.so", "usr/lib/wifi-ap/mt7601Uap.ko.xz"):
+            self.assertEqual((r / rel).stat().st_mode & 0o777, 0o644, rel)
         self.assertEqual((r / "rom/usr/sbin/sysupgrade").read_text(), ROM_UPDATER)
         self.assertEqual((r / "rom/etc/init.d/S95majestic").read_text(), ROM_S95)
         self.assertEqual((r / "etc/modules").read_text(), "vfat\nexfat\nwdt\n")
@@ -193,7 +197,7 @@ class PostSetup(unittest.TestCase):
         self.assertEqual(rc, 0, lines)
         st = self.states(lines)
         self.assertEqual(set(st), {"already"}, lines)
-        self.assertEqual(len(st["already"]), 11)
+        self.assertEqual(len(st["already"]), 14)
         self.assertEqual(lines[-1], "post_setup: result: nothing to change")
         self.assertEqual(tree(r), before)
         self.assertEqual(self.log.read_text(), "")
@@ -206,8 +210,8 @@ class PostSetup(unittest.TestCase):
         self.assertEqual(rc, 1, lines)
         st = self.states(lines)
         self.assertEqual(set(st), {"would change"}, lines)
-        self.assertEqual(len(st["would change"]), 11)
-        self.assertEqual(lines[-1], "post_setup: result: 11 would change, then a reboot")
+        self.assertEqual(len(st["would change"]), 14)
+        self.assertEqual(lines[-1], "post_setup: result: 14 would change, then a reboot")
         self.assertEqual(tree(self.root), before)
         self.assertEqual(self.env.read_text(), env)
         self.assertEqual(self.log.read_text(), "")
@@ -306,7 +310,7 @@ class PostSetup(unittest.TestCase):
         self.assertEqual(rc, 0, lines)
         st = self.states(lines)
         self.assertEqual(st["note"], ["/etc/init.d/S95majestic is not the firmware's; left as is (no audio fix)"])
-        self.assertEqual(len(st["changed"]), 9, lines)
+        self.assertEqual(len(st["changed"]), 12, lines)
         self.assertEqual(s95.read_text(), own)
         self.assertFalse((self.root / "usr/lib/libmajaudiofix.so").exists())
 
@@ -335,7 +339,7 @@ class PostSetup(unittest.TestCase):
 
     def test_reboot_only_when_needed(self):
         rc, lines = self.run_script(reboot=True)
-        self.assertEqual((rc, lines[-1]), (0, "post_setup: result: 11 changed, rebooting now"))
+        self.assertEqual((rc, lines[-1]), (0, "post_setup: result: 14 changed, rebooting now"))
         self.assertEqual(self.log.read_text().splitlines()[-1], "reboot")
         self.log.write_text("")
         rc, lines = self.run_script(reboot=True)
@@ -345,6 +349,35 @@ class PostSetup(unittest.TestCase):
         rc, lines = self.run_script(reboot=True)
         self.assertEqual((rc, lines[-1]), (0, "post_setup: result: 1 changed, no reboot needed"))
         self.assertNotIn("reboot", self.log.read_text())
+
+    def fake_free(self, kb: int):
+        df = self.d / "bin/df"
+        df.unlink()
+        df.write_text(f"#!{BUSYBOX} sh\necho 'Filesystem 1K-blocks Used Available Use% Mounted on'\n"
+                      f"echo 'overlay 896 {896 - kb} {kb} 50% /'\n")
+        df.chmod(0o755)
+
+    def test_access_point_only_with_room_for_its_driver(self):
+        ko = BASE / "wifi/ap/mt7601Uap.ko.xz"
+        need = len(ko.read_bytes()) // 1024 + 1 + 64
+        self.fake_free(need - 1)
+        rc, lines = self.run_script()
+        self.assertEqual(rc, 2, lines)
+        self.assertEqual(self.states(lines)["failed"], [f"the rescue access point needs {need}K free in the overlay, "
+                                                        f"{need - 1}K are; none of its files were written"])
+        self.assertEqual(lines[-1], "post_setup: result: 11 changed, 1 failed; fix the cause and run post_setup again")
+        for rel in ("usr/sbin/wifi-ap", "usr/lib/wifi-ap", "etc/init.d/S97wifiap"):
+            self.assertFalse((self.root / rel).exists(), rel)
+        old = self.root / "usr/lib/wifi-ap/mt7601Uap.ko.xz"  # an older driver: its room counts
+        old.parent.mkdir()
+        old.write_bytes(b"x" * 2048)
+        self.fake_free(need - 2)
+        rc, lines = self.run_script()
+        self.assertEqual(rc, 0, lines)
+        self.assertEqual(old.read_bytes(), ko.read_bytes())
+        self.fake_free(10)  # nothing to write: no room needed
+        rc, lines = self.run_script()
+        self.assertEqual((rc, lines[-1]), (0, "post_setup: result: nothing to change"))
 
     def test_installed_guard_status_is_checked(self):
         (self.root / "rom/usr/sbin/sysupgrade").write_text(ROM_UPDATER.replace("1.0.84", "1.0.99"))
@@ -359,7 +392,7 @@ class PostSetup(unittest.TestCase):
         r = subprocess.run([sys.executable, str(BASE / "easy/post_setup.py"), "--ssh", env, "--check"],
                            capture_output=True, text=True, timeout=60)
         self.assertEqual(r.returncode, 1, r.stdout + r.stderr)
-        self.assertIn("post_setup: result: 11 would change, then a reboot", r.stdout)
+        self.assertIn("post_setup: result: 14 would change, then a reboot", r.stdout)
         r = subprocess.run([sys.executable, str(BASE / "easy/post_setup.py"), "--ssh", "false"],
                            capture_output=True, text=True, timeout=60)
         self.assertEqual(r.returncode, 3)

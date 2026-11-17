@@ -175,8 +175,9 @@ phase2（RAM上のOpenIPC BusyBox）：manifestのseqが変わるたびに om_st
 | `camera/trial.sh`、`camera/trial_dhcp.sh` | 試験起動でのWi-Fi接続、DHCP、報告、`tl` へのログ記録 | カメラ（試験起動） |
 | `camera/migrate_hook.sh` | 純正アプリの停止・再開、送信、進捗 | カメラ（phase2） |
 | `validate_online_qemu.py` | 実ARMバイナリを `qemu-arm` で動かす検証 | ホスト |
-| `easy/easy_migrate.py`、`easy/post_setup.py` | 移行の全段階を、止まっても再開できる1つのコマンドにしたものと、移行後の設定・更新ガード・音声の修正の導入（[easy/README.md](easy/README.md)） | ホスト（SSHでカメラ） |
+| `easy/easy_migrate.py`、`easy/post_setup.py` | 移行の全段階を、止まっても再開できる1つのコマンドにしたものと、移行後の設定・更新ガード・音声の修正・復旧用APの導入（[easy/README.md](easy/README.md)） | ホスト（SSHでカメラ） |
 | `update/sysupgrade-guard.sh`、`update/check_update.py` | 固定の区画を壊す更新を止めるガードと、更新が区画に収まるかの判定（[update/README.md](update/README.md)） | カメラ／ホスト |
+| `wifi/ap/wifi-ap`、`wifi/ap/S97wifiap`、`wifi/ap/mt7601Uap.ko.xz` | リセットボタンの長押しで立てる復旧用のAPと、そのドライバ（[wifi/ap/README.md](wifi/ap/README.md)） | カメラ（`post_setup.py` が入れる） |
 | `tests/` | ユニット、模擬フラッシュでのインストーラー、E2E | ホスト |
 
 **移行appfsを届ける部分（純正TCP3508の `0x96` 更新）はリポジトリに入れていない。** 実機では、所有者の承認のもとリポジトリ外の私的な送信ツールを使った。既存の `research/sysupdate-offline/pack_update.py` のガードは変えていない。`0x96` はappfsとbakfsを両方書き換えて再起動する。trial-armの後はbakfsに純正appfsの控えが残らない。そこから先の復旧手段はSPIダンプになる。
@@ -249,7 +250,7 @@ finalの後戻りできない区間は、firmware約6.6 MiBの消去・書込み
 
 ### x86ホスト
 
-`python3 -m unittest discover -s tests -v`：**331件中329件が成功**（失敗0、スキップ2、2026-11-17。実ツールの `mksquashfs`／`unsquashfs`、ARM用binutilsとOpenIPCのrootfsあり、約4分）。スキップの2件は、私的な認証ランタイムとqemu-armが要る `test_trial_auth` の実ランタイム試験。音声の修正のライブラリを作り直す試験（1件）は、ARM用binutilsとrootfsがなければスキップする。最初にまとめたときは135件だった。
+`python3 -m unittest discover -s tests -v`：**380件中378件が成功**（失敗0、スキップ2、2026-11-17。実ツールの `mksquashfs`／`unsquashfs`、ARM用binutilsとOpenIPCのrootfsあり、約4.5分）。スキップの2件は、私的な認証ランタイムとqemu-armが要る `test_trial_auth` の実ランタイム試験。音声の修正のライブラリを作り直す試験（1件）は、ARM用binutilsとrootfsがなければスキップする。最初にまとめたときは135件だった。
 
 | モジュール | 件数 | 内容 |
 | --- | --- | --- |
@@ -269,7 +270,8 @@ finalの後戻りできない区間は、firmware約6.6 MiBの消去・書込み
 | `test_lightsensor` | 9 | `night/S94lightsensor`（[night/README.md](night/README.md)） |
 | `test_majaudiofix` | 26 | `audio/` のマイクとスピーカーの音量の修正（ライブラリのELFと命令列、ARMのエミュレーターで動かす3つの関数、`S95majestic`、`opusstat.py`。[audio/README.md](audio/README.md)） |
 | `test_wifi_switch_trial` | 6 | `wifi/wifi-switch-trial.sh`（[wifi/README.md](wifi/README.md)） |
-| `test_post_setup` | 16 | `easy/post_setup.py`（[easy/README.md](easy/README.md)） |
+| `test_wifi_ap` | 48 | `wifi/ap/wifi-ap` と `S97wifiap`（模擬のコマンドとGPIOを相手に。[wifi/ap/README.md](wifi/ap/README.md)） |
+| `test_post_setup` | 17 | `easy/post_setup.py`（[easy/README.md](easy/README.md)） |
 | `test_easy_migrate` | 16 | `easy/easy_migrate.py`（模擬カメラ相手。[easy/README.md](easy/README.md)） |
 | `test_sysupgrade_guard` | 20 | `update/sysupgrade-guard.sh`（[update/README.md](update/README.md)） |
 | `test_check_update` | 9 | `update/check_update.py`（[update/README.md](update/README.md)） |
@@ -355,10 +357,11 @@ diagnoseでは純正アプリ・ネットワークサービスを停止しない
 - マイク: 雑音だらけに聞こえたのは、majesticがモノラルのマイク（AIのチャネル0）を2チャネルとしてOpusとAACのエンコーダーに渡していたため。音が半分しか入らず、1オクターブ高くなっていた（PCMとA-lawは正しかった）。純正の `cmsMain.out` もAIを2チャネルで設定し、チャネル0だけを使う。`HI_MPI_AI_SetPubAttr` を包む小さなライブラリと、それを読み込ませる `S95majestic` で直し、RTSP・`/video.mp4`・`/audio.opus`・`/audio.m4a` の音が正しい長さと高さになった（[audio/README.md](audio/README.md)、[results/unit2-audio.json](results/unit2-audio.json)）。
 - スピーカー: 再生の経路（`/play_audio` → 8 kHzへのリサンプル → ADEC → AO）は正しく、送った音が正しい高さと長さで鳴った（カメラのマイクで録り直して確認）。ただし既定では鳴らない（`audio.outputEnabled` がfalse、アンプのピン `audio.speakerPin` が未設定。このボードではGPIO63で、`easy/post_setup.py` が入れる）。音量 `audio.outputVolume` はmajesticでは効かなかったので、同じライブラリで純正と同じ (音量−50)×0.6 dB の倍率を掛けるようにした（30で−12.0 dB、70で+12.0 dB、100で+30.0 dB、0で無音を実測）（[audio/README.md](audio/README.md)、[results/unit2-speaker.json](results/unit2-speaker.json)）。
 - Wi-Fi: つなぎ先を、ホストのAPから自宅のルーター（Aterm）の2.4 GHzに変えた。フラッシュに書かない試験（残す印がなければ300秒で戻る）でつながることを確かめてから、envの `wlanssid` と `wlanpass` を `fw_setenv` で書き換えた。再起動後も同じところにつながり、時計はNTPで合うようになった（[wifi/README.md](wifi/README.md)、[results/unit2-home-wifi.json](results/unit2-home-wifi.json)）。
-- ルーターの停止: カメラは自分でつなぎ直す。APがない181秒のあと、APが立ってから11秒でアドレスを受けた。つながっている間に60秒止めたときは、戻ってから4秒で応答した（再起動なし）。リセットボタンのAPモードは純正のアプリの機能で、OpenIPCでは使えない（[wifi/README.md](wifi/README.md)、[results/unit2-router-outage.json](results/unit2-router-outage.json)）。
+- ルーターの停止: カメラは自分でつなぎ直す。APがない181秒のあと、APが立ってから11秒でアドレスを受けた。つながっている間に60秒止めたときは、戻ってから4秒で応答した（再起動なし）（[wifi/README.md](wifi/README.md)、[results/unit2-router-outage.json](results/unit2-router-outage.json)）。
+- 復旧用AP: ルーターを替えたときなどのために、背面のリセットボタンを3〜30秒押して離すと、カメラが `OpenIPC-XXXX`（WPA2）のAPになり、`ssh root@192.168.4.1` から `wifi-ap join` で新しいSSIDとパスフレーズを入れられるようにした。ボタンのGPIO（GPIO0_6）は純正の `cmsMain.out` の設定表から読んだ。純正のAP用ドライバはOpenIPCのkernelでは読み込めないので、OpenIPCのMT7601Uドライバのソースから作った。2台目では、押したときと同じ処理でAPになり、ホストがつながり、`join` でルーターに戻ることを確かめた。ボタンを実際に押しての確認はまだ（[wifi/ap/README.md](wifi/ap/README.md)、[results/unit2-wifi-ap.json](results/unit2-wifi-ap.json)）。
 - 次の機体では、`make_env.py` が既定でenvに `sensor=ar0141` を入れるので、初回起動から `load_hisilicon` が `wdt.ko` まで読み込み、watchdogに給餌できる見込み（次の機体で確かめる）。finalで rootfs_data の先頭に `/init` の持ち込み（`OPENIPC-OVL1`）を置いて `etc/modules` に `wdt` を入れる案は未実装。
 - 更新: OpenIPC標準のオンライン更新は固定の区画を壊すので、更新ガード（`/usr/sbin/sysupgrade` の置き換え）とenvの `upgrade`（届かないURL）で止めた。ガードの判定は2台目の上で28件確かめた（書き込みなし）。区画に収まる版だけを `--kernel`／`--rootfs` で入れる手順は [update/README.md](update/README.md)（版の入れ替えは未実施）。結果は [results/unit2-update-guard.json](results/unit2-update-guard.json)。
-- まとめ: ここまでの手作業を [easy/README.md](easy/README.md) の2つのコマンドにした。`post_setup.py`（移行後の設定、更新ガード、マイクとスピーカーの修正）は2台目で確かめた。音声の修正は、修正のない状態からとマイクだけの版からの両方で入れ直した。`easy_migrate.py`（移行全体）は模擬カメラ相手のオフライン試験だけで、2台目で動かしたのは最後の `post_setup` の段階だけ。マイクもスピーカーもmajesticの既定では切ってあり、`cli -s .audio.enabled true`（マイク）と `cli -s .audio.outputEnabled true`（スピーカー）ですぐ使える。`easy_migrate.py` は最後にこれを表示する。
+- まとめ: ここまでの手作業を [easy/README.md](easy/README.md) の2つのコマンドにした。`post_setup.py`（移行後の設定、更新ガード、マイクとスピーカーの修正、復旧用AP）は2台目で確かめた。音声の修正は、修正のない状態からとマイクだけの版からの両方で入れ直した。`easy_migrate.py`（移行全体）は模擬カメラ相手のオフライン試験だけで、2台目で動かしたのは最後の `post_setup` の段階だけ。マイクもスピーカーもmajesticの既定では切ってあり、`cli -s .audio.enabled true`（マイク）と `cli -s .audio.outputEnabled true`（スピーカー）ですぐ使える。`easy_migrate.py` は最後にこれを表示する。
 
 ## 再実行
 

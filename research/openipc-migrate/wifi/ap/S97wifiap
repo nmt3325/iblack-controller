@@ -1,0 +1,44 @@
+#!/bin/sh
+#
+# Watch the reset button: holding it for 3-30 s switches between Wi-Fi client mode and the
+# rescue access point (see /usr/sbin/wifi-ap).
+#
+
+DAEMON=/usr/sbin/wifi-ap
+PIDFILE=/var/run/wifi-ap-button.pid
+
+running() {
+	[ -f "$PIDFILE" ] && kill -0 "$(cat "$PIDFILE")" 2>/dev/null
+}
+
+start() {
+	[ -x "$DAEMON" ] || return 0
+	if running; then
+		echo "wifi-ap button watcher is already running"
+		return 0
+	fi
+	printf "Starting wifi-ap button watcher: "
+	( trap '' HUP; exec "$DAEMON" button ) </dev/null >/dev/null 2>&1 &
+	echo $! > "$PIDFILE"
+	echo "OK"
+}
+
+stop() {
+	printf "Stopping wifi-ap button watcher: "
+	running && kill "$(cat "$PIDFILE")"
+	rm -f "$PIDFILE"
+	echo "OK"
+}
+
+case "$1" in
+	start)
+		start ;;
+	stop)
+		stop ;;
+	restart|reload)
+		stop
+		start ;;
+	*)
+		echo "Usage: $0 {start|stop|restart}"
+		exit 1 ;;
+esac

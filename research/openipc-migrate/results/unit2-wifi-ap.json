@@ -1,0 +1,123 @@
+{
+  "schema": "iblack-openipc-unit2-wifi-ap/1",
+  "date_utc": "2026-11-17",
+  "unit": 2,
+  "base_revision": "9c328da0096fe2cf97c2d8624ab2f9870451ce13",
+  "uboot_written": false,
+  "firmware_written": false,
+  "camera_changes": {
+    "env": "none: wifi-ap join wrote wlanssid and wlanpass with the values they already had (sorted fw_printenv output had the same md5 before and after); no wlanap_* variable was set",
+    "overlay_files": [
+      {
+        "path": "/usr/sbin/wifi-ap",
+        "source": "wifi/ap/wifi-ap",
+        "sha256": "bd4eec7844f267c4a710fbd5a0ec5dc9581d2982278d92fbf56399b217266cc4"
+      },
+      {
+        "path": "/etc/init.d/S97wifiap",
+        "source": "wifi/ap/S97wifiap",
+        "sha256": "459d9adf9079b70b6e23ef94b3e9c059871d3b4b8297cbac2ef669915be1316a"
+      },
+      {
+        "path": "/usr/lib/wifi-ap/mt7601Uap.ko.xz",
+        "source": "wifi/ap/mt7601Uap.ko.xz",
+        "sha256": "016e773b4bc3c5cc4ba77f59d34722d23628042a7f0caedce07d78e613419b62"
+      }
+    ],
+    "installed_by": "easy/post_setup.py version 4: --check reported 3 files to change, --reboot changed them and rebooted (back on the network about 50 s later), --check after the tests reported nothing to change",
+    "overlay_free_kib": {
+      "before": 608,
+      "after": 416
+    },
+    "runtime_only": "test script, test log and the test AP name and passphrase (WIFIAP_SSID and WIFIAP_PASS, environment variables of the test script only) under /tmp (tmpfs); removed after the test"
+  },
+  "gpio_source": {
+    "stock_app": "appfs cmsMain.out has two board tables. In the one whose IR LED GPIO matches this board (GPIO6_4, see night/README.md) the button (keystruct) is 0x80000006 = GPIO0_6 (gpio6); the other table has GPIO9_2 (gpio74)",
+    "stock_behaviour": "the button was read every 50 ms; a press of more than 3 s switched the radio to AP mode by loading mt7601Uap.ko (log string: 3518 keydown time(%d),do cmsChangeWifiDevice2AP); each long press switched between smart config and AP mode",
+    "pin_mux": "the stock pin table sets 0x200F0138 (GPIO0_6) to 0 = GPIO; OpenIPC boots with 1, so wifi-ap button writes 0",
+    "idle_level_unit2": 0
+  },
+  "implementation": {
+    "button": "S97wifiap starts 'wifi-ap button', which reads gpio6 every 0.2 s. A press of 3-30 s, counted when it is released, switches between Wi-Fi client and AP. The idle level is learned at start and learned again after 1 min at one level",
+    "ap": "wpa_supplicant and udhcpc stopped, mt7601sta unloaded, mt7601Uap.ko loaded, ra0 192.168.4.1/24, BusyBox udhcpd 192.168.4.100-150, WPA2-PSK, channel 6, SSID OpenIPC-<last 4 hex digits of the MAC>, passphrase = wlanpass unless wlanap_pass is set",
+    "back_to_client": "button again, wifi-ap stop, wifi-ap join SSID PASS (saved with fw_setenv; back to AP if there is no lease in 60 s), 600 s without traffic (wlanap_idle) or a reboot",
+    "driver": "the stock mt7601Uap.ko is built for the stock kernel and does not load on OpenIPC. The AP part of github.com/openipc/mt7601u (commit 0ac46553, the source of the OpenIPC station driver) was built as an AP-only module for the OpenIPC hi3518ev100 kernel with wifi/ap/build-mt7601Uap.sh (downloads pinned by commit and sha256; two builds in different directories were byte-identical)"
+  },
+  "method": "post_setup.py version 4 installed the files and rebooted. The AP was started with 'wifi-ap do-press' (what the button watcher runs after a valid press) using a test SSID and passphrase. A Linux host joined it with NetworkManager, then ran wifi-ap join over SSH with the router SSID and passphrase read by fw_printenv on the camera (they never went to the host). A second cycle used wifi-ap start and wifi-ap stop with no client. The press timing was checked earlier the same day with WIFIAP_SYS pointing the watcher at a fake sysfs GPIO directory under /tmp",
+  "results": {
+    "after_reboot": {
+      "watcher": "running",
+      "log": [
+        "pin mux 0x200F0138: 0x00000001 -> 0",
+        "watching the button on gpio6",
+        "gpio6 idle level: 0"
+      ],
+      "files_on_camera": "same sha256 as git"
+    },
+    "ap_up": {
+      "after_do_press_s": 7,
+      "channel": 6,
+      "security": "WPA2-PSK",
+      "udhcpd_processes": 1
+    },
+    "host_on_ap": {
+      "associated_with_lease_s": 13,
+      "lease": "192.168.4.100",
+      "ping": "3/3, average 3.9 ms",
+      "ssh": "ok",
+      "web_ui_http_status": 200,
+      "wifi_ap_status": "mode: access point, clients seen: 1"
+    },
+    "join_router": {
+      "exit_code": 0,
+      "client_with_router_lease_s": 14,
+      "ap_gone_from_host_scan_s": 9,
+      "udhcpd_processes_after": 0,
+      "ssh_through_router": "ok"
+    },
+    "second_cycle": {
+      "ap_up_after_start_s": 8,
+      "client_with_lease_after_stop_s": 10,
+      "udhcpd_processes_after": 0
+    },
+    "leftover_processes": "none (udhcpd, traffic monitor)",
+    "env": "unchanged",
+    "kernel_oops": 0,
+    "reboot_during_tests": false,
+    "mem_free_kib_after": 2292,
+    "watcher_cpu": "about 1.7 % (8 s in the first 8 min after the reboot)",
+    "button_logic_fake_gpio": {
+      "setup": "wifi-ap before the udhcpd fix, driver from the same source, WIFIAP_IDLE=40",
+      "press_1.0_s": "ignored (hold it for 3-30 s)",
+      "press_3.5_s": "AP in 7 s",
+      "no_traffic_40_s": "client again, lease 14 s after the AP stopped",
+      "press_34.8_s": "ignored",
+      "level_1_for_1_min": "taken as the new idle level",
+      "inverted_press_3.5_s": "AP in 6 s",
+      "inverted_press_3.3_s": "client in 10 s",
+      "watcher_cpu": "3.11 s in 197 s (1.6 %)"
+    }
+  },
+  "bug_fixed": "BusyBox 1.36.1 udhcpd on the camera did not write its pid to the pidfile named in its config. The first wifi-ap stopped udhcpd by that pid, so every AP stop left one udhcpd running (3 on unit 2; they were stopped). wifi-ap now starts udhcpd with -f in the background and keeps the pid itself; tests/test_wifi_ap.py checks that udhcpd and the traffic monitor are gone after stop",
+  "known_issues": [
+    "iwconfig ra0 ends with Segmentation fault with the AP driver (no kernel oops, the AP keeps working); wifi-ap status shows the AP state instead",
+    "while the camera is an AP it cannot be reached through the router"
+  ],
+  "incident": "while checking the udhcpd pidfile behaviour, busybox udhcpd was once started without a config file and ran for 1-2 min with its defaults (eth0) until it was stopped. eth0 is not wired on this board, so it could not hand out addresses to anything",
+  "not_tested": [
+    "pressing the physical reset button (it cannot be pressed remotely); the press handling was run with wifi-ap do-press and the timing with a fake GPIO",
+    "wifi-ap join to a different network than the saved one, or with a wrong passphrase on the camera (the fallback to AP after 60 s is covered by tests/test_wifi_ap.py only)",
+    "phones as AP clients (only a Linux host)"
+  ],
+  "offline_tests": {
+    "tests/test_wifi_ap.py": 48,
+    "all": "380 tests, OK (2 skipped)"
+  },
+  "kept_outside_git": [
+    "camera and host addresses on the home network",
+    "MAC addresses and the real OpenIPC-XXXX suffix",
+    "router SSID and passphrase",
+    "test AP SSID and passphrase",
+    "SSH host key"
+  ]
+}

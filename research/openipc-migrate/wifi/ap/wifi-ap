@@ -1,0 +1,607 @@
+#!/bin/sh
+# wifi-ap: rescue access point for iErmu/iBlack (MT7601U) cameras running OpenIPC.
+#
+# When the camera has lost its Wi-Fi network (new router, changed passphrase, ...), hold the
+# reset button on the back for 3-30 seconds and release it. The camera leaves the network and
+# becomes an access point with the address 192.168.4.1. Join it, then for example:
+#   ssh root@192.168.4.1
+#   wifi-ap join "SSID" "PASSPHRASE"    save the new network (wlanssid/wlanpass) and use it
+# The camera goes back to the saved network when the button is held again, on "wifi-ap stop"
+# and after wlanap_idle seconds without traffic. If "join" gets no address within a minute,
+# the access point comes back. A reboot always starts in Wi-Fi client mode.
+#
+# Usage: wifi-ap start|stop|toggle|status|join SSID [PASSPHRASE]|probe [SECONDS]
+#        wifi-ap button    watch the button (started by /etc/init.d/S97wifiap)
+#
+# Optional settings (fw_setenv NAME VALUE):
+#   wlanap_ssid     network name, 1-32 bytes (default OpenIPC-XXXX, XXXX = end of the Wi-Fi MAC)
+#   wlanap_pass     WPA2 passphrase of 8-63 characters, or "none" for an open network
+#                   (default: the Wi-Fi passphrase in wlanpass, if it has 8-63 characters;
+#                   "wifi-ap join" saves the one in use here, so the access point keeps it)
+#   wlanap_channel  1-13 (default 6)
+#   wlanap_idle     seconds without traffic before going back (default 600, 0 = never)
+#   wlanap_gpio     GPIO of the button (default 6 = GPIO0_6, from the stock firmware), or "off"
+# WIFIAP_SSID, WIFIAP_PASS, WIFIAP_CHANNEL, WIFIAP_IDLE and WIFIAP_GPIO override them; the
+# other WIFIAP_* variables exist for the tests. Passphrases are never logged.
+# Messages: logread | grep wifi-ap
+
+KO=${WIFIAP_KO:-/usr/lib/wifi-ap/mt7601Uap.ko.xz}
+RUN=${WIFIAP_RUN:-/tmp/wifi-ap}
+LOCK=$RUN.lock
+DAT=${WIFIAP_DAT:-/tmp/mt7601ap/RT2870AP.dat}
+SYS=${WIFIAP_SYS:-/sys}
+PROC=${WIFIAP_PROC:-/proc}
+USB=${WIFIAP_USB:-/etc/wireless/usb}
+UDHCPC_PID=${WIFIAP_UDHCPC_PID:-/var/run/udhcpc.wlan0.pid}
+BUTTON_PID=${WIFIAP_BUTTON_PID:-/var/run/wifi-ap-button.pid}
+TICK=${WIFIAP_TICK:-10}
+POLL=${WIFIAP_POLL:-0.2}
+ADDR=192.168.4.1
+
+log() {
+	logger -t wifi-ap "$*"
+	[ -t 2 ] && echo "wifi-ap: $*" >&2
+	return 0
+}
+
+usage() {
+	echo "usage: wifi-ap start|stop|toggle|status|join SSID [PASSPHRASE]|probe [SECONDS]" >&2
+	exit 1
+}
+
+# setting NAME name: $WIFIAP_NAME, otherwise the U-Boot variable wlanap_name
+setting() {
+	eval "sv=\${WIFIAP_$1-}"
+	[ -n "$sv" ] || sv=$(fw_printenv -n "wlanap_$2" 2>/dev/null)
+	printf '%s' "$sv"
+}
+
+# number VALUE MIN MAX DEFAULT: VALUE without leading zeros if it is a number within MIN-MAX
+number() {
+	case $1 in ''|*[!0-9]*) echo "$4"; return ;; esac
+	nv=${1#"${1%%[!0]*}"}
+	nv=${nv:-0}
+	if [ ${#nv} -le 9 ] && [ "$nv" -ge "$2" ] && [ "$nv" -le "$3" ]; then echo "$nv"; else echo "$4"; fi
+}
+
+# SSID: 1-32 bytes without control characters
+valid_ssid() {
+	[ -n "$1" ] || return 1
+	case $1 in *[[:cntrl:]]*) return 1 ;; esac
+	[ $(printf '%s' "$1" | wc -c) -le 32 ]
+}
+
+# WPA passphrase: 8-63 printable ASCII characters, or 64 hex digits
+valid_psk() {
+	case $1 in *[![:print:]]*) return 1 ;; esac
+	[ ${#1} -ge 8 ] && [ ${#1} -le 63 ] && return 0
+	[ ${#1} = 64 ] && case $1 in *[![:xdigit:]]*) return 1 ;; esac
+}
+
+# Sets ssid, pass (empty = open network), sec, ch and idle.
+ap_conf() {
+	pass=$(setting PASS pass)
+	from=wlanap_pass
+	case $pass in
+	none|open)
+		pass= ;;
+	*)
+		if [ -n "$pass" ] && ! valid_psk "$pass"; then
+			log "wlanap_pass is not 8-63 characters, ignoring it"
+			pass=
+		fi
+		if [ -z "$pass" ]; then
+			pass=$(fw_printenv -n wlanpass 2>/dev/null)
+			from=wlanpass
+			valid_psk "$pass" || pass=
+		fi ;;
+	esac
+	if [ -n "$pass" ]; then sec="WPA2-PSK, passphrase from $from"; else sec=open; fi
+	ch=$(number "$(setting CHANNEL channel)" 1 13 6)
+	idle=$(number "$(setting IDLE idle)" 0 999999999 600)
+	ssid=$(setting SSID ssid)
+	if [ -n "$ssid" ] && ! valid_ssid "$ssid"; then
+		log "wlanap_ssid is not 1-32 bytes, using the default name"
+		ssid=
+	fi
+	[ -n "$ssid" ] && return 0
+	mac=
+	for i in wlan0 eth0; do
+		[ -r "$SYS/class/net/$i/address" ] && read -r mac < "$SYS/class/net/$i/address" && break
+	done
+	mac=$(echo "$mac" | tr -d : | tr a-f A-F)
+	if [ ${#mac} = 12 ]; then ssid=OpenIPC-${mac#????????}; else ssid=OpenIPC; fi
+}
+
+# lock SECONDS: one action at a time; wait up to SECONDS for a running one
+lock() {
+	ln=0
+	until mkdir "$LOCK" 2>/dev/null; do
+		[ -d "$LOCK" ] || return 1
+		lp=$(cat "$LOCK/pid" 2>/dev/null)
+		stale=
+		if [ -n "$lp" ]; then
+			kill -0 "$lp" 2>/dev/null || stale=1
+		elif [ $ln -ge 3 ]; then
+			stale=1
+		fi
+		if [ -n "$stale" ]; then
+			rm -rf "$LOCK"
+			continue
+		fi
+		[ $ln -ge "$1" ] && return 1
+		sleep 1
+		ln=$((ln + 1))
+	done
+	echo $$ > "$LOCK/pid"
+	trap 'rm -rf "$LOCK"' EXIT
+	trap 'exit 1' INT TERM
+}
+
+unlock() {
+	trap - EXIT INT TERM
+	rm -rf "$LOCK"
+}
+
+kill_pidfile() {
+	kp=$(cat "$1" 2>/dev/null)
+	[ -n "$kp" ] && [ "$kp" != $$ ] && kill "$kp" 2>/dev/null
+	rm -f "$1"
+}
+
+loaded() { grep -q "^$1 " "$PROC/modules" 2>/dev/null; }
+# running PID: the process has not ended (an ended child is a zombie until it is reaped)
+running() {
+	rs=$(cat "/proc/$1/stat" 2>/dev/null) || return 1
+	rs=${rs##*) }
+	[ "${rs%% *}" != Z ]
+}
+has_dev() { [ -e "$SYS/class/net/$1" ]; }
+has_addr() { ip -4 addr show dev "$1" 2>/dev/null | grep -q 'inet '; }
+no_wpa() { ! pidof wpa_supplicant >/dev/null; }
+
+# wait_for SECONDS COMMAND...: retry COMMAND once a second
+wait_for() {
+	wn=$1
+	shift
+	until "$@"; do
+		[ $wn -le 0 ] && return 1
+		sleep 1
+		wn=$((wn - 1))
+	done
+}
+
+unload() {
+	un=0
+	while loaded "$1"; do
+		[ $un -ge 5 ] && return 1
+		rmmod "$1" 2>/dev/null || sleep 1
+		un=$((un + 1))
+	done
+}
+
+sta_down() {
+	ifdown -f wlan0 >/dev/null 2>&1
+	killall -q wpa_supplicant
+	kill_pidfile "$UDHCPC_PID"
+	wait_for 5 no_wpa
+	ip link set wlan0 down 2>/dev/null
+	unload mt7601sta
+}
+
+# The wlan0 steps of /etc/init.d/S40network
+sta_up() {
+	if ! loaded mt7601sta; then
+		"$USB" "$(fw_printenv -n wlandev 2>/dev/null)" >/dev/null 2>&1
+		loaded mt7601sta || modprobe mt7601sta >/dev/null 2>&1
+	fi
+	if ! wait_for 15 has_dev wlan0; then
+		log "wlan0 did not come back, rebooting"
+		reboot
+		exit 1
+	fi
+	mac=$(fw_printenv -n wlanmac 2>/dev/null)
+	[ -n "$mac" ] && ip link set dev wlan0 address "$mac"
+	if has_dev eth0 && [ "$(fw_printenv -n netmode 2>/dev/null)" != wifi ]; then
+		c=$PROC/sys/net/ipv4/conf/wlan0
+		[ -w "$c/arp_ignore" ] && echo 1 > "$c/arp_ignore"
+		[ -w "$c/arp_announce" ] && echo 2 > "$c/arp_announce"
+	fi
+	ifup wlan0 >/dev/null 2>&1
+	log "back in Wi-Fi client mode"
+}
+
+sta_restart() {
+	ifdown -f wlan0 >/dev/null 2>&1
+	killall -q wpa_supplicant
+	wait_for 5 no_wpa
+	ifup wlan0 >/dev/null 2>&1
+}
+
+wait_addr() {
+	if wait_for 60 has_addr wlan0; then
+		log "wlan0 has an address"
+		return 0
+	fi
+	log "wlan0 has no address yet; wpa_supplicant and udhcpc keep trying"
+	return 1
+}
+
+# The driver reads this profile when ra0 goes up; it is deleted right after (passphrase).
+write_dat() {
+	if [ -n "$pass" ]; then auth=WPA2PSK; enc=AES; else auth=OPEN; enc=NONE; fi
+	(
+		umask 077
+		printf '%s\n' Default CountryRegion=1 CountryRegionABand=7 CountryCode=JP BssidNum=1 \
+			"SSID1=$ssid" WirelessMode=9 TxRate=0 "Channel=$ch" BasicRate=15 BeaconPeriod=100 \
+			DtimPeriod=1 TxPower=100 DisableOLBC=0 BGProtection=0 TxPreamble=0 \
+			RTSThreshold=2347 FragThreshold=2346 TxBurst=1 PktAggregate=0 WmmCapable=1 \
+			APSDCapable=0 DLSCapable=0 NoForwarding=0 HideSSID=0 ShortSlot=1 \
+			AutoChannelSelect=0 IEEE8021X=0 IEEE80211H=0 PreAuth=0 "AuthMode=$auth" \
+			"EncrypType=$enc" "WPAPSK1=$pass" RekeyMethod=DISABLE RekeyInterval=0 \
+			PMKCachePeriod=10 DefaultKeyID=2 HT_HTC=0 HT_RDG=0 HT_EXTCHA=0 HT_LinkAdapt=0 \
+			HT_OpMode=0 HT_MpduDensity=5 HT_BW=0 HT_AutoBA=1 HT_AMSDU=0 HT_BAWinSize=64 \
+			HT_GI=1 HT_MCS=33 HT_DisallowTKIP=1 MaxStaNum=4 RadioOn=1 > "$DAT"
+	)
+}
+
+ap_up() {
+	mkdir -p "$RUN" "${DAT%/*}" || return 1
+	if ! xz -dc "$KO" > "$RUN/mt7601Uap.ko"; then
+		log "cannot unpack $KO"
+		return 1
+	fi
+	insmod "$RUN/mt7601Uap.ko"
+	rc=$?
+	rm -f "$RUN/mt7601Uap.ko"
+	[ $rc = 0 ] || { log "cannot load mt7601Uap"; return 1; }
+	wait_for 10 has_dev ra0 || { log "ra0 did not appear"; return 1; }
+	write_dat || return 1
+	ip link set ra0 up
+	rc=$?
+	rm -f "$DAT"
+	rmdir "${DAT%/*}" 2>/dev/null
+	[ $rc = 0 ] || { log "cannot bring ra0 up"; return 1; }
+	ip addr add "$ADDR/24" dev ra0 || return 1
+	net=${ADDR%.*}
+	: > "$RUN/udhcpd.leases"
+	printf '%s\n' "start $net.100" "end $net.150" "interface ra0" "max_leases 8" \
+		"lease_file $RUN/udhcpd.leases" "opt subnet 255.255.255.0" "opt router $ADDR" \
+		"opt dns $ADDR" "opt lease 3600" > "$RUN/udhcpd.conf"
+	# in the foreground, so that its pid is known: this udhcpd writes no pidfile
+	udhcpd -f "$RUN/udhcpd.conf" </dev/null >/dev/null 2>&1 &
+	echo $! > "$RUN/udhcpd.pid"
+	sleep 1
+	running $! || { log "cannot start udhcpd"; return 1; }
+}
+
+ap_down() {
+	kill_pidfile "$RUN/monitor.pid"
+	kill_pidfile "$RUN/udhcpd.pid"
+	if has_dev ra0; then
+		ip addr flush dev ra0
+		ip link set ra0 down
+	fi
+	unload mt7601Uap || log "cannot unload mt7601Uap"
+	rm -f "$DAT" "$RUN/state" "$RUN/udhcpd.conf" "$RUN/udhcpd.leases" "$RUN/mt7601Uap.ko"
+}
+
+ap_start() {
+	if loaded mt7601Uap; then
+		log "the access point is already running"
+		return 0
+	fi
+	if [ ! -r "$KO" ]; then
+		log "missing $KO"
+		return 1
+	fi
+	ap_conf
+	log "starting the access point \"$ssid\" (channel $ch, $sec)"
+	if ! sta_down; then
+		log "cannot unload mt7601sta"
+		sta_up
+		return 1
+	fi
+	if ! ap_up; then
+		log "the access point failed, going back to Wi-Fi client mode"
+		ap_down
+		sta_up
+		return 1
+	fi
+	printf '%s\n' "ssid=$ssid" "address=$ADDR" "channel=$ch" "security=$sec" "idle=$idle" \
+		> "$RUN/state"
+	if [ "$idle" -gt 0 ]; then
+		setsid sh "$0" do-monitor </dev/null >/dev/null 2>&1 &
+		echo $! > "$RUN/monitor.pid"
+	fi
+	log "the access point is up at $ADDR"
+}
+
+# Returns 1 if there was nothing to stop.
+ap_stop() {
+	if ! loaded mt7601Uap && has_dev wlan0; then
+		log "the access point is not running"
+		return 1
+	fi
+	log "stopping the access point"
+	ap_down
+	sta_up
+}
+
+# Go back to client mode after $idle seconds without a received packet on ra0.
+do_monitor() {
+	echo $$ > "$RUN/monitor.pid"
+	idle=$(sed -n 's/^idle=//p' "$RUN/state" 2>/dev/null)
+	[ -n "$idle" ] && [ "$idle" -gt 0 ] || exit 0
+	last=
+	quiet=0
+	while sleep "$TICK"; do
+		loaded mt7601Uap || exit 0
+		read -r rx < "$SYS/class/net/ra0/statistics/rx_packets" || exit 0
+		if [ "$rx" != "$last" ]; then
+			last=$rx
+			quiet=0
+			continue
+		fi
+		quiet=$((quiet + TICK))
+		if [ $quiet -ge "$idle" ]; then
+			log "no traffic for $quiet s, going back to Wi-Fi client mode"
+			exec sh "$0" do-stop
+		fi
+	done
+}
+
+cs_now() {	# now = uptime in 1/100 s
+	read -r up rest < "$PROC/uptime"
+	now=$((1${up#*.} - 100 + ${up%.*} * 100))
+}
+
+open_tick() {	# fd 3 = an empty FIFO, so that "read -t" sleeps without starting a process
+	mkdir -p "$RUN" || return 1
+	rm -f "$RUN/tick.$$"
+	mkfifo "$RUN/tick.$$" || return 1
+	exec 3<>"$RUN/tick.$$"
+	rm -f "$RUN/tick.$$"
+}
+
+mux() {	# mux ADDRESS VALUE: select the function of a pin
+	mv=$(devmem "$1" 32 2>/dev/null) || return 1
+	[ $((mv)) = $(($2)) ] && return 0
+	devmem "$1" 32 "$2" && log "pin mux $1: $mv -> $2"
+}
+
+button_pin() {
+	pin=$(setting GPIO gpio)
+	case $pin in
+	'') pin=6 ;;
+	off|none|no) return 1 ;;
+	*[!0-9]*) log "wlanap_gpio=$pin is not a GPIO number, using 6"; pin=6 ;;
+	esac
+}
+
+# A level change of 3-30 s (2.8-30 s measured) toggles the access point. The idle level is
+# learned (stable for 1 s, or for a minute after a change), so the polarity does not matter.
+do_button() {
+	if ! button_pin; then
+		log "the button is off (wlanap_gpio=$pin)"
+		exit 0
+	fi
+	echo $$ > "$BUTTON_PID"
+	case $pin in
+	6) mux 0x200F0138 0 ;;	# GPIO0_6: function 0 = GPIO (pin table of the stock firmware)
+	74) mux 0x200F00D0 1 ;;	# GPIO9_2: function 1 = GPIO
+	esac
+	gp=$SYS/class/gpio/gpio$pin
+	[ -e "$gp" ] || echo "$pin" > "$SYS/class/gpio/export"
+	echo in > "$gp/direction"
+	if ! read -r lv < "$gp/value"; then
+		log "cannot read gpio$pin"
+		exit 1
+	fi
+	open_tick || exit 1
+	log "watching the button on gpio$pin"
+	idle_lv=
+	cand=
+	t_cand=0
+	t_on=
+	t_last=0
+	rel=0
+	while :; do
+		read -t "$POLL" x <&3
+		read -r lv < "$gp/value" || continue
+		cs_now
+		if [ -z "$idle_lv" ]; then
+			if [ "$lv" != "$cand" ]; then
+				cand=$lv
+				t_cand=$now
+			elif [ $((now - t_cand)) -ge 100 ]; then
+				idle_lv=$lv
+				log "gpio$pin idle level: $lv"
+			fi
+			continue
+		fi
+		if [ "$lv" != "$idle_lv" ]; then
+			[ -n "$t_on" ] || t_on=$now
+			t_last=$now
+			rel=0
+			if [ $((now - t_on)) -gt 6000 ]; then
+				log "gpio$pin stayed at $lv for a minute, taking it as the idle level"
+				idle_lv=$lv
+				t_on=
+			fi
+			continue
+		fi
+		[ -n "$t_on" ] || continue
+		rel=$((rel + 1))
+		[ $rel -ge 2 ] || continue
+		held=$((t_last - t_on + 20))
+		t_on=
+		hs=$((held / 100)).$((held / 10 % 10))
+		if [ $held -ge 280 ] && [ $held -le 3000 ]; then
+			log "button held for $hs s: switching"
+			setsid sh "$0" do-press </dev/null >/dev/null 2>&1 &
+		elif [ $held -ge 60 ]; then
+			log "button held for $hs s: ignored (hold it for 3-30 s)"
+		fi
+	done
+}
+
+# Print every change of the GPIO data registers, to find the button.
+do_probe() {
+	secs=$(number "$1" 1 3600 20)
+	mux 0x200F0138 0
+	open_tick || exit 1
+	echo "Watching the GPIO inputs for $secs s: hold the button for 3 s, release it, repeat."
+	cs_now
+	t0=$now
+	changes=0
+	first=
+	while :; do
+		grp=0
+		while [ $grp -lt 12 ]; do
+			base=$((0x20140000 + grp * 0x10000))
+			rv=$(devmem $((base + 0x3fc)) 32 2>/dev/null)
+			val=$((${rv:-0} & 255))
+			eval "old=\${last$grp-}"
+			eval "last$grp=$val"
+			[ -n "$first" ] || printf 'GPIO%d=0x%02x ' $grp $val
+			if [ -n "$old" ] && [ "$old" != "$val" ]; then
+				dv=$(devmem $((base + 0x400)) 32 2>/dev/null)
+				dir=$((${dv:-0}))
+				diff=$((old ^ val))
+				bit=0
+				while [ $bit -lt 8 ]; do
+					if [ $((diff >> bit & 1)) = 1 ]; then
+						io=input
+						[ $((dir >> bit & 1)) = 1 ] && io=output
+						t=$((now - t0))
+						echo "$((t / 100)).$((t / 10 % 10)) s: GPIO${grp}_$bit = gpio$((grp * 8 + bit)) ($io): $((old >> bit & 1)) -> $((val >> bit & 1))"
+						changes=$((changes + 1))
+					fi
+					bit=$((bit + 1))
+				done
+			fi
+			grp=$((grp + 1))
+		done
+		[ -n "$first" ] || { echo; first=1; }
+		read -t "$POLL" x <&3
+		cs_now
+		[ $((now - t0)) -ge $((secs * 100)) ] && break
+	done
+	echo "$changes change(s). Use the gpio number of the button as wlanap_gpio."
+}
+
+do_status() {
+	if loaded mt7601Uap; then
+		echo "mode: access point"
+		[ -r "$RUN/state" ] && sed 's/^/  /' "$RUN/state"
+		echo "  clients seen: $(ip neigh show dev ra0 2>/dev/null | grep -c lladdr)"
+	else
+		ap_conf
+		echo "mode: Wi-Fi client"
+		echo "  wlan0: $(ip -4 -o addr show dev wlan0 2>/dev/null | awk '{print $4}')"
+		echo "access point when started:"
+		printf '  %s\n' "ssid=$ssid" "address=$ADDR" "channel=$ch" "security=$sec" "idle=$idle"
+	fi
+	bp=$(cat "$BUTTON_PID" 2>/dev/null)
+	if [ -n "$bp" ] && kill -0 "$bp" 2>/dev/null; then bs=running; else bs="not running"; fi
+	if button_pin; then echo "button: gpio$pin, watcher $bs"; else echo "button: off"; fi
+}
+
+do_join() {
+	[ $# = 1 ] || [ $# = 2 ] || usage
+	if ! valid_ssid "$1"; then
+		echo "wifi-ap: the SSID must have 1-32 bytes" >&2
+		return 1
+	fi
+	if [ -n "$2" ] && ! valid_psk "$2"; then
+		echo "wifi-ap: the passphrase must have 8-63 characters (or 64 hex digits)" >&2
+		return 1
+	fi
+	# Without wlanap_pass the access point would take the new passphrase as well: keep the one
+	# that the computers which use the access point know.
+	ap_conf
+	kept=
+	if [ "$from" = wlanpass ]; then
+		save wlanap_pass "${pass:-none}" || return 1
+		if [ -n "$pass" ]; then
+			kept="The access point keeps its passphrase (saved as wlanap_pass)."
+		else
+			kept="The access point stays open (saved as wlanap_pass=none)."
+		fi
+	fi
+	if [ -n "$2" ]; then save wlanpass "$2"; else save wlanpass; fi || return 1
+	save wlanssid "$1" || return 1
+	log "saved a new Wi-Fi network, switching to it"
+	echo "Saved. The camera now joins that network; this connection will drop."
+	echo "If it gets no address within a minute, the access point comes back."
+	[ -z "$kept" ] || echo "$kept"
+	detach join
+}
+
+# save NAME [VALUE]: fw_setenv; without a VALUE the variable is deleted
+save() {
+	fw_setenv "$@" && return 0
+	echo "wifi-ap: fw_setenv $1 failed" >&2
+	return 1
+}
+
+detach() {
+	if [ "$WIFIAP_FG" = 1 ]; then
+		sh "$0" "do-$1"
+	else
+		setsid sh "$0" "do-$1" </dev/null >/dev/null 2>&1 &
+	fi
+}
+
+case $1 in
+start|stop|toggle)
+	[ $# = 1 ] || usage
+	case $1 in
+	start) echo "Starting the access point; connections over wlan0 will drop." ;;
+	stop) echo "Going back to Wi-Fi client mode." ;;
+	toggle) echo "Switching between the access point and Wi-Fi client mode." ;;
+	esac
+	echo "Progress: logread | grep wifi-ap"
+	detach "$1" ;;
+status)
+	do_status ;;
+join)
+	shift
+	do_join "$@" ;;
+probe)
+	do_probe "${2:-20}" ;;
+button)
+	do_button ;;
+do-start)
+	lock 180 || exit 1
+	ap_start ;;
+do-stop)
+	lock 180 || exit 1
+	ap_stop || exit 0
+	unlock
+	wait_addr ;;
+do-toggle|do-press)
+	if [ "$1" = do-press ]; then
+		lock 0 || { log "busy, ignoring the button"; exit 0; }
+	else
+		lock 180 || exit 1
+	fi
+	if loaded mt7601Uap; then
+		ap_stop || exit 0
+		unlock
+		wait_addr
+	else
+		ap_start
+	fi ;;
+do-join)
+	lock 180 || exit 1
+	if loaded mt7601Uap; then ap_stop; else sta_restart; fi
+	wait_addr && exit 0
+	log "no address on the new network, starting the access point again"
+	ap_start ;;
+do-monitor)
+	do_monitor ;;
+*)
+	usage ;;
+esac

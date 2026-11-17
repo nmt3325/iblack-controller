@@ -28,12 +28,16 @@ What the script puts in place; every step is skipped when it is already right, s
                                   audio.outputVolume to the speaker (audio/)
   /etc/init.d/S95majestic         preloads that library and runs the firmware's script from /rom (audio/);
                                   both are left out when S95majestic is neither the firmware's nor ours
+  /usr/sbin/wifi-ap, /etc/init.d/S97wifiap, /usr/lib/wifi-ap/mt7601Uap.ko.xz
+                                  the rescue access point: holding the reset button for 3-30 s switches between
+                                  the Wi-Fi network and an access point of the camera (wifi/ap/); needs about
+                                  280K free in the overlay
 The env steps only fill in unset variables; a different value is reported and left alone.
 
 The script stops before changing anything unless /proc/mtd shows the fixed slots of a migrated camera, the
 original updater is at /rom/usr/sbin/sysupgrade and fw_printenv can read the env. It never writes U-Boot, the
 kernel, the rootfs or the Wi-Fi settings, and never runs the updater. Changes to the sensor, majestic.yaml, the
-init scripts or the audio fix take effect after a reboot.
+init scripts, the audio fix or the rescue access point take effect after a reboot.
 
 Exit status (also of --ssh): 0 done or nothing to do, 1 --check found something to change, 2 error,
 3 the --ssh command itself failed.
@@ -53,7 +57,7 @@ BASE = HERE.parent
 sys.path.insert(0, str(BASE))
 from make_env import DEFAULT_SENSOR, NO_ONLINE_UPDATE_URL  # noqa: E402
 
-VERSION = 3
+VERSION = 4
 # (payload name, source in this directory tree)
 PAYLOADS = (("guard", BASE / "update" / "sysupgrade-guard.sh"),
             ("sensor_ini", BASE / "video" / "ar0141_i2c_720p.ini"),
@@ -61,7 +65,10 @@ PAYLOADS = (("guard", BASE / "update" / "sysupgrade-guard.sh"),
             ("s94", BASE / "night" / "S94lightsensor"),
             ("s96", BASE / "video" / "S96vicheck"),
             ("audiofix", BASE / "audio" / "libmajaudiofix.so"),
-            ("s95", BASE / "audio" / "S95majestic"))
+            ("s95", BASE / "audio" / "S95majestic"),
+            ("wifiap", BASE / "wifi" / "ap" / "wifi-ap"),
+            ("apko", BASE / "wifi" / "ap" / "mt7601Uap.ko.xz"),
+            ("s97", BASE / "wifi" / "ap" / "S97wifiap"))
 # majestic.yaml keys that describe the board; set whenever they differ.
 BOARD_KEYS = ((".isp.blkCnt", "9"), (".nightMode.lightMonitor", "true"), (".nightMode.irCutSingleInvert", "true"),
               (".nightMode.irCutPin1", "2"), (".nightMode.backlightPin", "52"),
@@ -119,7 +126,7 @@ layout_ok() {
 		}' "$R/proc/mtd"
 }
 
-for c in awk base64 cli cmp cut df fw_printenv fw_setenv grep md5sum mktemp tail; do
+for c in awk base64 cli cmp cut df fw_printenv fw_setenv grep md5sum mktemp tail wc; do
 	command -v "$c" >/dev/null 2>&1 || die "'$c' not found; nothing was changed"
 done
 layout_ok || die "/proc/mtd does not show the fixed slots of a migrated iBlack (boot 384K, env 64K, kernel 1856K," \
@@ -137,13 +144,18 @@ unpack() {
 }
 @PAYLOADS@
 
+# read_free: the free space of the overlay in KB, into $free
+read_free() {
+	free=$(df -k "$R/etc/" 2>/dev/null | awk 'END { print $(NF - 2) }')
+	case $free in
+	'' | *[!0-9]*) die "cannot read the free space of the overlay" ;;
+	esac
+}
+
 # install SRC DEST MODE: write a temporary file next to DEST, then rename it over DEST
 install_file() {
 	if [ -z "$space_ok" ]; then
-		free=$(df -k "$R/etc/" 2>/dev/null | awk 'END { print $(NF - 2) }')
-		case $free in
-		'' | *[!0-9]*) die "cannot read the free space of the overlay" ;;
-		esac
+		read_free
 		[ "$free" -ge "$MIN_FREE_KB" ] || die "only ${free}K free in the overlay, ${MIN_FREE_KB}K needed"
 		space_ok=1
 	fi
@@ -280,6 +292,19 @@ elif cmp -s "$S95" "$R/rom/etc/init.d/S95majestic" || grep -q libmajaudiofix "$S
 	put "/etc/init.d/S95majestic (audio fix)" "$T/s95" /etc/init.d/S95majestic 755 reboot
 else
 	note "/etc/init.d/S95majestic is not the firmware's; left as is (no audio fix)"
+fi
+
+# 7. rescue access point (wifi/ap/): all three files or none; the driver needs most of the room
+KO=/usr/lib/wifi-ap/mt7601Uap.ko.xz
+need=$(($(wc -c <"$T/apko") / 1024 + 1 + MIN_FREE_KB))
+read_free
+[ -f "$R$KO" ] && free=$((free + $(wc -c <"$R$KO") / 1024))
+if cmp -s "$T/apko" "$R$KO" || [ "$free" -ge "$need" ]; then
+	put "$KO (access point driver)" "$T/apko" "$KO" 644
+	put /usr/sbin/wifi-ap "$T/wifiap" /usr/sbin/wifi-ap 755 reboot
+	put /etc/init.d/S97wifiap "$T/s97" /etc/init.d/S97wifiap 755 reboot
+else
+	fail "the rescue access point needs ${need}K free in the overlay, ${free}K are; none of its files were written"
 fi
 
 [ "$changed" -eq 0 ] || sync

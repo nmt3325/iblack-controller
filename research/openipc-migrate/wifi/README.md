@@ -103,11 +103,11 @@ sudo nmcli connection up openipc-final-host-ap
 
 ルーターが止まっている間にカメラを起動した場合は試していない。同じwpa_supplicantとudhcpc（`-b`）なので、ルーターが戻ればつながる見込み。
 
-リセットボタン: 純正のファームウェアでは、アプリ（`cmsMain.out`）がボタンを見て、AP用のドライバ（`mt7601Uap.ko`）に切り替えていた（ログの文字列 `3518 keydown time(%d),do cmsChangeWifiDevice2AP`）。OpenIPCに移すとこのアプリはなくなる。OpenIPCには、ボタンを見る処理がなく（`/etc/init.d` にも、cronにも、常駐するものにもない）、Wi-Fiのドライバは子機用の `mt7601sta` だけで、hostapdもない。そのため、ボタンでAPモードにはならない（押しては試していない）。ルーターを替えたときなどは、下の「注意」のとおり、同じSSIDとパスフレーズのAPを一時的に立てて直す。
+リセットボタン: 背面のリセットボタンを3〜30秒押して離すと、カメラが復旧用のAP（`OpenIPC-XXXX`）になり、そこから新しいSSIDとパスフレーズを入れられる（[ap/README.md](ap/README.md)）。純正のファームウェアでも、アプリ（`cmsMain.out`）がボタンを見て、AP用のドライバ（`mt7601Uap.ko`）に切り替えていた（ログの文字列 `3518 keydown time(%d),do cmsChangeWifiDevice2AP`）。OpenIPCに移すとそのアプリはなくなり、純正のAP用ドライバもOpenIPCのkernelでは読み込めないので、ボタンの見張りと、OpenIPCのドライバのソースから作ったAP用のドライバを `easy/post_setup.py`（版4）で入れる。
 
 ## 注意
 
-- MT7601は2.4 GHzだけ。ルーターの2.4 GHzを止めたり、SSIDやパスフレーズを変えたりすると、カメラはつながらなくなる。そのときは、カメラのenvと同じSSIDとパスフレーズのAPを一時的に（たとえばホストで）立てるとカメラがそこにつながるので、新しい値を `fw_setenv` で入れて再起動する。
+- MT7601は2.4 GHzだけ。ルーターの2.4 GHzを止めたり、SSIDやパスフレーズを変えたりすると、カメラはつながらなくなる。そのときは、リセットボタンで復旧用のAPにして、`wifi-ap join` で新しい値を入れる（[ap/README.md](ap/README.md)）。ボタンが使えないときは、カメラのenvと同じSSIDとパスフレーズのAPを一時的に（たとえばホストで）立てるとカメラがそこにつながるので、新しい値を `fw_setenv` で入れて再起動する。
 - アドレスはDHCPで決まる。変わると困るなら、ルーターの側でこのカメラにアドレスを固定する（DHCPの固定割当）。変わったときは、ルーターのネットワークにいるホストから `find-by-hostkey.sh` で探せる。
 - カメラからインターネットに出られるようになった（NTPが届くのはこのため）。ルーターでポートは開けていない。`/metrics` は、自宅のネットワークにいればだれでもパスワードなしで読める。
 - 再起動のとき、kernelのログに `NETDEV WATCHDOG: eth0 (hieth): transmit queue 0 timed out` が出た。この基板にEthernetはなく、`eth0` は使っていない。Wi-Fiへの影響は見えないが、調べていない。
@@ -118,4 +118,4 @@ sudo nmcli connection up openipc-final-host-ap
 
 - 長い時間（夜通しなど）つながり続けるかは、まだ見ていない。
 - ルーターでアドレスを固定するかどうかは、所有者が決める。
-- リセットボタンで復旧用のAPを立てるかどうか。ボタンのGPIOがわからない（一度押して調べる必要がある）。純正のAP用ドライバ（`mt7601Uap.ko`）がOpenIPCのkernelで動くかも確かめていない。
+- リセットボタンを実際に押して、復旧用のAPになることを確かめる。ボタンのGPIOは純正のファームウェアから読み、押したときと同じ処理と、値を書き換えたGPIOでの判定は確かめた（[ap/README.md](ap/README.md)）。

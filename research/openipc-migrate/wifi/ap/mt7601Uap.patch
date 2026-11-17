@@ -1,0 +1,336 @@
+mt7601Uap.patch: builds the access point part of github.com/openipc/mt7601u (commit 0ac46553, the
+station driver of OpenIPC) as mt7601Uap.ko for wifi-ap. Apply in that source tree with "patch -p1";
+build-mt7601Uap.sh does everything. GPL-2.0, like the driver.
+
+- Makefile: an AP-only module (CONFIG_AP_SUPPORT; no station, cfg80211 or ATE code), interface ra0
+- include/os/rt_linux.h: the profile is /tmp/mt7601ap/RT2870AP.dat (wifi-ap writes it before ra0
+  goes up and deletes it right after)
+- the other files: code that the AP-only configuration did not compile (parts that need cfg80211,
+  the station driver or dynamic PD are left out)
+
+--- a/ap/ap_data.c
++++ b/ap/ap_data.c
+@@ -98,10 +98,12 @@
+ 		}
+ 	}
+ #else
++#ifdef RT_CFG80211_SUPPORT
+ 	if (pAd->cfg80211_ctrl.isCfgInApMode == RT_CMD_80211_IFTYPE_AP)
+ 	{
+ 		RTMP_SET_PACKET_OPMODE(pPacket, OPMODE_AP); 
+ 	}
++#endif /* RT_CFG80211_SUPPORT */
+ 	pEntry = APSsPsInquiry(pAd, pSrcBufVA, &Sst, &Aid, &PsMode, &Rate);
+ #endif /* CLIENT_WDS */
+ 
+--- a/chips/mt7601.c
++++ b/chips/mt7601.c
+@@ -1248,8 +1248,10 @@
+ 	UCHAR R66 = 0x14;
+ 	CHAR lan_gain = GET_LNA_GAIN(pAd);
+ 
++#ifdef DYNAMIC_PD_SUPPORT
+ 	if(pAd->CommonCfg.bDynaPDEnable)
+     		return;
++#endif /* DYNAMIC_PD_SUPPORT */
+ 	
+ 	if (pAd->LatchRfRegs.Channel <= 14) /* BG band */
+ 	{	
+@@ -2423,11 +2425,13 @@
+ 	RTMP_CHIP_CAP *pChipCap = &pAd->chipCap;
+ 
+ 	//When enable dynamic VGA, we need to disable TemperatureCompensation. add by xiaojiao
++#ifdef DYNAMIC_PD_SUPPORT
+ 	if(pAd->CommonCfg.bDynaPDEnable == TRUE)
+ 	{
+ 		DBGPRINT(RT_DEBUG_INFO, ("Forced to disable TemperatureCompensation when DynaPDEnable=1.\n"));
+ 		return;
+ 	}
++#endif /* DYNAMIC_PD_SUPPORT */
+ 	
+ 	if (pAd->Mlme.OneSecPeriodicRound % 4 == 0)
+ 	{
+--- a/common/cmm_info.c
++++ b/common/cmm_info.c
+@@ -390,6 +390,7 @@
+ 	IN	PRTMP_ADAPTER	pAd,
+ 	IN	PSTRING			arg)
+ {
++#ifdef RT_CFG80211_SUPPORT
+ 	UINT16 Channel = 0;
+ 	CMD_RTPRIV_IOCTL_80211_CHAN ChanInfo;
+ 
+@@ -420,6 +421,9 @@
+ 	/* set channel */
+ 	RTMP_DRIVER_80211_CHAN_SET(pAd, &ChanInfo);
+ 	return 0;
++#else
++	return -1;
++#endif /* RT_CFG80211_SUPPORT */
+ }
+ 
+ 
+--- a/common/cmm_wpa.c
++++ b/common/cmm_wpa.c
+@@ -5247,7 +5247,7 @@
+     UCHAR WPSOUI[]={0x00, 0x50, 0xf2, 0x04};
+     if (!Ies || ! Len)
+         return NULL;
+-    while ((Ptr = RTMPFindIE(WLAN_EID_VENDOR_SPECIFIC, Ptr, Len-(Ptr-Ies))) != NULL)
++    while ((Ptr = RTMPFindIE(IE_VENDOR_SPECIFIC, Ptr, Len-(Ptr-Ies))) != NULL)
+     {
+         if (!NdisCmpMemory(Ptr+2, WPSOUI, 4))
+             break;
+--- a/include/os/rt_linux.h
++++ b/include/os/rt_linux.h
+@@ -135,11 +135,14 @@
+ #define AP_PROFILE_PATH                 "/ramdisk/etc/mediatek/RT2870AP.dat"
+ #define AP_RTMP_FIRMWARE_FILE_NAME "/ramdisk/etc/mediatek/RT2870AP.bin"
+ #else
+-#define AP_PROFILE_PATH			"/etc/mediatek/RT2870AP.dat"
++#define AP_PROFILE_PATH			"/tmp/mt7601ap/RT2870AP.dat"
+ #define AP_RTMP_FIRMWARE_FILE_NAME "/etc/mediatek/RT2870AP.bin"
+ #endif
+ #define AP_NIC_DEVICE_NAME			"RT2870AP"
+ #define AP_DRIVER_VERSION			"3.0.0.5_android"
++#ifndef CONFIG_STA_SUPPORT
++#define DRIVER_ROLE			"AP"
++#endif
+ #ifdef MULTIPLE_CARD_SUPPORT
+ #define CARD_INFO_PATH			"/etc/mediatek/RT2870APCard.dat"
+ #endif /* MULTIPLE_CARD_SUPPORT */
+--- a/include/rtmp.h
++++ b/include/rtmp.h
+@@ -444,7 +444,7 @@
+ #ifdef CONFIG_STA_SUPPORT
+ #define MONITOR_ON(_p)              (((_p)->StaCfg.BssType) == BSS_MONITOR)
+ #else
+-#define MONITOR_ON(_p)              (((_p)->ApCfg.BssType) == BSS_MONITOR)
++#define MONITOR_ON(_p)              (FALSE)
+ #endif
+ #define IDLE_ON(_p)                 (!INFRA_ON(_p) && !ADHOC_ON(_p))
+ 
+@@ -4168,7 +4168,7 @@
+ 
+ 	/* AP needs those vaiables for site survey feature. */
+ 	MLME_AUX MlmeAux;	/* temporary settings used during MLME state machine */
+-#if (defined(AP_SCAN_SUPPORT) || defined(CONFIG_STA_SUPPORT)) && (defined(P2P_SUPPORT) || (defined(SOFTAPSTA_COEXIST_SUPPORT) || defined(STA_ONLY_SUPPORT)))
++#if defined(AP_SCAN_SUPPORT) || defined(CONFIG_STA_SUPPORT)
+ 
+ 	BSS_TABLE ScanTab;	/* store the latest SCAN result */
+ #endif /* defined(AP_SCAN_SUPPORT) || defined(CONFIG_STA_SUPPORT) */
+@@ -4438,6 +4438,9 @@
+ 
+ 	UINT8 RFICType;
+ 
++#ifndef RT_CFG80211_SUPPORT
++	BOOLEAN FlgCfg80211Scanning;	/* AP-only build: always FALSE */
++#endif
+ #ifdef LINUX
+ #ifdef RT_CFG80211_SUPPORT
+ 	VOID *pCfgDev;
+@@ -4504,7 +4507,7 @@
+ 
+ 	UINT32 ContinueMemAllocFailCount;
+ 
+-#if (defined(AP_SCAN_SUPPORT) || defined(CONFIG_STA_SUPPORT)) && (defined(P2P_SUPPORT) || (defined(SOFTAPSTA_COEXIST_SUPPORT) || defined(STA_ONLY_SUPPORT)))
++#if defined(AP_SCAN_SUPPORT) || defined(CONFIG_STA_SUPPORT)
+ 
+ 	struct {
+ 		INT IeLen;
+--- a/Makefile
++++ b/Makefile
+@@ -1,158 +1,44 @@
+-obj-m += mt7601sta.o
++# AP-only build of the OpenIPC mt7601u tree (MT7601U USB, Ralink in-driver AP).
++# Produces mt7601Uap.ko: interface ra0, profile read from AP_PROFILE_PATH.
++obj-m += mt7601Uap.o
+ 
+-mt7601sta-objs += os/linux/prealloc.o
+-mt7601sta-objs += os/linux/rt_profile.o
+-mt7601sta-objs += sta/assoc.o
+-mt7601sta-objs += sta/auth.o
+-mt7601sta-objs += sta/auth_rsp.o
+-mt7601sta-objs += sta/sync.o
+-mt7601sta-objs += sta/sanity.o
+-mt7601sta-objs += sta/rtmp_data.o
+-mt7601sta-objs += sta/connect.o
+-mt7601sta-objs += sta/wpa.o
+-mt7601sta-objs += sta/sta_cfg.o
+-mt7601sta-objs += common/crypt_md5.o
+-mt7601sta-objs += common/crypt_sha2.o
+-mt7601sta-objs += common/crypt_hmac.o
+-mt7601sta-objs += common/crypt_aes.o
+-mt7601sta-objs += common/crypt_arc4.o
+-mt7601sta-objs += common/mlme.o
+-mt7601sta-objs += common/cmm_wep.o
+-mt7601sta-objs += common/action.o
+-mt7601sta-objs += common/cmm_data.o
+-mt7601sta-objs += common/rtmp_init.o
+-mt7601sta-objs += common/rtmp_init_inf.o
+-mt7601sta-objs += common/cmm_tkip.o
+-mt7601sta-objs += common/cmm_aes.o
+-mt7601sta-objs += common/cmm_sync.o
+-mt7601sta-objs += common/eeprom.o
+-mt7601sta-objs += common/cmm_sanity.o
+-mt7601sta-objs += common/cmm_info.o
+-mt7601sta-objs += common/cmm_cfg.o
+-mt7601sta-objs += common/cmm_wpa.o
+-mt7601sta-objs += common/cmm_radar.o
+-mt7601sta-objs += common/spectrum.o
+-mt7601sta-objs += common/rtmp_timer.o
+-mt7601sta-objs += common/rt_channel.o
+-mt7601sta-objs += common/cmm_profile.o
+-mt7601sta-objs += common/cmm_asic.o
+-mt7601sta-objs += common/scan.o
+-mt7601sta-objs += common/cmm_cmd.o
+-mt7601sta-objs += common/uapsd.o
+-mt7601sta-objs += common/ps.o
+-mt7601sta-objs += rate_ctrl/ra_ctrl.o
+-mt7601sta-objs += rate_ctrl/alg_legacy.o
+-mt7601sta-objs += rate_ctrl/alg_ags.o
+-mt7601sta-objs += chips/rtmp_chip.o
+-mt7601sta-objs += common/txpower.o
+-mt7601sta-objs += mac/rtmp_mac.o
+-mt7601sta-objs += mgmt/mgmt_hw.o
+-mt7601sta-objs += mgmt/mgmt_entrytb.o
+-mt7601sta-objs += phy/rtmp_phy.o
+-mt7601sta-objs += phy/rlt_phy.o
+-mt7601sta-objs += phy/rlt_rf.o
+-mt7601sta-objs += common/ba_action.o
+-mt7601sta-objs += mgmt/mgmt_ht.o
+-mt7601sta-objs += common/wsc.o
+-mt7601sta-objs += common/wsc_tlv.o
+-mt7601sta-objs += common/crypt_biginteger.o
+-mt7601sta-objs += common/crypt_dh.o
+-mt7601sta-objs += common/wsc_v2.o
+-mt7601sta-objs += common/rt_os_util.o
+-mt7601sta-objs += os/linux/sta_ioctl.o
+-mt7601sta-objs += os/linux/rt_linux.o
+-mt7601sta-objs += os/linux/rt_main_dev.o
+-mt7601sta-objs += common/cmm_wpa_adhoc.o
+-mt7601sta-objs += common/rt_led.o
+-mt7601sta-objs += ate/common/rt_ate.o
+-mt7601sta-objs += ate/common/rt_qa.o
+-mt7601sta-objs += common/cmm_mac_usb.o
+-mt7601sta-objs += common/cmm_data_usb.o
+-mt7601sta-objs += common/rtusb_io.o
+-mt7601sta-objs += common/rtusb_data.o
+-mt7601sta-objs += common/rtusb_bulk.o
+-mt7601sta-objs += os/linux/rt_usb.o
+-mt7601sta-objs += common/ee_prom.o
+-mt7601sta-objs += common/ee_efuse.o
+-mt7601sta-objs += mcu/rtmp_and.o
+-mt7601sta-objs += mcu/rtmp_mcu.o
+-mt7601sta-objs += mcu/rtmp_M51.o
+-mt7601sta-objs += common/rt_rf.o
+-mt7601sta-objs += chips/mt7601.o
+-mt7601sta-objs += mac/ral_omac.o
+-mt7601sta-objs += ate/chips/mt7601_ate.o
+-mt7601sta-objs += ate/common/ate_usb.o
+-mt7601sta-objs += os/linux/rt_usb_util.o
+-mt7601sta-objs += os/linux/usb_main_dev.o
+-mt7601sta-objs += common/rtusb_dev_id.o
+-mt7601sta-objs += common/frq_cal.o
+-mt7601sta-objs += os/linux/cfg80211.o
+-mt7601sta-objs += os/linux/cfg80211drv.o
+-mt7601sta-objs += os/linux/cfg80211_inf.o
+-mt7601sta-objs += common/p2p_inf.o
+-mt7601sta-objs += ap/ap_mbss.o
+-mt7601sta-objs += ap/ap.o
+-mt7601sta-objs += ap/ap_assoc.o
+-mt7601sta-objs += ap/ap_auth.o
+-mt7601sta-objs += ap/ap_connect.o
+-mt7601sta-objs += ap/ap_mlme.o
+-mt7601sta-objs += ap/ap_sanity.o
+-mt7601sta-objs += ap/ap_sync.o
+-mt7601sta-objs += ap/ap_wpa.o
+-mt7601sta-objs += ap/ap_data.o
+-mt7601sta-objs += ap/ap_autoChSel.o
+-mt7601sta-objs += ap/ap_qload.o
+-mt7601sta-objs += sta/p2pcli.o 
+-mt7601sta-objs += sta/p2pcli_ctrl.o 
+-mt7601sta-objs += sta/p2pcli_sync.o
+-mt7601sta-objs += sta/p2pcli_auth.o
+-mt7601sta-objs += sta/p2pcli_assoc.o
+-mt7601sta-objs += common/cmm_mat.o
+-mt7601sta-objs += common/cmm_mat_iparp.o
+-mt7601sta-objs += common/cmm_mat_pppoe.o
+-mt7601sta-objs += common/cmm_mat_ipv6.o
+-mt7601sta-objs += common/p2p_dbg.o
+-mt7601sta-objs += common/p2p_cfg.o
+-mt7601sta-objs += common/p2p.o
+-mt7601sta-objs += common/p2p_packet.o
+-mt7601sta-objs += common/p2p_action.o
+-mt7601sta-objs += common/p2p_table.o
+-mt7601sta-objs += common/p2p_ctrl.o
+-mt7601sta-objs += common/p2p_disc_mng.o
+-mt7601sta-objs += common/p2p_nego_mng.o
+-mt7601sta-objs += common/p2p_dbg.o
+-mt7601sta-objs += common/p2p.o
+-mt7601sta-objs += common/p2p_packet.o
+-mt7601sta-objs += common/p2p_action.o
+-mt7601sta-objs += common/p2p_table.o
+-mt7601sta-objs += common/p2p_ctrl.o
+-mt7601sta-objs += common/p2p_disc_mng.o
+-mt7601sta-objs += common/p2p_nego_mng.o
+-mt7601sta-objs += common/wsc.o
+-mt7601sta-objs += common/wsc_tlv.o
+-mt7601sta-objs += common/wsc_ufd.o
+-mt7601sta-objs += common/crypt_biginteger.o
+-mt7601sta-objs += common/crypt_dh.o
+-mt7601sta-objs += os/linux/ap_ioctl.o
++mt7601Uap-objs := os/linux/rt_profile.o
++mt7601Uap-objs += ap/ap_mbss.o ap/ap.o ap/ap_assoc.o ap/ap_auth.o ap/ap_connect.o
++mt7601Uap-objs += ap/ap_mlme.o ap/ap_sanity.o ap/ap_sync.o ap/ap_wpa.o ap/ap_data.o
++mt7601Uap-objs += ap/ap_autoChSel.o ap/ap_qload.o common/ap_cfg.o
++mt7601Uap-objs += common/crypt_md5.o common/crypt_sha2.o common/crypt_hmac.o
++mt7601Uap-objs += common/crypt_aes.o common/crypt_arc4.o common/mlme.o common/cmm_wep.o
++mt7601Uap-objs += common/action.o common/cmm_data.o common/rtmp_init.o common/rtmp_init_inf.o
++mt7601Uap-objs += common/cmm_tkip.o common/cmm_aes.o common/cmm_sync.o common/eeprom.o
++mt7601Uap-objs += common/cmm_sanity.o common/cmm_info.o common/cmm_cfg.o common/cmm_wpa.o
++mt7601Uap-objs += common/cmm_radar.o common/spectrum.o common/rtmp_timer.o common/rt_channel.o
++mt7601Uap-objs += common/cmm_profile.o common/cmm_asic.o common/scan.o common/cmm_cmd.o
++mt7601Uap-objs += common/uapsd.o common/ps.o
++mt7601Uap-objs += rate_ctrl/ra_ctrl.o rate_ctrl/alg_legacy.o rate_ctrl/alg_ags.o
++mt7601Uap-objs += chips/rtmp_chip.o common/txpower.o mac/rtmp_mac.o
++mt7601Uap-objs += mgmt/mgmt_hw.o mgmt/mgmt_entrytb.o phy/rtmp_phy.o phy/rlt_phy.o phy/rlt_rf.o
++mt7601Uap-objs += common/ba_action.o mgmt/mgmt_ht.o
++mt7601Uap-objs += ap/ap_mbss_inf.o common/rt_os_util.o os/linux/ap_ioctl.o
++mt7601Uap-objs += os/linux/rt_linux.o os/linux/rt_main_dev.o
++mt7601Uap-objs += common/rt_led.o
++mt7601Uap-objs += common/cmm_mac_usb.o common/cmm_data_usb.o common/rtusb_io.o
++mt7601Uap-objs += common/rtusb_data.o common/rtusb_bulk.o os/linux/rt_usb.o
++mt7601Uap-objs += common/ee_prom.o common/ee_efuse.o mcu/rtmp_and.o mcu/rtmp_mcu.o mcu/rtmp_M51.o
++mt7601Uap-objs += common/rt_rf.o chips/mt7601.o mac/ral_omac.o
++mt7601Uap-objs += os/linux/rt_usb_util.o os/linux/usb_main_dev.o common/rtusb_dev_id.o
++mt7601Uap-objs += os/linux/prealloc.o
+ 
+-EXTRA_CFLAGS += -DAGGREGATION_SUPPORT -DPIGGYBACK_SUPPORT -DWMM_SUPPORT -DLINUX -DSYSTEM_LOG_SUPPORT -DRESOURCE_PRE_ALLOC -DCONFIG_STA_SUPPORT -DSCAN_SUPPORT -DADHOC_WPA2PSK_SUPPORT -DWPA_SUPPLICANT_SUPPORT -DNATIVE_WPA_SUPPLICANT_SUPPORT -DWSC_STA_SUPPORT -DWSC_V2_SUPPORT -DRALINK_ATE -DCONFIG_RT2880_ATE_CMD_NEW -DRALINK_QA -DDOT11_N_SUPPORT -DSTATS_COUNT_SUPPORT -DRELEASE_EXCLUDE -DLED_CONTROL_SUPPORT -DMT7601U -DMT7601 -DRLT_MAC -DRLT_RF -DRTMP_MAC_USB -DRTMP_USB_SUPPORT -DRTMP_TIMER_TASK_SUPPORT -DRX_DMA_SCATTER -DVCORECAL_SUPPORT -DRTMP_EFUSE_SUPPORT -DNEW_MBSSID_MODE -DRTMP_INTERNAL_TX_ALC -DCONFIG_ANDES_SUPPORT -DCONFIG_RX_CSO_SUPPORT -DRTMP_FREQ_CALIBRATION_SUPPORT
+-EXTRA_CFLAGS += -DDYNAMIC_PD_SUPPORT -DUSB_BULK_BUF_PREALLOC -DRT_CFG80211_SUPPORT -DEXT_BUILD_CHANNEL_LIST
+-EXTRA_CFLAGS += -DUSB_BULK_BUF_ALIGMENT -DALIGMENT_BULKAGGRE_SIZE=3 -DBUF_ALIGMENT_RINGSIZE=2
+-EXTRA_CFLAGS += -DP2P_SUPPORT -DAPCLI_SUPPORT -DMAT_SUPPORT -DAP_SCAN_SUPPORT -DSCAN_SUPPORT -DP2P_APCLI_SUPPORT -DCONFIG_AP_SUPPORT -DUAPSD_SUPPORT -DMBSS_SUPPORT -DIAPP_SUPPORT -DDOT1X_SUPPORT -DWSC_AP_SUPPORT -DWSC_STA_SUPPORT
++EXTRA_CFLAGS += -DAGGREGATION_SUPPORT -DPIGGYBACK_SUPPORT -DWMM_SUPPORT -DLINUX -DSYSTEM_LOG_SUPPORT
++EXTRA_CFLAGS += -DRESOURCE_PRE_ALLOC -DDOT11_N_SUPPORT -DSTATS_COUNT_SUPPORT -DRELEASE_EXCLUDE -DLED_CONTROL_SUPPORT
++EXTRA_CFLAGS += -DMT7601U -DMT7601 -DRLT_MAC -DRLT_RF -DRTMP_MAC_USB -DRTMP_USB_SUPPORT -DRTMP_TIMER_TASK_SUPPORT
++EXTRA_CFLAGS += -DRX_DMA_SCATTER -DVCORECAL_SUPPORT -DRTMP_EFUSE_SUPPORT -DNEW_MBSSID_MODE -DRTMP_INTERNAL_TX_ALC
++EXTRA_CFLAGS += -DCONFIG_ANDES_SUPPORT -DCONFIG_RX_CSO_SUPPORT -DUSB_BULK_BUF_PREALLOC
++EXTRA_CFLAGS += -DEXT_BUILD_CHANNEL_LIST -DUSB_BULK_BUF_ALIGMENT -DALIGMENT_BULKAGGRE_SIZE=3 -DBUF_ALIGMENT_RINGSIZE=2
++EXTRA_CFLAGS += -DCONFIG_AP_SUPPORT -DUAPSD_SUPPORT -DMBSS_SUPPORT -DIAPP_SUPPORT -DDOT1X_SUPPORT -DAP_SCAN_SUPPORT -DSCAN_SUPPORT
+ 
+ EXTRA_CFLAGS += -I$(PWD)/include -I$(PWD)/ate/include
+ EXTRA_CFLAGS += -Wno-address-of-packed-member -Wno-misleading-indentation -Wno-format-truncation -Wno-frame-larger-than -Wno-restrict -Wno-address -Wno-unused-variable
+ 
+-ifeq ($(CONFIG_RT5370V2_STA_WSC),y)
+-EXTRA_CFLAGS += -DWSC_STA_SUPPORT
+-ifeq ($(CONFIG_RT5370V2_STA_WSC_V2),y)
+-EXTRA_CFLAGS += -DWSC_V2_SUPPORT
+-endif
+-ifeq ($(CONFIG_RT5370V2_STA_WSC_LED),y)
+-EXTRA_CFLAGS += -DWSC_LED_SUPPORT
+-endif
+-endif
+-
+ modules:
+ 	$(MAKE) -C $(KSRC) M=$(PWD) modules
+ 

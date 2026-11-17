@@ -5,7 +5,7 @@
 | ファイル | 役割 | 確認状況 |
 | --- | --- | --- |
 | `easy_migrate.py` | 純正ファームのカメラを、SPIの控え → 配信 → diagnose → wdtgate → probe → 試験起動 → final → 起動確認 → 初回ログイン待ち → `post_setup.py` の順にOpenIPCへ移す。止まっても同じコマンドで続きから再開する | **オフライン試験だけ**（模擬カメラ相手の16件）。純正ファームのままの機体が手元にないので、実機では通していない（最後の `post_setup` の段階だけは2台目で動かした。下記） |
-| `post_setup.py` | 移行後の基板設定・更新ガード・マイクとスピーカーの修正をSSHで入れる。何度実行してもよい | 2台目で実機確認（下記） |
+| `post_setup.py` | 移行後の基板設定・更新ガード・マイクとスピーカーの修正・復旧用のAP（リセットボタン）をSSHで入れる。何度実行してもよい | 2台目で実機確認（下記） |
 | `config.example.json` | `easy_migrate.py` の設定例 | 読み込めることをテストで確認 |
 
 カメラとのやり取りとフラッシュの規則は `serve_migration.py`・`build_stockboot.py`・カメラ側スクリプトのままで、`easy_migrate.py` はそれを順に呼ぶだけ。どの段階でもU-Bootは書かない。
@@ -52,10 +52,11 @@ ssh root@192.0.2.20 'cli -s .audio.outputVolume 40'      # 任意。スピーカ
 | `S96vicheck` | 冷えた状態からの起動で映像が出ないときにmajesticを再起動する |
 | `/usr/lib/libmajaudiofix.so`、`/etc/init.d/S95majestic` | マイクの音をOpusとAACで正しくし、スピーカーの音量 `audio.outputVolume` を効かせる（[../audio/README.md](../audio/README.md)）。`S95majestic` がfirmwareのもの（`/rom` と同じ）か以前の版のときだけ入れ、違うものなら報告して残す |
 | `majestic.yaml` の `audio.speakerPin: 63` | スピーカーのアンプのピン。ないと鳴らない。鳴らすかどうか（`audio.outputEnabled`）は変えない（[../audio/README.md](../audio/README.md)） |
+| `/usr/sbin/wifi-ap`、`/etc/init.d/S97wifiap`、`/usr/lib/wifi-ap/mt7601Uap.ko.xz` | リセットボタンの長押しで復旧用のAPになる（[../wifi/ap/README.md](../wifi/ap/README.md)）。オーバーレイに約280 KiBの空きがあるときだけ3つとも入れ、足りなければどれも書かずにエラーとして報告する。再起動の後から動く |
 
 すでに正しい項目は飛ばす。envは未設定の変数だけを埋め、違う値は報告して残す。`/proc/mtd` が移行後の固定配置でない、`/rom/usr/sbin/sysupgrade` がない、`fw_printenv` が読めない、のどれかなら何も変えない。U-Boot・kernel・rootfs・Wi-Fi設定は書かず、更新処理も動かさない。終了コードは0（完了・変更なし）、1（`--check` で変える所あり）、2（エラー）、3（`--ssh` のコマンド自体の失敗）。
 
-2台目での確認：カメラの `/tmp` に作った仮のルートで、未設定の状態から7項目を入れ、2回目はファイルもenvも変えないことを確かめた（`wdt` の読込みだけは、仮のルートに `/proc/modules` がないので毎回行う）。実際のルートでは、手で入れてあった設定と一致し「変更なし」だった。マイクの修正（2ファイル）を足した版は、`--check` が変える所としてこの2つだけを挙げるのを見てから `--reboot` で入れ、再起動後の `--check` は「変更なし」だった（2026-11-17）。スピーカーの音量とピンを足した版（版3）は、手で入れ替えて確かめた後、`post_setup.py` で入れ直した。音声の修正を外して `audio.speakerPin` も消した状態からと、マイクだけの版を入れた状態からの2通りで、`--check` は変える所として `speakerPin`・ライブラリ・`S95majestic` の3つだけを挙げ、`--reboot` で入れると32秒で戻り、再起動後の `--check` は「変更なし」だった。どちらもmajesticがライブラリを読み込み、マイクは20 msのモノラル、スピーカーの1 kHzは−29 dBFSで鳴り、`outputVolume 30` で12 dB下がった。`easy_migrate.py` の最後の段階（`post_setup`）だけを2台目に向けて動かしたときも同じだった（[../results/unit2-speaker.json](../results/unit2-speaker.json) の `post_setup_install`）。
+2台目での確認：カメラの `/tmp` に作った仮のルートで、未設定の状態から7項目を入れ、2回目はファイルもenvも変えないことを確かめた（`wdt` の読込みだけは、仮のルートに `/proc/modules` がないので毎回行う）。実際のルートでは、手で入れてあった設定と一致し「変更なし」だった。マイクの修正（2ファイル）を足した版は、`--check` が変える所としてこの2つだけを挙げるのを見てから `--reboot` で入れ、再起動後の `--check` は「変更なし」だった（2026-11-17）。スピーカーの音量とピンを足した版（版3）は、手で入れ替えて確かめた後、`post_setup.py` で入れ直した。音声の修正を外して `audio.speakerPin` も消した状態からと、マイクだけの版を入れた状態からの2通りで、`--check` は変える所として `speakerPin`・ライブラリ・`S95majestic` の3つだけを挙げ、`--reboot` で入れると32秒で戻り、再起動後の `--check` は「変更なし」だった。どちらもmajesticがライブラリを読み込み、マイクは20 msのモノラル、スピーカーの1 kHzは−29 dBFSで鳴り、`outputVolume 30` で12 dB下がった。`easy_migrate.py` の最後の段階（`post_setup`）だけを2台目に向けて動かしたときも同じだった（[../results/unit2-speaker.json](../results/unit2-speaker.json) の `post_setup_install`）。復旧用のAPを足した版（版4）は、`--check` が変える所としてその3つだけを挙げ、`--reboot` で入れると約50秒で戻り、オーバーレイの空きは608 KiBから416 KiBになった。試験の後の `--check` は「変更なし」だった（[../results/unit2-wifi-ap.json](../results/unit2-wifi-ap.json)）。
 
 ## easy_migrate.py に必要なもの
 
@@ -157,4 +158,4 @@ cd research/openipc-migrate
 python3 -m unittest tests.test_easy_migrate tests.test_post_setup -v
 ```
 
-`test_easy_migrate`（16件）は、`serve_migration.py` のプロトコルを話す模擬カメラと、`build_stockboot.py` の模擬を相手に、全段階の通し・再開・1回限りの仕掛け・finalのPONR越えと再実行・`restore-env`・事前確認（`post_setup.py` が入れるファイルの欠けを含む）・古いenvの拒否・設定の検査・SPI参照イメージ・設定例の読込みを確かめる。`test_post_setup`（16件）は、生成したスクリプトをホストのBusyBoxで、工場出荷状態をまねた仮のルートと模擬の `fw_printenv`・`fw_setenv` を相手に動かす（音声の修正を、firmwareの `S95majestic` か以前の版の上にだけ入れることも確かめる）。
+`test_easy_migrate`（16件）は、`serve_migration.py` のプロトコルを話す模擬カメラと、`build_stockboot.py` の模擬を相手に、全段階の通し・再開・1回限りの仕掛け・finalのPONR越えと再実行・`restore-env`・事前確認（`post_setup.py` が入れるファイルの欠けを含む）・古いenvの拒否・設定の検査・SPI参照イメージ・設定例の読込みを確かめる。`test_post_setup`（17件）は、生成したスクリプトをホストのBusyBoxで、工場出荷状態をまねた仮のルートと模擬の `fw_printenv`・`fw_setenv` を相手に動かす（音声の修正を、firmwareの `S95majestic` か以前の版の上にだけ入れること、復旧用のAPを、ドライバの入る空きがあるときだけ3つまとめて入れることも確かめる）。

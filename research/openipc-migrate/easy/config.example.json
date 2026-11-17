@@ -5,7 +5,7 @@
   "spi_dump": "spi-dump-8m.bin",
   "firmware": "public/firmware.bin.hi3518ev100",
   "oipc_rootfs": "public/rootfs",
-  "auth_runtime": "auth/wpa_supplicant",
+  "auth_runtime": "auth-runtime",
   "wifi_vars": "wifi.vars",
   "mksquashfs": "mksquashfs",
   "camera_ssh": "ssh root@{ip}",

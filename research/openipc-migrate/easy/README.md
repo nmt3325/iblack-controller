@@ -64,7 +64,7 @@ ssh root@192.0.2.20 'cli -s .audio.outputVolume 40'      # 任意。スピーカ
 
 - **bundle**：`build_migration_appfs.py` で作る移行bundle（コマンドは [../README.md](../README.md) の「再実行」）。`--host` は、このホストがカメラに見せるIPv4アドレス。env画像は今の `make_env.py` で作る。既定で `sensor=ar0141` と届かない `upgrade` URLが入る。どちらかがないenvは `check` が止める（`sensor` がないと、2台目のように移行直後から約40秒ごとに再起動する）。bundleに入るカメラ側のスクリプト（`om_stockboot.sh`、`migrate_hook.sh`、`stage2.sh`）がこのチェックアウトのものと違うbundle（その後の修正より前に作ったもの）も、配信の前なら `check` と `run` が止める。配信した後は、そのカメラにはそのbundleを使い続けて注意だけを出し、`run --again deliver` で古いbundleを送り直すことはしない。
 - **firmware**：固定したOpenIPCの `firmware.bin.hi3518ev100`（`build_stockboot.FIRMWARE_SHA256` と一致するもの）。**oipc_rootfs** はそのrootfsを展開した木。
-- **auth_runtime**：試験起動用のWPA2ランタイム（[../auth/README.md](../auth/README.md)）。
+- **auth_runtime**：試験起動用のWPA2ランタイムのディレクトリ（[../auth/README.md](../auth/README.md)）。`wpa_supplicant` と `runtime.json` が入った0700のディレクトリで、`build_stockboot.py trial` の `--auth-runtime` に渡すもの。`check` はマニフェストとハッシュも確かめる（実行ファイルだけを指す設定は止める）。
 - **wifi_vars**：0600の `key=value` ファイル（`wlanssid`、`wlanpass`）。試験起動と移行後のOpenIPCがつなぐ2.4 GHzのWi-Fiで、bundleのenvを作ったときと同じもの。
 - **spi_dump**：そのカメラの8 MiBのSPIイメージ。なければ `backup` フックで作る。
 - `mksquashfs`（squashfs-tools）と、フックが使うコマンド（例では `nmcli`）。
@@ -158,4 +158,4 @@ cd research/openipc-migrate
 python3 -m unittest tests.test_easy_migrate tests.test_post_setup -v
 ```
 
-`test_easy_migrate`（18件）は、`serve_migration.py` のプロトコルを話す模擬カメラと、`build_stockboot.py` の模擬を相手に、全段階の通し・再開・1回限りの仕掛け・finalのPONR越えと再実行・`restore-env`・事前確認（`post_setup.py` が入れるファイルの欠けを含む）・古いenvと古いスクリプトのbundleの拒否（配信の後は注意だけ）・設定の検査・SPI参照イメージ・設定例の読込みを確かめる。`test_post_setup`（17件）は、生成したスクリプトをホストのBusyBoxで、工場出荷状態をまねた仮のルートと模擬の `fw_printenv`・`fw_setenv` を相手に動かす（音声の修正を、firmwareの `S95majestic` か以前の版の上にだけ入れること、復旧用のAPを、ドライバの入る空きがあるときだけ3つまとめて入れることも確かめる）。
+`test_easy_migrate`（19件）は、`serve_migration.py` のプロトコルを話す模擬カメラと、`build_stockboot.py` の模擬（渡す引数は本物の引数定義で確かめ、試験起動では本物と同じく認証ランタイムのディレクトリを読む）を相手に、全段階の通し・再開・1回限りの仕掛け・finalのPONR越えと再実行・`restore-env`・事前確認（`post_setup.py` が入れるファイルの欠けを含む）・古いenvと古いスクリプトのbundleの拒否（配信の後は注意だけ）・設定と認証ランタイムの検査・SPI参照イメージ・設定例の読込みを確かめる。`test_post_setup`（17件）は、生成したスクリプトをホストのBusyBoxで、工場出荷状態をまねた仮のルートと模擬の `fw_printenv`・`fw_setenv` を相手に動かす（音声の修正を、firmwareの `S95majestic` か以前の版の上にだけ入れること、復旧用のAPを、ドライバの入る空きがあるときだけ3つまとめて入れることも確かめる）。

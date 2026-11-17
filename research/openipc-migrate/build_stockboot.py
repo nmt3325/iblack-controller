@@ -549,7 +549,8 @@ def cmd_status(args, state: Path) -> dict:
     return out
 
 
-def main(argv=None) -> int:
+def make_parser() -> argparse.ArgumentParser:
+    """The command line (the easy_migrate tests check the arguments it passes against this)."""
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--state", type=Path, help="private state directory (0700, outside the repo); all but plan")
     sub = ap.add_subparsers(dest="cmd", required=True)
@@ -584,6 +585,11 @@ def main(argv=None) -> int:
     p.add_argument("--mksquashfs", required=True)
     p.add_argument("--bundle", type=Path, help="private bundle from build_migration_appfs.py (appfs size only)")
     p.add_argument("--workdir")
+    return ap
+
+
+def main(argv=None) -> int:
+    ap = make_parser()
     args = ap.parse_args(argv)
     if args.cmd != "plan" and args.state is None:
         ap.error("--state is required")

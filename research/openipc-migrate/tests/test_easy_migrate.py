@@ -22,6 +22,7 @@ from urllib.parse import urlencode
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from om_testlib import (ROOT, free_port, make_bundle, private_tmp, rbytes, rmtree, stock_wget_form,  # noqa: E402
                         synthetic_files, write_action_set)
+import auth_fixture as af  # noqa: E402
 import sb_fixture as fx  # noqa: E402
 from sb_fixture import sl  # noqa: E402
 
@@ -29,6 +30,7 @@ sys.path.insert(0, str(ROOT / "easy"))
 import build_stockboot as bs  # noqa: E402
 import easy_migrate as em  # noqa: E402
 import make_env  # noqa: E402
+import trial_auth as ta  # noqa: E402
 
 E0 = sl.build_env(fx.E0_ENTRIES)
 UBOOT, ENVLIVE = "a" * 64, hashlib.sha256(E0).hexdigest()
@@ -55,7 +57,8 @@ def fast_timing() -> em.Timing:
 
 class FakeBS:
     """build_stockboot.py: diag compares the camera's U-Boot with the given SPI image, the builders write valid
-    synthetic action sets, collect answers per stage."""
+    synthetic action sets, collect answers per stage. The arguments go through the real command line, and the trial
+    reads the authentication runtime as the real one does."""
 
     def __init__(self):
         self.calls = []
@@ -63,8 +66,13 @@ class FakeBS:
 
     def __call__(self, *args):
         args = [str(a) for a in args]
+        ns = bs.make_parser().parse_args(["--state", "state", *args])   # unknown or missing options fail here
         cmd, opt = args[0], dict(zip(args[1::2], args[2::2]))
         self.calls.append(cmd)
+        if cmd == "trial":
+            ta.runtime_files(bs.private_dir(ns.auth_runtime, create=False))
+            make_env.parse_private_vars(ns.wifi_vars)
+            assert Path(ns.workdir).is_dir(), ns.workdir
         if cmd == "diag":
             uboot = bs.newest_upload(Path(opt["--uploads"]), "diag-uboot")
             if uboot != Path(opt["--spi-dump"]).read_bytes()[:sl.UBOOT_LEN]:
@@ -253,7 +261,7 @@ class Base(unittest.TestCase):
         self.cam_uboot = self.dump[:K] + b"\x5a" * em.UBOOT_TAIL   # unit 2: data where the SPI image has 0xFF
         (self.tmp / "spi.bin").write_bytes(self.dump)
         (self.tmp / "rootfs" / "lib" / "modules").mkdir(parents=True)
-        (self.tmp / "auth.bin").write_bytes(b"auth-runtime")
+        af.runtime(self.tmp / "auth-runtime")
         self.wifi = self.tmp / "wifi.vars"
         self.wifi.write_text("wlanssid=trial-ssid-for-test\nwlanpass=trial-pass-for-test\n")
         self.wifi.chmod(0o600)
@@ -261,7 +269,7 @@ class Base(unittest.TestCase):
         self.cfg = self.tmp / "easy.json"
         self.config = {
             "comment": "offline test", "bundle": "bundle", "work": str(self.work), "spi_dump": "spi.bin",
-            "firmware": "firmware.bin", "oipc_rootfs": "rootfs", "auth_runtime": "auth.bin", "wifi_vars": "wifi.vars",
+            "firmware": "firmware.bin", "oipc_rootfs": "rootfs", "auth_runtime": "auth-runtime", "wifi_vars": "wifi.vars",
             "mksquashfs": "true",
             "hooks": {n: f'echo "{n} $EASY_STEP" >> "$EASY_WORK/hooks.txt"' + extra for n, extra in {
                 "camera_ap_up": "", "deliver": '; touch "$EASY_WORK/delivered"',
@@ -472,6 +480,22 @@ class Preflight(Base):
         self.assertEqual(self.em("check"), 2, self.out)
         self.assertIn("chmod 600", self.out)
         self.assertEqual(self.em("run"), 2, self.out)
+
+    def test_auth_runtime_is_the_runtime_directory(self):
+        # build_stockboot.py trial reads a 0700 directory with wpa_supplicant and runtime.json, not the binary alone
+        self.config["auth_runtime"] = "auth-runtime/wpa_supplicant"
+        self.write_config()
+        self.assertEqual(self.em("check"), 2, self.out)
+        self.assertIn("problem: auth_runtime: wpa_supplicant: must be a 0700 directory", self.out)
+        self.assertIn("--auth-runtime", self.out)
+        self.config["auth_runtime"] = "auth-runtime"
+        self.write_config()
+        meta = self.tmp / "auth-runtime" / "runtime.json"
+        meta.write_text(meta.read_text().replace('"2.11"', '"2.10"'))
+        self.assertEqual(self.em("check"), 2, self.out)
+        self.assertIn("problem: auth_runtime: unsupported manifest profile", self.out)
+        self.assertEqual(self.em("run"), 2, self.out)
+        self.assertEqual(self.hooks(), [])
 
     def test_dump_and_firmware(self):
         (self.tmp / "spi.bin").write_bytes(b"short")

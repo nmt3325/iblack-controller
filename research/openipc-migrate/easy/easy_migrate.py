@@ -58,6 +58,7 @@ import build_stockboot as bs  # noqa: E402
 import make_env  # noqa: E402
 import serve_migration as sm  # noqa: E402
 import stock_layout as sl  # noqa: E402
+import trial_auth as ta  # noqa: E402
 sys.path.insert(0, str(HERE))
 import post_setup as ps  # noqa: E402
 
@@ -67,6 +68,8 @@ AGAIN_BEFORE_FINAL = ("deliver", "diagnose", "wdtgate", "probe", "trial")
 AGAIN_ANY_TIME = ("boot", "post_setup")
 PATH_KEYS = ("bundle", "work", "spi_dump", "firmware", "oipc_rootfs", "auth_runtime", "wifi_vars")
 OTHER_KEYS = ("mksquashfs", "camera_ssh", "hooks", "comment")
+AUTH_HINT = ("the private 0700 directory with wpa_supplicant and runtime.json that build_stockboot.py trial "
+             "takes as --auth-runtime, auth/README.md")
 REQUIRED_HOOKS = ("camera_ap_up", "deliver", "trial_ap_up", "trial_ap_down", "final_ap_up", "camera_address")
 OPTIONAL_HOOKS = ("backup", "camera_ap_check")
 FIRMWARE_SHA256 = bs.FIRMWARE_SHA256      # the pinned OpenIPC image; the tests swap in their synthetic one
@@ -638,8 +641,12 @@ class Flow:
             problems.append(f"wifi_vars: {exc}")
         if not (c["oipc_rootfs"] / "lib" / "modules").is_dir():
             problems.append("oipc_rootfs: not an unpacked OpenIPC rootfs (no lib/modules)")
-        if not c["auth_runtime"].is_file():
-            problems.append("auth_runtime: missing")
+        try:   # what build_stockboot.py trial reads before it builds the trial
+            ta.runtime_files(bs.private_dir(c["auth_runtime"], create=False))
+        except (bs.StateError, ta.AuthError) as exc:
+            problems.append(f"auth_runtime: {str(exc).removeprefix('auth runtime: ')} ({AUTH_HINT})")
+        except OSError as exc:
+            problems.append(f"auth_runtime: {exc.strerror}: {exc.filename} ({AUTH_HINT})")
         if not shutil.which(c["mksquashfs"]):
             problems.append(f"mksquashfs: {c['mksquashfs']} not found or not executable (squashfs-tools)")
         d = c["spi_dump"]

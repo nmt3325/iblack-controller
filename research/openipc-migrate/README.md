@@ -250,7 +250,7 @@ finalの後戻りできない区間は、firmware約6.6 MiBの消去・書込み
 
 ### x86ホスト
 
-`python3 -m unittest discover -s tests -v`：**382件中380件が成功**（失敗0、スキップ2、2026-11-17。実ツールの `mksquashfs`／`unsquashfs`、ARM用binutilsとOpenIPCのrootfsあり、約4.5分）。スキップの2件は、私的な認証ランタイムとqemu-armが要る `test_trial_auth` の実ランタイム試験。音声の修正のライブラリを作り直す試験（1件）は、ARM用binutilsとrootfsがなければスキップする。最初にまとめたときは135件だった。
+`python3 -m unittest discover -s tests -v`：**383件中381件が成功**（失敗0、スキップ2、2026-11-17。実ツールの `mksquashfs`／`unsquashfs`、ARM用binutilsとOpenIPCのrootfsあり、約4.5分）。スキップの2件は、私的な認証ランタイムとqemu-armが要る `test_trial_auth` の実ランタイム試験。音声の修正のライブラリを作り直す試験（1件）は、ARM用binutilsとrootfsがなければスキップする。最初にまとめたときは135件だった。
 
 | モジュール | 件数 | 内容 |
 | --- | --- | --- |
@@ -272,7 +272,7 @@ finalの後戻りできない区間は、firmware約6.6 MiBの消去・書込み
 | `test_wifi_switch_trial` | 6 | `wifi/wifi-switch-trial.sh`（[wifi/README.md](wifi/README.md)） |
 | `test_wifi_ap` | 48 | `wifi/ap/wifi-ap` と `S97wifiap`（模擬のコマンドとGPIOを相手に。[wifi/ap/README.md](wifi/ap/README.md)） |
 | `test_post_setup` | 17 | `easy/post_setup.py`（[easy/README.md](easy/README.md)） |
-| `test_easy_migrate` | 18 | `easy/easy_migrate.py`（模擬カメラ相手。[easy/README.md](easy/README.md)） |
+| `test_easy_migrate` | 19 | `easy/easy_migrate.py`（模擬カメラ相手。[easy/README.md](easy/README.md)） |
 | `test_sysupgrade_guard` | 20 | `update/sysupgrade-guard.sh`（[update/README.md](update/README.md)） |
 | `test_check_update` | 9 | `update/check_update.py`（[update/README.md](update/README.md)） |
 

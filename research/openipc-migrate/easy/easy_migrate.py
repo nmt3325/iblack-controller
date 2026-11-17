@@ -13,7 +13,8 @@ command goes on where it stopped (after a failure, a power cut or Ctrl-C):
   final       the migration itself, only with --yes-final; past its point of no return keep the camera powered
   boot        finds the camera on the network and checks SSH, HTTP and RTSP
   owner       your first login (Majestic EULA, root password): always typed by you, never automated
-  post_setup  board settings, the update guard and the microphone/speaker fix over SSH (easy/post_setup.py)
+  post_setup  board settings, the update guard, the microphone/speaker fix and the rescue access point (reset
+              button) over SSH (easy/post_setup.py)
 
     python3 easy/easy_migrate.py --config PRIVATE.json check              # preflight only
     python3 easy/easy_migrate.py --config PRIVATE.json run                # up to the trial; stops before final
@@ -84,6 +85,16 @@ SENSOR_MSG = ("bundle: env-openipc.img has no sensor=ar0141. Without it OpenIPC'
 UPGRADE_MSG = ("bundle: env-openipc.img has no upgrade variable. An online update (Web UI or sysupgrade) would then "
                "fetch a standard OpenIPC image, which does not fit this camera's fixed slots and bricks it. Rebuild "
                "the env with make_env.py (upgrade defaults to an unreachable URL), then the bundle")
+# The camera scripts a bundle carries and their source in this checkout: a bundle built before a fix lacks it.
+BUNDLE_SCRIPTS = {"runtime/om_stockboot.sh": BASE / "installer" / "om_stockboot.sh",
+                  "runtime/migrate_hook.sh": BASE / "camera" / "migrate_hook.sh"}
+BUNDLE_STAGE2 = BASE / "camera" / "stage2.sh"   # inside the appfs; migrate.conf pins its sha256
+STALE_MSG = ("bundle: built from older camera scripts ({names}), so it may lack fixes made since (such as the "
+             "watchdog stop during final). Rebuild it with build_migration_appfs.py from this checkout "
+             "(easy/README.md: bundle) and point the config at the new bundle")
+STALE_NOTE = ("note: the bundle was built from older camera scripts ({names}). The camera already has its hook "
+              "from this bundle, so this run keeps it. For the newer scripts rebuild the bundle, point the "
+              "config at it and run `run --again deliver`")
 QUIET_HINT = ("the camera has not called in for {mins}. It calls in for 30 min after each boot (and for 60 min "
               "after an action). Check its power and its Wi-Fi; if it stays silent, power-cycle it: the stock "
               "firmware boots and calls in again (nothing is written before an action starts)")
@@ -111,6 +122,9 @@ DONE_TEXT = ("done: the camera runs OpenIPC at {ip}\n"
              "    ssh root@{ip} 'cli -s .audio.enabled true'         # the microphone\n"
              "    ssh root@{ip} 'cli -s .audio.outputEnabled true'   # and the speaker (/play_audio)\n"
              "    ssh root@{ip} 'cli -s .audio.outputVolume 40'      # speaker volume 0-100; 50 plays as sent\n"
+             "  Wi-Fi lost (new router, SSID or passphrase)? Hold the reset button for 3-30 s: the camera opens "
+             "the access point OpenIPC-XXXX (XXXX: end of its Wi-Fi MAC; passphrase: its Wi-Fi passphrase) at "
+             "192.168.4.1, then  ssh root@192.168.4.1 'wifi-ap join SSID PASSPHRASE'  (wifi/ap/README.md)\n"
              "  Never use the Web UI firmware update or auto-update (update/README.md); after a factory reset run "
              "easy/post_setup.py again.")
 
@@ -304,6 +318,7 @@ class Flow:
         self.work = self.cfg["work"]
         self.uploads, self.statedir = self.work / "uploads", self.work / "state"
         self.bundle = None
+        self.stale = []   # camera scripts of the bundle that differ from this checkout
         self.state = fresh_state()
         self.step = None
         self.servers = []
@@ -597,6 +612,15 @@ class Flow:
                 if not oenv.get("upgrade"):
                     problems.append(UPGRADE_MSG)
             try:
+                self.stale = self.stale_scripts(bundle)
+            except OSError as exc:
+                problems.append(f"bundle: {exc}")
+            st = self.state
+            if self.stale and not (st["deliver_sent"] or "deliver" in st["done"]):
+                problems.append(STALE_MSG.format(names=", ".join(self.stale)))
+            elif self.stale and not (st["final"]["ponr"] or "final" in st["done"]):
+                self.say(STALE_NOTE.format(names=", ".join(self.stale)))
+            try:
                 ipaddress.IPv4Address(bundle.host)
                 self.bundle = bundle
             except ValueError:
@@ -629,6 +653,15 @@ class Flow:
         except (OSError, ValueError) as exc:
             problems.append(f"post_setup: {exc}")
         return problems
+
+    @staticmethod
+    def stale_scripts(bundle) -> list:
+        """Names of the camera scripts in `bundle` that differ from this checkout."""
+        old = [Path(rel).name for rel, src in BUNDLE_SCRIPTS.items()
+               if bundle.files[rel].digests["sha256"] != hashlib.sha256(src.read_bytes()).hexdigest()]
+        if bundle.conf.get("OM_STAGE2_SHA256") != hashlib.sha256(BUNDLE_STAGE2.read_bytes()).hexdigest():
+            old.append(BUNDLE_STAGE2.name)
+        return old
 
     def require_preflight(self) -> None:
         problems = self.preflight()
@@ -665,6 +698,8 @@ class Flow:
                 self.say("the hook was delivered before; waiting for the camera to call in "
                          "(`run --again deliver` sends it again)")
             else:
+                if self.stale:   # `run --again deliver` gets here after the preflight
+                    raise Stop(STALE_MSG.format(names=", ".join(self.stale)), 2)
                 self.state["deliver_sent"] = True
                 self.save_state()
                 self.say("sending the migration hook to the stock firmware (hook deliver)")
@@ -945,7 +980,8 @@ class Flow:
 
     def run_post_setup(self, ip: str) -> int:
         ssh = self.cfg["camera_ssh"].replace("{ip}", ip)
-        self.say(f"board settings, update guard and audio fix over SSH ({ssh}); ssh may ask for your password")
+        self.say(f"board settings, update guard, audio fix and rescue access point over SSH ({ssh}); "
+                 "ssh may ask for your password")
         return subprocess.run([sys.executable, str(POST_SETUP), "--ssh", ssh, "--reboot"]).returncode
 
     def step_post_setup(self, **_) -> None:
@@ -955,14 +991,16 @@ class Flow:
 
     # ---- commands ---------------------------------------------------------------------------------------------
     def check(self) -> int:
+        self.state = self.load_state()   # read only: a camera that already has the hook keeps its bundle
         problems = self.preflight()
         for p in problems:
             self.say("problem: " + p)
         if problems:
             return 2
-        self.say(f"preflight ok: bundle for {self.bundle.host}:{self.bundle.port}, pinned firmware, env-openipc with "
-                 f"sensor and upgrade, SPI image {'present' if self.dump_ok() else 'to be made by the backup hook'}, "
-                 f"post_setup {ps.VERSION} with all its files")
+        scripts = "older camera scripts (see the note)" if self.stale else "camera scripts of this checkout"
+        spi = "present" if self.dump_ok() else "to be made by the backup hook"
+        self.say(f"preflight ok: bundle for {self.bundle.host}:{self.bundle.port} with {scripts}, pinned firmware, "
+                 f"env-openipc with sensor and upgrade, SPI image {spi}, post_setup {ps.VERSION} with all its files")
         return 0
 
     def apply_again(self, step: str) -> None:

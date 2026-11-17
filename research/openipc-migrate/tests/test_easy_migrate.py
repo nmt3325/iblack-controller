@@ -242,6 +242,7 @@ class Base(unittest.TestCase):
         self.addCleanup(rmtree, self.tmp)
         files = synthetic_files(3)
         files["payload/env-openipc.img"] = self.oenv
+        files.update({rel: src.read_bytes() for rel, src in em.BUNDLE_SCRIPTS.items()})   # as from this checkout
         self.port = free_port()
         self.run_id, _ = make_bundle(self.tmp / "bundle", files, port=self.port)
         fw = files["payload/firmware.bin"]
@@ -359,6 +360,7 @@ class FullRun(Base):
         self.assertEqual(self.post, ["127.0.0.1"])
         self.assertIn("done: the camera runs OpenIPC at 127.0.0.1", self.out)
         self.assertIn("ssh root@127.0.0.1 'cli -s .audio.outputEnabled true'", self.out)
+        self.assertIn("Hold the reset button for 3-30 s", self.out)
         self.assertEqual(self.em("run"), 0, self.out)
         self.assertEqual(self.post, ["127.0.0.1"])
         self.assertEqual(self.em("status"), 0, self.out)
@@ -450,6 +452,7 @@ class Preflight(Base):
     def test_check_ok(self):
         self.assertEqual(self.em("check"), 0, self.out)
         self.assertIn("preflight ok", self.out)
+        self.assertIn("with camera scripts of this checkout", self.out)
         self.assertIn(f"post_setup {em.ps.VERSION} with all its files", self.out)
 
     def test_post_setup_files(self):
@@ -486,6 +489,39 @@ class OldEnv(Base):
         self.assertIn("sensor=ar0141", self.out)
         self.assertIn("40 s", self.out)
         self.assertIn("no upgrade variable", self.out)
+
+
+class OldBundle(Base):
+    """A bundle built from older camera scripts (one from before the watchdog stop of the final, say)."""
+
+    def rebuild(self, scripts: dict, stage2: bytes = None) -> None:
+        files = {rel: f.data for rel, f in em.sm.load_bundle(self.tmp / "bundle").files.items()}
+        files.update(scripts)
+        rmtree(self.tmp / "bundle")
+        self.run_id, _ = make_bundle(self.tmp / "bundle", files, port=self.port, stage2=stage2)
+
+    def test_refused_before_delivery(self):
+        self.rebuild({"runtime/migrate_hook.sh": b"#!/bin/sh\n# older hook\n"}, stage2=b"#!/bin/sh\n# older\n")
+        self.assertEqual(self.em("check"), 2, self.out)
+        self.assertIn("problem: bundle: built from older camera scripts (migrate_hook.sh, stage2.sh)", self.out)
+        self.assertEqual(self.em("run"), 2, self.out)
+        self.assertIn("1 preflight problem(s)", self.out)
+        self.assertEqual(self.hooks(), [])
+
+    def test_kept_once_delivered_never_sent_again(self):
+        self.rebuild({"runtime/om_stockboot.sh": b"#!/bin/sh\n# older installer\n"})
+        self.seed("trial")   # the camera already has the hook from this bundle
+        cam = self.camera()
+        self.assertEqual(self.em("check"), 0, self.out)
+        self.assertIn("note: the bundle was built from older camera scripts (om_stockboot.sh)", self.out)
+        self.assertIn("with older camera scripts (see the note)", self.out)
+        self.assertEqual(self.em("run"), 4, self.out)   # on to final, which waits for --yes-final
+        self.assertIn("note: the bundle was built from older camera scripts", self.out)
+        self.assertEqual(cam.actions, [])
+        self.assertEqual(self.em("run", "--again", "deliver"), 2, self.out)
+        self.assertIn("STOPPED: bundle: built from older camera scripts (om_stockboot.sh)", self.out)
+        self.assertEqual([h for h in self.hooks() if h.startswith("deliver ")], [])
+        self.assertFalse(self.state()["deliver_sent"])
 
 
 class Config(Base):

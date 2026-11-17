@@ -4,7 +4,7 @@
 
 | ファイル | 役割 | 確認状況 |
 | --- | --- | --- |
-| `easy_migrate.py` | 純正ファームのカメラを、SPIの控え → 配信 → diagnose → wdtgate → probe → 試験起動 → final → 起動確認 → 初回ログイン待ち → `post_setup.py` の順にOpenIPCへ移す。止まっても同じコマンドで続きから再開する | **オフライン試験だけ**（模擬カメラ相手の16件）。純正ファームのままの機体が手元にないので、実機では通していない（最後の `post_setup` の段階だけは2台目で動かした。下記） |
+| `easy_migrate.py` | 純正ファームのカメラを、SPIの控え → 配信 → diagnose → wdtgate → probe → 試験起動 → final → 起動確認 → 初回ログイン待ち → `post_setup.py` の順にOpenIPCへ移す。止まっても同じコマンドで続きから再開する | **オフライン試験だけ**（模擬カメラ相手の18件）。純正ファームのままの機体が手元にないので、実機では通していない（最後の `post_setup` の段階だけは2台目で動かした。下記） |
 | `post_setup.py` | 移行後の基板設定・更新ガード・マイクとスピーカーの修正・復旧用のAP（リセットボタン）をSSHで入れる。何度実行してもよい | 2台目で実機確認（下記） |
 | `config.example.json` | `easy_migrate.py` の設定例 | 読み込めることをテストで確認 |
 
@@ -62,7 +62,7 @@ ssh root@192.0.2.20 'cli -s .audio.outputVolume 40'      # 任意。スピーカ
 
 すべてリポジトリの外に置く（`check` が確かめる）。
 
-- **bundle**：`build_migration_appfs.py` で作る移行bundle（コマンドは [../README.md](../README.md) の「再実行」）。`--host` は、このホストがカメラに見せるIPv4アドレス。env画像は今の `make_env.py` で作る。既定で `sensor=ar0141` と届かない `upgrade` URLが入る。どちらかがないenvは `check` が止める（`sensor` がないと、2台目のように移行直後から約40秒ごとに再起動する）。
+- **bundle**：`build_migration_appfs.py` で作る移行bundle（コマンドは [../README.md](../README.md) の「再実行」）。`--host` は、このホストがカメラに見せるIPv4アドレス。env画像は今の `make_env.py` で作る。既定で `sensor=ar0141` と届かない `upgrade` URLが入る。どちらかがないenvは `check` が止める（`sensor` がないと、2台目のように移行直後から約40秒ごとに再起動する）。bundleに入るカメラ側のスクリプト（`om_stockboot.sh`、`migrate_hook.sh`、`stage2.sh`）がこのチェックアウトのものと違うbundle（その後の修正より前に作ったもの）も、配信の前なら `check` と `run` が止める。配信した後は、そのカメラにはそのbundleを使い続けて注意だけを出し、`run --again deliver` で古いbundleを送り直すことはしない。
 - **firmware**：固定したOpenIPCの `firmware.bin.hi3518ev100`（`build_stockboot.FIRMWARE_SHA256` と一致するもの）。**oipc_rootfs** はそのrootfsを展開した木。
 - **auth_runtime**：試験起動用のWPA2ランタイム（[../auth/README.md](../auth/README.md)）。
 - **wifi_vars**：0600の `key=value` ファイル（`wlanssid`、`wlanpass`）。試験起動と移行後のOpenIPCがつなぐ2.4 GHzのWi-Fiで、bundleのenvを作ったときと同じもの。
@@ -158,4 +158,4 @@ cd research/openipc-migrate
 python3 -m unittest tests.test_easy_migrate tests.test_post_setup -v
 ```
 
-`test_easy_migrate`（16件）は、`serve_migration.py` のプロトコルを話す模擬カメラと、`build_stockboot.py` の模擬を相手に、全段階の通し・再開・1回限りの仕掛け・finalのPONR越えと再実行・`restore-env`・事前確認（`post_setup.py` が入れるファイルの欠けを含む）・古いenvの拒否・設定の検査・SPI参照イメージ・設定例の読込みを確かめる。`test_post_setup`（17件）は、生成したスクリプトをホストのBusyBoxで、工場出荷状態をまねた仮のルートと模擬の `fw_printenv`・`fw_setenv` を相手に動かす（音声の修正を、firmwareの `S95majestic` か以前の版の上にだけ入れること、復旧用のAPを、ドライバの入る空きがあるときだけ3つまとめて入れることも確かめる）。
+`test_easy_migrate`（18件）は、`serve_migration.py` のプロトコルを話す模擬カメラと、`build_stockboot.py` の模擬を相手に、全段階の通し・再開・1回限りの仕掛け・finalのPONR越えと再実行・`restore-env`・事前確認（`post_setup.py` が入れるファイルの欠けを含む）・古いenvと古いスクリプトのbundleの拒否（配信の後は注意だけ）・設定の検査・SPI参照イメージ・設定例の読込みを確かめる。`test_post_setup`（17件）は、生成したスクリプトをホストのBusyBoxで、工場出荷状態をまねた仮のルートと模擬の `fw_printenv`・`fw_setenv` を相手に動かす（音声の修正を、firmwareの `S95majestic` か以前の版の上にだけ入れること、復旧用のAPを、ドライバの入る空きがあるときだけ3つまとめて入れることも確かめる）。
